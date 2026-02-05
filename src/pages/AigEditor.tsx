@@ -5,30 +5,18 @@ import { getAigById, updateAig, getEnteProfile } from "../lib/db";
 type Natura = "APS" | "ODV";
 
 const ENTRATE_KEYS = [
-  {
-    k: "entrate_associati_mutuali",
-    label: "1) Entrate dagli associati per attività mutuali",
-  },
-  {
-    k: "prestazioni_soci_fondatori",
-    label: "2) Prestazioni e cessioni ad associati e fondatori",
-  },
+  { k: "entrate_associati_mutuali", label: "1) Entrate dagli associati per attività mutuali" },
+  { k: "prestazioni_soci_fondatori", label: "2) Prestazioni e cessioni ad associati e fondatori" },
   { k: "contributi_privati", label: "6) Contributi da soggetti privati" },
   { k: "prestazioni_terzi", label: "7) Prestazioni e cessioni a terzi" },
   { k: "contributi_pubblici", label: "8) Contributi da enti pubblici" },
-  {
-    k: "contratti_pubblici",
-    label: "9) Entrate da contratti con enti pubblici",
-  },
+  { k: "contratti_pubblici", label: "9) Entrate da contratti con enti pubblici" },
   { k: "altri_ricavi", label: "10) Altri ricavi/rendite/proventi" },
   { k: "rimanenze_finali", label: "11) Rimanenze finali" },
 ] as const;
 
 const COSTI_DIRETTI_KEYS = [
-  {
-    k: "materie_prime",
-    label: "1) Materie prime, sussidiarie, di consumo e merci",
-  },
+  { k: "materie_prime", label: "1) Materie prime, sussidiarie, di consumo e merci" },
   { k: "servizi", label: "2) Servizi" },
   { k: "godimento_beni_terzi", label: "3) Godimento beni di terzi" },
   { k: "personale", label: "4) Personale" },
@@ -44,10 +32,7 @@ const COSTI_FIN_KEYS = [
 ] as const;
 
 const COSTI_SUPPORTO_KEYS = [
-  {
-    k: "materie_prime",
-    label: "1) Materie prime, sussidiarie, di consumo e merci",
-  },
+  { k: "materie_prime", label: "1) Materie prime, sussidiarie, di consumo e merci" },
   { k: "servizi", label: "2) Servizi" },
   { k: "godimento_beni_terzi", label: "3) Godimento beni di terzi" },
   { k: "personale", label: "4) Personale" },
@@ -56,46 +41,43 @@ const COSTI_SUPPORTO_KEYS = [
   { k: "altri_oneri", label: "7) Altri oneri" },
 ] as const;
 
-/** HELP (punto 2) */
+/** HELP (entrate) */
 const ENTRATE_HELP: Record<(typeof ENTRATE_KEYS)[number]["k"], string> = {
   entrate_associati_mutuali:
-    "Corrispettivi versati dai soci nello svolgimento di AIG a condizioni più favorevoli in ragione della loro qualità (Esclusi dal test di commercialità del 6% se l’associazione è un APS)",
+    "Corrispettivi versati dai soci per attività svolte verso gli associati a condizioni più favorevoli (tipiche della mutualità).",
   prestazioni_soci_fondatori:
-    "Corrispettivi versati dai soci o fondatori nello svolgimento di AIG a condizioni di mercato. Nelle APS questa voce è esclusa dal test. (Esclusi dal test se l’associazione è un APS)",
+    "Corrispettivi versati da soci o fondatori per prestazioni/cessioni (anche a condizioni di mercato).",
   contributi_privati:
-    "Contributi versati da privati (persone/aziende/enti) senza una controprestazione specifica. Solitamente sono legati a specifici progetti, soggetti a rendicontazione.",
-  prestazioni_terzi:
-    "Vendite o Servizi a terzi (non soci) con corrispettivo.",
+    "Contributi/donazioni da privati senza una controprestazione specifica, spesso legati a progetti e rendicontazione.",
+  prestazioni_terzi: "Vendite o servizi a terzi (non soci) con corrispettivo.",
   contributi_pubblici:
-    "Contributi o finanziamenti pubblici a sostegno delle AIG, senza corrispettivo specifico ma soggetti a rendicontazione e al test di commercialità",
+    "Contributi/finanziamenti pubblici a sostegno delle AIG, senza corrispettivo specifico ma soggetti a rendicontazione.",
   contratti_pubblici:
-    "Corrispettivi da enti pubblici per servizi/affidamenti/convenzioni che prevedono lo svolgimento di un servizio specifico che la PA appalta o affida all'ente.",
-  altri_ricavi:
-    "Altri proventi collegati all’AIG (rendite, rimborsi, proventi vari).",
+    "Corrispettivi da enti pubblici per servizi/affidamenti/convenzioni: l’ente eroga un servizio e la PA corrisponde un prezzo.",
+  altri_ricavi: "Altri proventi collegati all’AIG (rendite, rimborsi, proventi vari).",
   rimanenze_finali:
     "Valore delle rimanenze a fine periodo (merci/materiali). Se non gestisci rimanenze, lascia 0.",
 };
-/** HELP (costi diretti) */
-const COSTI_DIRETTI_HELP: Record<(typeof COSTI_DIRETTI_KEYS)[number]["k"], string> =
-  {
-    materie_prime:
-      "Acquisti di beni consumati nell’attività (materiali, merci, cancelleria, piccoli strumenti, ecc.).",
-    servizi:
-      "Spese per servizi esterni (utenze, consulenze, manutenzioni, assicurazioni, comunicazione, ecc.).",
-    godimento_beni_terzi:
-      "Canoni e affitti per beni non di proprietà (locazione, leasing, noleggio attrezzature, ecc.).",
-    personale:
-      "Compensi e oneri per lavoratori/collaboratori impiegati nell’attività (stipendi, contributi, rimborsi).",
-    ammortamenti:
-      "Quota annua di costo per beni durevoli usati nell’attività (attrezzature, arredi, PC, ecc.).",
-    accantonamenti:
-      "Quote accantonate per coprire rischi o spese future legate all’attività (fondi, rischi, oneri).",
-    oneri_diversi:
-      "Spese varie non classificabili altrove (imposte minori, sanzioni, bolli, spese minute, ecc.).",
-    rimanenze_iniziali:
-      "Valore delle rimanenze a inizio periodo (merci/materiali già in magazzino a inizio anno).",
-  };
 
+/** HELP (costi diretti) */
+const COSTI_DIRETTI_HELP: Record<(typeof COSTI_DIRETTI_KEYS)[number]["k"], string> = {
+  materie_prime:
+    "Acquisti di beni consumati nell’attività (materiali, merci, cancelleria, piccoli strumenti).",
+  servizi:
+    "Spese per servizi esterni (utenze, consulenze, manutenzioni, assicurazioni, comunicazione).",
+  godimento_beni_terzi:
+    "Canoni e affitti per beni non di proprietà (locazione, leasing, noleggio attrezzature).",
+  personale:
+    "Compensi e oneri per lavoratori/collaboratori impiegati nell’AIG (stipendi, contributi, rimborsi).",
+  ammortamenti:
+    "Quota annua di costo per beni durevoli usati nell’AIG (attrezzature, arredi, PC, ecc.).",
+  accantonamenti:
+    "Quote accantonate per coprire rischi o spese future legate all’attività (fondi rischi/oneri).",
+  oneri_diversi:
+    "Spese varie non classificabili altrove (imposte minori, bolli, spese minute, ecc.).",
+  rimanenze_iniziali:
+    "Valore delle rimanenze a inizio periodo (merci/materiali già presenti a inizio anno).",
+};
 
 function num(v: any) {
   const n = Number(v);
@@ -104,6 +86,10 @@ function num(v: any) {
 
 function calcImputato(costoCompl: any, perc: any) {
   return num(costoCompl) * (num(perc) / 100);
+}
+
+function isEsclusaTestAPS(k: (typeof ENTRATE_KEYS)[number]["k"]) {
+  return k === "entrate_associati_mutuali" || k === "prestazioni_soci_fondatori";
 }
 
 export default function AigEditor() {
@@ -123,9 +109,7 @@ export default function AigEditor() {
   const [costiFin, setCostiFin] = useState<any>({});
   const [costiSupporto, setCostiSupporto] = useState<any>({});
 
-  const [saveStatus, setSaveStatus] = useState<
-    "idle" | "saving" | "saved" | "error"
-  >("idle");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   // Caricamento dati
   useEffect(() => {
@@ -135,13 +119,13 @@ export default function AigEditor() {
       setErr(null);
       try {
         const [p, a] = await Promise.all([getEnteProfile(), getAigById(aigId)]);
-        setNatura(p.natura);
-        setNome(a.nome ?? "");
-        setDescr(a.descrizione ?? "");
-        setEntrate(a.entrate ?? {});
-        setCostiDiretti(a.costi_diretti ?? {});
-        setCostiFin(a.costi_fin ?? {});
-        setCostiSupporto(a.costi_supporto ?? {});
+        setNatura(p?.natura ?? "APS");
+        setNome(a?.nome ?? "");
+        setDescr(a?.descrizione ?? "");
+        setEntrate(a?.entrate ?? {});
+        setCostiDiretti(a?.costi_diretti ?? {});
+        setCostiFin(a?.costi_fin ?? {});
+        setCostiSupporto(a?.costi_supporto ?? {});
       } catch (e: any) {
         setErr(e?.message ?? "Errore caricamento");
       } finally {
@@ -151,24 +135,18 @@ export default function AigEditor() {
     run();
   }, [aigId]);
 
-  // Totali Entrate
+  // Totali Entrate (tutte)
   const totaleEntrate = useMemo(() => {
     return ENTRATE_KEYS.reduce((s, x) => s + num(entrate[x.k]), 0);
   }, [entrate]);
 
   // Totale Entrate "per test" (APS: escluse voci mutualistiche verso associati)
-const totaleEntrateTest = useMemo(() => {
-  return ENTRATE_KEYS.reduce((s, x) => {
-    if (
-      natura === "APS" &&
-      (x.k === "prestazioni_soci_fondatori" ||
-       x.k === "entrate_associati_mutuali")
-    ) {
-      return s;
-    }
-    return s + num(entrate[x.k]);
-  }, 0);
-}, [entrate, natura]);
+  const totaleEntrateTest = useMemo(() => {
+    return ENTRATE_KEYS.reduce((s, x) => {
+      if (natura === "APS" && isEsclusaTestAPS(x.k)) return s;
+      return s + num(entrate[x.k]);
+    }, 0);
+  }, [entrate, natura]);
 
   // Totale costi diretti
   const totaleCostiDiretti = useMemo(() => {
@@ -193,9 +171,7 @@ const totaleEntrateTest = useMemo(() => {
 
   // Totale uscite
   const totaleUscite = useMemo(() => {
-    return (
-      totaleCostiDiretti + totaleCostiFinImputati + totaleCostiSupportoImputati
-    );
+    return totaleCostiDiretti + totaleCostiFinImputati + totaleCostiSupportoImputati;
   }, [totaleCostiDiretti, totaleCostiFinImputati, totaleCostiSupportoImputati]);
 
   // Soglia (uscite + 6%)
@@ -206,29 +182,23 @@ const totaleEntrateTest = useMemo(() => {
     return totaleEntrateTest > soglia ? "COMMERCIALE" : "NON COMMERCIALE";
   }, [totaleEntrateTest, soglia]);
 
-  /** (4) Validazioni soft */
+  /** Validazioni soft */
   const warnings = useMemo(() => {
     const w: string[] = [];
 
     if (!descr.trim()) w.push("Manca la descrizione (obbligatoria).");
 
-    // % > 0 ma costo complessivo = 0 (costi finanziari)
     COSTI_FIN_KEYS.forEach((x) => {
       const row = costiFin?.[x.k] ?? {};
       if (num(row.perc) > 0 && num(row.costo_complessivo) === 0) {
-        w.push(
-          `Costi finanziari: su “${x.label}” hai impostato una % > 0 ma il costo complessivo è 0.`,
-        );
+        w.push(`Costi finanziari: su “${x.label}” hai impostato una % > 0 ma il costo complessivo è 0.`);
       }
     });
 
-    // % > 0 ma costo complessivo = 0 (costi supporto)
     COSTI_SUPPORTO_KEYS.forEach((x) => {
       const row = costiSupporto?.[x.k] ?? {};
       if (num(row.perc) > 0 && num(row.costo_complessivo) === 0) {
-        w.push(
-          `Costi di supporto: su “${x.label}” hai impostato una % > 0 ma il costo complessivo è 0.`,
-        );
+        w.push(`Costi di supporto: su “${x.label}” hai impostato una % > 0 ma il costo complessivo è 0.`);
       }
     });
 
@@ -265,11 +235,9 @@ const totaleEntrateTest = useMemo(() => {
     return () => clearTimeout(t);
   }, [aigId, loading, nome, descr, entrate, costiDiretti, costiFin, costiSupporto]);
 
-  const badgeClass =
-    esito === "COMMERCIALE" ? "reportResult bad" : "reportResult ok";
+  const badgeClass = esito === "COMMERCIALE" ? "reportResult bad" : "reportResult ok";
 
   const handleBack = () => {
-    // (6) Indietro intelligente
     if (saveStatus === "saving") {
       alert("Sto salvando… attendi un attimo e riprova.");
       return;
@@ -311,14 +279,10 @@ const totaleEntrateTest = useMemo(() => {
               </div>
               <div className="field">
                 <label>Descrizione (obbligatoria)</label>
-                <input
-                  value={descr}
-                  onChange={(e) => setDescr(e.target.value)}
-                />
+                <input value={descr} onChange={(e) => setDescr(e.target.value)} />
               </div>
             </div>
 
-            {/* (4) Warnings soft */}
             {warnings.length > 0 && (
               <div className="warnBox">
                 <div className="warnTitle">Attenzione</div>
@@ -351,35 +315,28 @@ const totaleEntrateTest = useMemo(() => {
 
               <div className={badgeClass}>ESITO: {esito}</div>
 
-              {/* (3) Spiegazione esito */}
               <div className="muted" style={{ marginTop: 8 }}>
                 {esito === "NON COMMERCIALE"
-                  ? `✅ Entrate “per test” (${totaleEntrateTest.toFixed(
-                      2,
-                    )}€) ≤ Soglia (${soglia.toFixed(2)}€)`
-                  : `⚠️ Entrate “per test” (${totaleEntrateTest.toFixed(
-                      2,
-                    )}€) > Soglia (${soglia.toFixed(2)}€)`}
+                  ? `✅ Entrate “per test” (${totaleEntrateTest.toFixed(2)}€) ≤ Soglia (${soglia.toFixed(2)}€)`
+                  : `⚠️ Entrate “per test” (${totaleEntrateTest.toFixed(2)}€) > Soglia (${soglia.toFixed(2)}€)`}
               </div>
             </div>
 
             {/* ENTRATE */}
             <details className="acc">
               <summary className="accSum">
-                ENTRATE DA AIG{" "}
-                <span className="accTot">{totaleEntrate.toFixed(2)}€</span>
+                ENTRATE DA AIG <span className="accTot">{totaleEntrate.toFixed(2)}€</span>
               </summary>
+
               <div className="accBody">
                 {ENTRATE_KEYS.map((x) => (
                   <div key={x.k} className="rowInput">
                     <div className="rowLabel">
                       <div>{x.label}</div>
-
-                      {/* (2) Help sotto voce */}
                       <div className="hint">{ENTRATE_HELP[x.k]}</div>
 
-                      {natura === "APS" && x.k === "prestazioni_soci_fondatori" && (
-                        <div className="hint">Esclusa dal test APS</div>
+                      {natura === "APS" && isEsclusaTestAPS(x.k) && (
+                        <div className="hint">Esclusa dal test di commercialità (APS)</div>
                       )}
                     </div>
 
@@ -406,20 +363,21 @@ const totaleEntrateTest = useMemo(() => {
             {/* COSTI DIRETTI */}
             <details className="acc">
               <summary className="accSum">
-                COSTI DIRETTI{" "}
-                <span className="accTot">{totaleCostiDiretti.toFixed(2)}€</span>
+                COSTI DIRETTI <span className="accTot">{totaleCostiDiretti.toFixed(2)}€</span>
               </summary>
+
               <div className="accBody">
                 <div className="hint" style={{ marginBottom: 10 }}>
-                  Costi sostenuti direttamente per svolgere l’AIG (materie, servizi,
-                  personale, ecc.).
+                  Costi sostenuti direttamente per svolgere l’AIG (materie, servizi, personale, ecc.).
                 </div>
 
                 {COSTI_DIRETTI_KEYS.map((x) => (
                   <div key={x.k} className="rowInput">
-                    <div className="rowLabel">{x.label}</div>
-					          <div className="hint">{COSTI_DIRETTI_HELP[x.k]}</div>
-					          </div>
+                    <div className="rowLabel">
+                      <div>{x.label}</div>
+                      <div className="hint">{COSTI_DIRETTI_HELP[x.k]}</div>
+                    </div>
+
                     <input
                       type="number"
                       value={num(costiDiretti[x.k])}
@@ -439,25 +397,22 @@ const totaleEntrateTest = useMemo(() => {
             <details className="acc">
               <summary className="accSum">
                 COSTI FINANZIARI/PATRIMONIALI IMPUTABILI{" "}
-                <span className="accTot">
-                  {totaleCostiFinImputati.toFixed(2)}€
-                </span>
+                <span className="accTot">{totaleCostiFinImputati.toFixed(2)}€</span>
               </summary>
+
               <div className="accBody">
                 <div className="hint" style={{ marginBottom: 10 }}>
-                  Inserisci il costo complessivo e la % imputabile a questa AIG.
-                  L’app calcola l’importo imputato.
+                  Inserisci il costo complessivo e la % imputabile a questa AIG. L’app calcola l’importo imputato.
                 </div>
 
                 {COSTI_FIN_KEYS.map((x) => {
-                  const row = costiFin?.[x.k] ?? {
-                    costo_complessivo: 0,
-                    perc: 0,
-                  };
+                  const row = costiFin?.[x.k] ?? { costo_complessivo: 0, perc: 0 };
                   const imputato = calcImputato(row.costo_complessivo, row.perc);
+
                   return (
                     <div key={x.k} className="blockInput">
                       <div className="blockTitle">{x.label}</div>
+
                       <div className="miniGrid">
                         <div>
                           <div className="miniLabel">Costo complessivo (€)</div>
@@ -475,6 +430,7 @@ const totaleEntrateTest = useMemo(() => {
                             }
                           />
                         </div>
+
                         <div>
                           <div className="miniLabel">% imputazione</div>
                           <select
@@ -497,6 +453,7 @@ const totaleEntrateTest = useMemo(() => {
                           </select>
                         </div>
                       </div>
+
                       <div className="accFooter">
                         <div className="muted">Importo imputato</div>
                         <b>{imputato.toFixed(2)}€</b>
@@ -511,25 +468,22 @@ const totaleEntrateTest = useMemo(() => {
             <details className="acc">
               <summary className="accSum">
                 COSTI DI SUPPORTO GENERALE IMPUTABILI{" "}
-                <span className="accTot">
-                  {totaleCostiSupportoImputati.toFixed(2)}€
-                </span>
+                <span className="accTot">{totaleCostiSupportoImputati.toFixed(2)}€</span>
               </summary>
+
               <div className="accBody">
                 <div className="hint" style={{ marginBottom: 10 }}>
-                  Costi generali dell’ente (supporto). Inserisci costo complessivo e
-                  % imputabile a questa AIG.
+                  Costi generali dell’ente (supporto). Inserisci costo complessivo e % imputabile a questa AIG.
                 </div>
 
                 {COSTI_SUPPORTO_KEYS.map((x) => {
-                  const row = costiSupporto?.[x.k] ?? {
-                    costo_complessivo: 0,
-                    perc: 0,
-                  };
+                  const row = costiSupporto?.[x.k] ?? { costo_complessivo: 0, perc: 0 };
                   const imputato = calcImputato(row.costo_complessivo, row.perc);
+
                   return (
                     <div key={x.k} className="blockInput">
                       <div className="blockTitle">{x.label}</div>
+
                       <div className="miniGrid">
                         <div>
                           <div className="miniLabel">Costo complessivo (€)</div>
@@ -547,6 +501,7 @@ const totaleEntrateTest = useMemo(() => {
                             }
                           />
                         </div>
+
                         <div>
                           <div className="miniLabel">% imputazione</div>
                           <select
@@ -569,6 +524,7 @@ const totaleEntrateTest = useMemo(() => {
                           </select>
                         </div>
                       </div>
+
                       <div className="accFooter">
                         <div className="muted">Importo imputato</div>
                         <b>{imputato.toFixed(2)}€</b>
@@ -584,6 +540,3 @@ const totaleEntrateTest = useMemo(() => {
     </div>
   );
 }
-
-
-
