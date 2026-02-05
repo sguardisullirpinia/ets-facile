@@ -19,13 +19,13 @@ const ENTRATE_LABELS = [
 
 const ENTRATE_HELP: Record<(typeof ENTRATE_LABELS)[number], string> = {
   "Prestazioni ad associati":
-    "Corrispettivi pagati dagli associati per beni/servizi dell’attività diversa (quote specifiche, contributi per iniziative, ecc.).",
+    "Corrispettivi pagati dagli associati per beni/servizi dell’attività diversa ex art. 6 CTS.",
   "Contributi privati":
     "Sostegni da persone o aziende senza un prezzo di vendita diretto; spesso legati a un progetto e a rendicontazione.",
   "Prestazioni a terzi":
-    "Vendite o servizi a non soci (utenti esterni) con corrispettivo, anche occasionale.",
+    "Vendite o servizi a Terzi (non soci) con corrispettivo, anche occasionale.",
   "Contributi pubblici":
-    "Contributi/finanziamenti da enti pubblici a supporto dell’attività (senza un contratto tipico di appalto).",
+    "Contributi/finanziamenti da enti pubblici a supporto dell’attività.",
   "Contratti pubblici":
     "Corrispettivi da PA per un servizio affidato: l’ente svolge un’attività specifica e la PA paga un prezzo.",
   Sponsorizzazioni:
@@ -44,11 +44,11 @@ const USCITE_LABELS = [
 
 const USCITE_HELP: Record<(typeof USCITE_LABELS)[number], string> = {
   "Materie prime":
-    "Acquisti di beni consumati nell’attività (materiali, merci, cancelleria, forniture, ecc.).",
+    "Acquisti di beni consumati nell’attività diversa ex art. 6 CTS (materiali, merci, cancelleria, forniture, ecc.).",
   Servizi:
     "Spese per servizi esterni necessari (utenze, consulenze, manutenzioni, trasporti, comunicazione, ecc.).",
   "Godimento beni di terzi":
-    "Affitti, leasing e noleggi per beni non di proprietà (locali, attrezzature, mezzi, ecc.).",
+    "Affitti, leasing e noleggi per beni non di proprietà legati all'attività di (locali, attrezzature, mezzi, ecc.).",
   Personale:
     "Compensi e oneri per lavoratori/collaboratori impiegati nell’attività diversa (stipendi, contributi, rimborsi).",
   "Uscite diverse":
@@ -217,3 +217,4 @@ export default function Art6Editor() {
     </div>
   );
 }
+
