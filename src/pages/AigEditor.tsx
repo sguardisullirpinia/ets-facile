@@ -59,17 +59,17 @@ const COSTI_SUPPORTO_KEYS = [
 /** HELP (punto 2) */
 const ENTRATE_HELP: Record<(typeof ENTRATE_KEYS)[number]["k"], string> = {
   entrate_associati_mutuali:
-    "Quote/corrispettivi dai soci per attività mutuali (servizi ai soci, attività riservate agli associati).",
+    "Corrispettivi versati dai soci nello svolgimento di AIG a condizioni più favorevoli in ragione della loro qualità (Esclusi dal test di commercialità del 6% se l’associazione è un APS)",
   prestazioni_soci_fondatori:
-    "Prestazioni/cessioni verso soci o fondatori. Nelle APS questa voce è esclusa dal test (come da logica dell’app).",
+    "Corrispettivi versati dai soci o fondatori nello svolgimento di AIG a condizioni di mercato. Nelle APS questa voce è esclusa dal test. (Esclusi dal test se l’associazione è un APS)",
   contributi_privati:
-    "Contributi/donazioni da privati (persone/aziende) senza una controprestazione specifica. Se c’è un servizio venduto, di solito va in “Prestazioni a terzi”.",
+    "Contributi versati da privati (persone/aziende/enti) senza una controprestazione specifica. Solitamente sono legati a specifici progetti, soggetti a rendicontazione.",
   prestazioni_terzi:
-    "Vendite/servizi a non soci (utenti esterni) con corrispettivo.",
+    "Vendite/Servizi a terzi (non soci) con corrispettivo.",
   contributi_pubblici:
-    "Contributi/finanziamenti pubblici a sostegno dell’attività (senza corrispettivo tipico di un contratto).",
+    "Contributi/finanziamenti pubblici a sostegno delle AIG, senza corrispettivo specifico ma soggetti a rendicontazione e al test di commercialità",
   contratti_pubblici:
-    "Corrispettivi da enti pubblici per servizi/affidamenti/convenzioni (rapporto “io faccio – tu paghi”).",
+    "Corrispettivi da enti pubblici per servizi/affidamenti/convenzioni che prevedono lo svolgimento di un servizio specifico che la PA "appalta" o "affida" all'ente.",
   altri_ricavi:
     "Altri proventi collegati all’AIG (rendite, rimborsi, proventi vari).",
   rimanenze_finali:
@@ -561,4 +561,3 @@ const totaleEntrateTest = useMemo(() => {
     </div>
   );
 }
-
