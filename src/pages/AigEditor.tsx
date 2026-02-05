@@ -65,9 +65,9 @@ const ENTRATE_HELP: Record<(typeof ENTRATE_KEYS)[number]["k"], string> = {
   contributi_privati:
     "Contributi versati da privati (persone/aziende/enti) senza una controprestazione specifica. Solitamente sono legati a specifici progetti, soggetti a rendicontazione.",
   prestazioni_terzi:
-    "Vendite/Servizi a terzi (non soci) con corrispettivo.",
+    "Vendite o Servizi a terzi (non soci) con corrispettivo.",
   contributi_pubblici:
-    "Contributi/finanziamenti pubblici a sostegno delle AIG, senza corrispettivo specifico ma soggetti a rendicontazione e al test di commercialità",
+    "Contributi o finanziamenti pubblici a sostegno delle AIG, senza corrispettivo specifico ma soggetti a rendicontazione e al test di commercialità",
   contratti_pubblici:
     "Corrispettivi da enti pubblici per servizi/affidamenti/convenzioni che prevedono lo svolgimento di un servizio specifico che la PA "appalta" o "affida" all'ente.",
   altri_ricavi:
@@ -561,3 +561,4 @@ const totaleEntrateTest = useMemo(() => {
     </div>
   );
 }
+
