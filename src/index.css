@@ -518,3 +518,6 @@ hr {
   max-width: none;
   width: 100%;
 }
+.grid.fullWidth {
+  grid-template-columns: 1fr;
+}
