@@ -69,7 +69,7 @@ const ENTRATE_HELP: Record<(typeof ENTRATE_KEYS)[number]["k"], string> = {
   contributi_pubblici:
     "Contributi o finanziamenti pubblici a sostegno delle AIG, senza corrispettivo specifico ma soggetti a rendicontazione e al test di commercialità",
   contratti_pubblici:
-    "Corrispettivi da enti pubblici per servizi/affidamenti/convenzioni che prevedono lo svolgimento di un servizio specifico che la PA "appalta" o "affida" all'ente.",
+    "Corrispettivi da enti pubblici per servizi/affidamenti/convenzioni che prevedono lo svolgimento di un servizio specifico che la PA appalta o affida all'ente.",
   altri_ricavi:
     "Altri proventi collegati all’AIG (rendite, rimborsi, proventi vari).",
   rimanenze_finali:
@@ -561,4 +561,5 @@ const totaleEntrateTest = useMemo(() => {
     </div>
   );
 }
+
 
