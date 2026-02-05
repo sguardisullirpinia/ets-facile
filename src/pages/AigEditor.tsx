@@ -62,11 +62,11 @@ const ENTRATE_HELP: Record<(typeof ENTRATE_KEYS)[number]["k"], string> = {
 /** HELP (costi diretti) */
 const COSTI_DIRETTI_HELP: Record<(typeof COSTI_DIRETTI_KEYS)[number]["k"], string> = {
   materie_prime:
-    "Acquisti di beni consumati nell’attività (materiali, merci, cancelleria, piccoli strumenti).",
+    "Acquisti di beni consumati nell’AIG specifica (materiali, merci, cancelleria, piccoli strumenti).",
   servizi:
-    "Spese per servizi esterni (utenze, consulenze, manutenzioni, assicurazioni, comunicazione).",
+    "Spese per servizi esterni legati direttamente alla specifica AIG (utenze, consulenze, manutenzioni, assicurazioni, comunicazione).",
   godimento_beni_terzi:
-    "Canoni e affitti per beni non di proprietà (locazione, leasing, noleggio attrezzature).",
+    "Canoni e affitti per beni non di proprietà relativi alla specifica AIG (locazione, leasing, noleggio attrezzature).",
   personale:
     "Compensi e oneri per lavoratori/collaboratori impiegati nell’AIG (stipendi, contributi, rimborsi).",
   ammortamenti:
@@ -540,3 +540,4 @@ export default function AigEditor() {
     </div>
   );
 }
+
