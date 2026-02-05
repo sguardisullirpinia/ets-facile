@@ -521,3 +521,20 @@ hr {
 .grid.fullWidth {
   grid-template-columns: 1fr;
 }
+/* --- Dashboard topbar --- */
+.topbarLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topbarRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.appLogo {
+  height: 34px;
+  width: auto;
+}
