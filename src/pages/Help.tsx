@@ -154,7 +154,7 @@ export default function Help() {
               <li>Erogazioni liberali</li>
               <li>Proventi del 5 per mille</li>
               <li>
-                Convenzioni ex art. 56 CTS, senza prestazioni corrispettive
+                Contributi erogati dalla PA per sostenere l'associazione o un suo progetto, senza che l'ente pubblico riceva nulla in cambio
               </li>
             </ul>
 
@@ -179,3 +179,4 @@ export default function Help() {
     </div>
   );
 }
+
