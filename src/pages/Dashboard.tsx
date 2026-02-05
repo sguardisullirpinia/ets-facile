@@ -72,20 +72,32 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="wrap">
-      <header className="topbar">
-        <h2>Dashboard</h2>
+    <header className="topbar">
+  {/* SINISTRA: logo + titolo */}
+  <div className="topbarLeft">
+    <img
+      src="/logo.png"
+      alt="Logo"
+      className="appLogo"
+    />
+    <h2 style={{ margin: 0 }}>Dashboard</h2>
+  </div>
 
-        <div style={{ display: "flex", gap: 10 }}>
-          <button className="ghost" onClick={() => nav("/help")}>
-            Help
-          </button>
+  {/* DESTRA: azioni */}
+  <div className="topbarRight">
+    <button className="ghost" onClick={() => nav("/ente")}>
+      Ente
+    </button>
 
-          <button className="ghost" onClick={logout}>
-            Esci
-          </button>
-        </div>
-      </header>
+    <button className="ghost" onClick={() => nav("/help")}>
+      Help
+    </button>
+
+    <button className="ghost" onClick={logout}>
+      Esci
+    </button>
+  </div>
+</header>
 
       {err && <div className="error">{err}</div>}
 
@@ -144,4 +156,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
