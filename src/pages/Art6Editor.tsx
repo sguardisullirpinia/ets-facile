@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getEnteProfile, updateArt6, getArt6ById } from "../lib/db";
+import { updateArt6, getArt6ById } from "../lib/db";
 
 function num(v: any) {
   const n = Number(v);
@@ -179,3 +179,4 @@ export default function Art6Editor() {
     </div>
   );
 }
+
