@@ -514,3 +514,7 @@ hr {
 .warnList li {
   margin: 6px 0;
 }
+.wrap.fullWidth {
+  max-width: none;
+  width: 100%;
+}
