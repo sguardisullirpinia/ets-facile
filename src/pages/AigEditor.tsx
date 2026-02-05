@@ -56,6 +56,26 @@ const COSTI_SUPPORTO_KEYS = [
   { k: "altri_oneri", label: "7) Altri oneri" },
 ] as const;
 
+/** HELP (punto 2) */
+const ENTRATE_HELP: Record<(typeof ENTRATE_KEYS)[number]["k"], string> = {
+  entrate_associati_mutuali:
+    "Quote/corrispettivi dai soci per attività mutuali (servizi ai soci, attività riservate agli associati).",
+  prestazioni_soci_fondatori:
+    "Prestazioni/cessioni verso soci o fondatori. Nelle APS questa voce è esclusa dal test (come da logica dell’app).",
+  contributi_privati:
+    "Contributi/donazioni da privati (persone/aziende) senza una controprestazione specifica. Se c’è un servizio venduto, di solito va in “Prestazioni a terzi”.",
+  prestazioni_terzi:
+    "Vendite/servizi a non soci (utenti esterni) con corrispettivo.",
+  contributi_pubblici:
+    "Contributi/finanziamenti pubblici a sostegno dell’attività (senza corrispettivo tipico di un contratto).",
+  contratti_pubblici:
+    "Corrispettivi da enti pubblici per servizi/affidamenti/convenzioni (rapporto “io faccio – tu paghi”).",
+  altri_ricavi:
+    "Altri proventi collegati all’AIG (rendite, rimborsi, proventi vari).",
+  rimanenze_finali:
+    "Valore delle rimanenze a fine periodo (merci/materiali). Se non gestisci rimanenze, lascia 0.",
+};
+
 function num(v: any) {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
@@ -159,6 +179,39 @@ export default function AigEditor() {
     return totaleEntrateTest > soglia ? "COMMERCIALE" : "NON COMMERCIALE";
   }, [totaleEntrateTest, soglia]);
 
+  /** (4) Validazioni soft */
+  const warnings = useMemo(() => {
+    const w: string[] = [];
+
+    if (!descr.trim()) w.push("Manca la descrizione (obbligatoria).");
+
+    // % > 0 ma costo complessivo = 0 (costi finanziari)
+    COSTI_FIN_KEYS.forEach((x) => {
+      const row = costiFin?.[x.k] ?? {};
+      if (num(row.perc) > 0 && num(row.costo_complessivo) === 0) {
+        w.push(
+          `Costi finanziari: su “${x.label}” hai impostato una % > 0 ma il costo complessivo è 0.`,
+        );
+      }
+    });
+
+    // % > 0 ma costo complessivo = 0 (costi supporto)
+    COSTI_SUPPORTO_KEYS.forEach((x) => {
+      const row = costiSupporto?.[x.k] ?? {};
+      if (num(row.perc) > 0 && num(row.costo_complessivo) === 0) {
+        w.push(
+          `Costi di supporto: su “${x.label}” hai impostato una % > 0 ma il costo complessivo è 0.`,
+        );
+      }
+    });
+
+    if (totaleEntrateTest > 0 && totaleUscite === 0) {
+      w.push("Hai inserito entrate ma le uscite risultano 0: mancano i costi?");
+    }
+
+    return w;
+  }, [descr, costiFin, costiSupporto, totaleEntrateTest, totaleUscite]);
+
   // Autosalvataggio (debounce)
   useEffect(() => {
     if (!aigId) return;
@@ -183,22 +236,27 @@ export default function AigEditor() {
     }, 700);
 
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nome, descr, entrate, costiDiretti, costiFin, costiSupporto]);
+  }, [aigId, loading, nome, descr, entrate, costiDiretti, costiFin, costiSupporto]);
 
   const badgeClass =
     esito === "COMMERCIALE" ? "reportResult bad" : "reportResult ok";
 
+  const handleBack = () => {
+    // (6) Indietro intelligente
+    if (saveStatus === "saving") {
+      alert("Sto salvando… attendi un attimo e riprova.");
+      return;
+    }
+    nav(`/anno/${annualitaId}`);
+  };
+
   return (
     <div className="mobileShell">
       <header className="mHeader">
-        <button
-          className="iconBtn"
-          onClick={() => nav(`/anno/${annualitaId}`)}
-          aria-label="Indietro"
-        >
+        <button className="iconBtn" onClick={handleBack} aria-label="Indietro">
           ←
         </button>
+
         <div className="mHeaderText">
           <div className="mTitle">Editor AIG</div>
           <div className="mSubtitle">
@@ -208,11 +266,13 @@ export default function AigEditor() {
             {saveStatus === "idle" && `Natura ente: ${natura}`}
           </div>
         </div>
+
         <div className="mHeaderRight" />
       </header>
 
       <main className="mContent">
         {err && <div className="error">{err}</div>}
+
         {loading ? (
           <p className="muted">Caricamento…</p>
         ) : (
@@ -230,6 +290,18 @@ export default function AigEditor() {
                 />
               </div>
             </div>
+
+            {/* (4) Warnings soft */}
+            {warnings.length > 0 && (
+              <div className="warnBox">
+                <div className="warnTitle">Attenzione</div>
+                <ul className="warnList">
+                  {warnings.map((m, i) => (
+                    <li key={i}>{m}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             <div className="reportCard">
               <div className="reportTitle">TOTALI & TEST (live)</div>
@@ -249,7 +321,19 @@ export default function AigEditor() {
                 <span>Soglia (uscite + 6%)</span>
                 <b>{soglia.toFixed(2)}€</b>
               </div>
+
               <div className={badgeClass}>ESITO: {esito}</div>
+
+              {/* (3) Spiegazione esito */}
+              <div className="muted" style={{ marginTop: 8 }}>
+                {esito === "NON COMMERCIALE"
+                  ? `✅ Entrate “per test” (${totaleEntrateTest.toFixed(
+                      2,
+                    )}€) ≤ Soglia (${soglia.toFixed(2)}€)`
+                  : `⚠️ Entrate “per test” (${totaleEntrateTest.toFixed(
+                      2,
+                    )}€) > Soglia (${soglia.toFixed(2)}€)`}
+              </div>
             </div>
 
             {/* ENTRATE */}
@@ -263,11 +347,15 @@ export default function AigEditor() {
                   <div key={x.k} className="rowInput">
                     <div className="rowLabel">
                       <div>{x.label}</div>
-                      {natura === "APS" &&
-                        x.k === "prestazioni_soci_fondatori" && (
-                          <div className="hint">Esclusa dal test APS</div>
-                        )}
+
+                      {/* (2) Help sotto voce */}
+                      <div className="hint">{ENTRATE_HELP[x.k]}</div>
+
+                      {natura === "APS" && x.k === "prestazioni_soci_fondatori" && (
+                        <div className="hint">Esclusa dal test APS</div>
+                      )}
                     </div>
+
                     <input
                       type="number"
                       value={num(entrate[x.k])}
@@ -280,6 +368,7 @@ export default function AigEditor() {
                     />
                   </div>
                 ))}
+
                 <div className="accFooter">
                   <div className="muted">Totale entrate “per test”</div>
                   <b>{totaleEntrateTest.toFixed(2)}€</b>
@@ -294,6 +383,11 @@ export default function AigEditor() {
                 <span className="accTot">{totaleCostiDiretti.toFixed(2)}€</span>
               </summary>
               <div className="accBody">
+                <div className="hint" style={{ marginBottom: 10 }}>
+                  Costi sostenuti direttamente per svolgere l’AIG (materie, servizi,
+                  personale, ecc.).
+                </div>
+
                 {COSTI_DIRETTI_KEYS.map((x) => (
                   <div key={x.k} className="rowInput">
                     <div className="rowLabel">{x.label}</div>
@@ -321,15 +415,17 @@ export default function AigEditor() {
                 </span>
               </summary>
               <div className="accBody">
+                <div className="hint" style={{ marginBottom: 10 }}>
+                  Inserisci il costo complessivo e la % imputabile a questa AIG.
+                  L’app calcola l’importo imputato.
+                </div>
+
                 {COSTI_FIN_KEYS.map((x) => {
                   const row = costiFin?.[x.k] ?? {
                     costo_complessivo: 0,
                     perc: 0,
                   };
-                  const imputato = calcImputato(
-                    row.costo_complessivo,
-                    row.perc,
-                  );
+                  const imputato = calcImputato(row.costo_complessivo, row.perc);
                   return (
                     <div key={x.k} className="blockInput">
                       <div className="blockTitle">{x.label}</div>
@@ -344,9 +440,7 @@ export default function AigEditor() {
                                 ...p,
                                 [x.k]: {
                                   ...row,
-                                  costo_complessivo: Number(
-                                    e.target.value || 0,
-                                  ),
+                                  costo_complessivo: Number(e.target.value || 0),
                                 },
                               }))
                             }
@@ -393,15 +487,17 @@ export default function AigEditor() {
                 </span>
               </summary>
               <div className="accBody">
+                <div className="hint" style={{ marginBottom: 10 }}>
+                  Costi generali dell’ente (supporto). Inserisci costo complessivo e
+                  % imputabile a questa AIG.
+                </div>
+
                 {COSTI_SUPPORTO_KEYS.map((x) => {
                   const row = costiSupporto?.[x.k] ?? {
                     costo_complessivo: 0,
                     perc: 0,
                   };
-                  const imputato = calcImputato(
-                    row.costo_complessivo,
-                    row.perc,
-                  );
+                  const imputato = calcImputato(row.costo_complessivo, row.perc);
                   return (
                     <div key={x.k} className="blockInput">
                       <div className="blockTitle">{x.label}</div>
@@ -416,9 +512,7 @@ export default function AigEditor() {
                                 ...p,
                                 [x.k]: {
                                   ...row,
-                                  costo_complessivo: Number(
-                                    e.target.value || 0,
-                                  ),
+                                  costo_complessivo: Number(e.target.value || 0),
                                 },
                               }))
                             }
@@ -461,5 +555,3 @@ export default function AigEditor() {
     </div>
   );
 }
-
-
