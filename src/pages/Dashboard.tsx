@@ -27,6 +27,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleDeleteAnnualita = async (id: string, annoDaEliminare: number) => {
@@ -35,7 +36,6 @@ export default function Dashboard() {
 
     try {
       const { error } = await supabase.from("annualita").delete().eq("id", id);
-
       if (error) throw error;
 
       setAnnualita((prev) => prev.filter((x) => x.id !== id));
@@ -61,7 +61,9 @@ export default function Dashboard() {
         altri_non_commerciali: 0,
       },
     });
+
     if (error) return setErr(error.message);
+
     setOpen(false);
     load();
   };
@@ -72,30 +74,27 @@ export default function Dashboard() {
   };
 
   return (
-    <header className="topbar">
-  <div className="topbarLeft">
-    <img
-      src="/logo.png"
-      alt="Logo"
-      className="appLogo"
-    />
-    <h2 style={{ margin: 0 }}>Dashboard</h2>
-  </div>
+    <div className="wrap">
+      <header className="topbar">
+        <div className="topbarLeft">
+          <img src="/logo.png" alt="Logo" className="appLogo" />
+          <h2 style={{ margin: 0 }}>Dashboard</h2>
+        </div>
 
-  <div className="topbarRight">
-    <button className="ghost" onClick={() => nav("/ente")}>
-      Ente
-    </button>
+        <div className="topbarRight">
+          <button className="ghost" onClick={() => nav("/ente")}>
+            Ente
+          </button>
 
-    <button className="ghost" onClick={() => nav("/help")}>
-      Help
-    </button>
+          <button className="ghost" onClick={() => nav("/help")}>
+            Help
+          </button>
 
-    <button className="ghost" onClick={logout}>
-      Esci
-    </button>
-  </div>
-</header>
+          <button className="ghost" onClick={logout}>
+            Esci
+          </button>
+        </div>
+      </header>
 
       {err && <div className="error">{err}</div>}
 
@@ -119,15 +118,14 @@ export default function Dashboard() {
             </div>
           </div>
         ))}
+
         {annualita.length === 0 && (
-          <p className="muted">
-            Nessuna annualità. Clicca “+” per crearne una.
-          </p>
+          <p className="muted">Nessuna annualità. Clicca “+” per crearne una.</p>
         )}
       </div>
 
       {/* FAB */}
-      <button className="fab" onClick={() => setOpen(true)}>
+      <button className="fab" onClick={() => setOpen(true)} aria-label="Crea">
         +
       </button>
 
@@ -154,7 +152,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-
-
-
