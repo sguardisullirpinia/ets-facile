@@ -646,6 +646,8 @@ export default function Anno() {
 
             <div className="field">
               <label>Contributi erogati dalla PA per sostenere l'associazione o un suo progetto, senza che l'ente pubblico riceva nulla in cambio</label>
+              <div className="hint">Nota: convenzioni/affidamenti con corrispettivo rientrano nei test (es. 6%) e non vanno qui.
+              </div>
               <input
                 type="number"
                 value={extra.convenzioni_art56}
@@ -865,4 +867,5 @@ export default function Anno() {
     </div>
   );
 }
+
 
