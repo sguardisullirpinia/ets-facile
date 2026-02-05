@@ -75,6 +75,27 @@ const ENTRATE_HELP: Record<(typeof ENTRATE_KEYS)[number]["k"], string> = {
   rimanenze_finali:
     "Valore delle rimanenze a fine periodo (merci/materiali). Se non gestisci rimanenze, lascia 0.",
 };
+/** HELP (costi diretti) */
+const COSTI_DIRETTI_HELP: Record<(typeof COSTI_DIRETTI_KEYS)[number]["k"], string> =
+  {
+    materie_prime:
+      "Acquisti di beni consumati nell’attività (materiali, merci, cancelleria, piccoli strumenti, ecc.).",
+    servizi:
+      "Spese per servizi esterni (utenze, consulenze, manutenzioni, assicurazioni, comunicazione, ecc.).",
+    godimento_beni_terzi:
+      "Canoni e affitti per beni non di proprietà (locazione, leasing, noleggio attrezzature, ecc.).",
+    personale:
+      "Compensi e oneri per lavoratori/collaboratori impiegati nell’attività (stipendi, contributi, rimborsi).",
+    ammortamenti:
+      "Quota annua di costo per beni durevoli usati nell’attività (attrezzature, arredi, PC, ecc.).",
+    accantonamenti:
+      "Quote accantonate per coprire rischi o spese future legate all’attività (fondi, rischi, oneri).",
+    oneri_diversi:
+      "Spese varie non classificabili altrove (imposte minori, sanzioni, bolli, spese minute, ecc.).",
+    rimanenze_iniziali:
+      "Valore delle rimanenze a inizio periodo (merci/materiali già in magazzino a inizio anno).",
+  };
+
 
 function num(v: any) {
   const n = Number(v);
@@ -397,6 +418,8 @@ const totaleEntrateTest = useMemo(() => {
                 {COSTI_DIRETTI_KEYS.map((x) => (
                   <div key={x.k} className="rowInput">
                     <div className="rowLabel">{x.label}</div>
+					          <div className="hint">{COSTI_DIRETTI_HELP[x.k]}</div>
+					          </div>
                     <input
                       type="number"
                       value={num(costiDiretti[x.k])}
@@ -561,5 +584,6 @@ const totaleEntrateTest = useMemo(() => {
     </div>
   );
 }
+
 
 
