@@ -645,7 +645,7 @@ export default function Anno() {
             </div>
 
             <div className="field">
-              <label>Convenzioni ex art. 56</label>
+              <label>Contributi erogati dalla PA per sostenere l'associazione o un suo progetto, senza che l'ente pubblico riceva nulla in cambio</label>
               <input
                 type="number"
                 value={extra.convenzioni_art56}
@@ -865,3 +865,4 @@ export default function Anno() {
     </div>
   );
 }
+
