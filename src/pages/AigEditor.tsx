@@ -135,13 +135,19 @@ export default function AigEditor() {
     return ENTRATE_KEYS.reduce((s, x) => s + num(entrate[x.k]), 0);
   }, [entrate]);
 
-  // Totale Entrate "per test" (se APS esclude prestazioni soci/fondatori)
-  const totaleEntrateTest = useMemo(() => {
-    return ENTRATE_KEYS.reduce((s, x) => {
-      if (natura === "APS" && x.k === "prestazioni_soci_fondatori") return s;
-      return s + num(entrate[x.k]);
-    }, 0);
-  }, [entrate, natura]);
+  // Totale Entrate "per test" (APS: escluse voci mutualistiche verso associati)
+const totaleEntrateTest = useMemo(() => {
+  return ENTRATE_KEYS.reduce((s, x) => {
+    if (
+      natura === "APS" &&
+      (x.k === "prestazioni_soci_fondatori" ||
+       x.k === "entrate_associati_mutuali")
+    ) {
+      return s;
+    }
+    return s + num(entrate[x.k]);
+  }, 0);
+}, [entrate, natura]);
 
   // Totale costi diretti
   const totaleCostiDiretti = useMemo(() => {
@@ -555,3 +561,4 @@ export default function AigEditor() {
     </div>
   );
 }
+
