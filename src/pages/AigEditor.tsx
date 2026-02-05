@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getAigById,  updateAig } from "../lib/db";
+import { getAigById, updateAig, getEnteProfile } from "../lib/db";
 
 type Natura = "APS" | "ODV";
 
@@ -461,4 +461,5 @@ export default function AigEditor() {
     </div>
   );
 }
+
 
