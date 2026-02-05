@@ -7,13 +7,26 @@ export async function requireUserId() {
   return data.user.id;
 }
 
+/**
+ * Ritorna il profilo dell'ente dell'utente loggato.
+ * IMPORTANTISSIMO: filtra per user_id, così non rischi errori quando esistono più righe in ente_profiles.
+ */
 export async function getEnteProfile() {
+  const user_id = await requireUserId();
+
   const { data, error } = await supabase
     .from("ente_profiles")
-    .select("denominazione,natura")
+    .select("user_id,denominazione,natura")
+    .eq("user_id", user_id)
     .single();
+
   if (error) throw error;
-  return data as { denominazione: string; natura: "APS" | "ODV" };
+
+  return data as {
+    user_id: string;
+    denominazione: string;
+    natura: "APS" | "ODV";
+  };
 }
 
 export async function getAnnualita(annualitaId: string) {
@@ -29,9 +42,7 @@ export async function getAnnualita(annualitaId: string) {
 export async function listAig(annualitaId: string) {
   const { data, error } = await supabase
     .from("aig")
-    .select(
-      "id,nome,descrizione,entrate,costi_diretti,costi_fin,costi_supporto",
-    )
+    .select("id,nome,descrizione,entrate,costi_diretti,costi_fin,costi_supporto")
     .eq("annualita_id", annualitaId)
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -119,6 +130,7 @@ export async function createRaccolta(
   if (error) throw error;
   return data!.id as string;
 }
+
 export async function updateAnnualitaExtra(annualitaId: string, extra: any) {
   const { error } = await supabase
     .from("annualita")
@@ -153,6 +165,7 @@ export async function updateAig(
   const { error } = await supabase.from("aig").update(patch).eq("id", aigId);
   if (error) throw error;
 }
+
 export async function getArt6ById(id: string) {
   const { data, error } = await supabase
     .from("attivita_diverse")
@@ -170,6 +183,7 @@ export async function updateArt6(id: string, patch: any) {
     .eq("id", id);
   if (error) throw error;
 }
+
 export async function getRfById(id: string) {
   const { data, error } = await supabase
     .from("raccolte_fondi")
@@ -187,10 +201,8 @@ export async function updateRf(id: string, patch: any) {
     .eq("id", id);
   if (error) throw error;
 }
+
 export async function deleteAnnualita(annualitaId: string) {
-  const { error } = await supabase
-    .from("annualita")
-    .delete()
-    .eq("id", annualitaId);
+  const { error } = await supabase.from("annualita").delete().eq("id", annualitaId);
   if (error) throw error;
 }
