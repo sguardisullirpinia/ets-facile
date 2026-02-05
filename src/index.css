@@ -490,3 +490,27 @@ hr {
 .helpText h3 {
   margin-top: 0;
 }
+/* --- Soft warnings (AIG Editor) --- */
+.warnBox {
+  background: #121420;
+  border: 1px solid #23284a;
+  border-left: 4px solid rgba(242, 201, 76, 0.9);
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.warnTitle {
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.warnList {
+  margin: 0;
+  padding-left: 18px;
+  opacity: 0.92;
+}
+
+.warnList li {
+  margin: 6px 0;
+}
