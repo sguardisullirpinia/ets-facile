@@ -7,6 +7,54 @@ function num(v: any) {
   return Number.isFinite(n) ? n : 0;
 }
 
+const ENTRATE_LABELS = [
+  "Prestazioni ad associati",
+  "Contributi privati",
+  "Prestazioni a terzi",
+  "Contributi pubblici",
+  "Contratti pubblici",
+  "Sponsorizzazioni",
+  "Altre entrate",
+] as const;
+
+const ENTRATE_HELP: Record<(typeof ENTRATE_LABELS)[number], string> = {
+  "Prestazioni ad associati":
+    "Corrispettivi pagati dagli associati per beni/servizi dell’attività diversa (quote specifiche, contributi per iniziative, ecc.).",
+  "Contributi privati":
+    "Sostegni da persone o aziende senza un prezzo di vendita diretto; spesso legati a un progetto e a rendicontazione.",
+  "Prestazioni a terzi":
+    "Vendite o servizi a non soci (utenti esterni) con corrispettivo, anche occasionale.",
+  "Contributi pubblici":
+    "Contributi/finanziamenti da enti pubblici a supporto dell’attività (senza un contratto tipico di appalto).",
+  "Contratti pubblici":
+    "Corrispettivi da PA per un servizio affidato: l’ente svolge un’attività specifica e la PA paga un prezzo.",
+  Sponsorizzazioni:
+    "Somme ricevute in cambio di visibilità/ritorno promozionale (logo, banner, citazioni, eventi, social).",
+  "Altre entrate":
+    "Voci residuali: rimborsi, proventi vari, indennizzi, ricavi non classificabili altrove.",
+};
+
+const USCITE_LABELS = [
+  "Materie prime",
+  "Servizi",
+  "Godimento beni di terzi",
+  "Personale",
+  "Uscite diverse",
+] as const;
+
+const USCITE_HELP: Record<(typeof USCITE_LABELS)[number], string> = {
+  "Materie prime":
+    "Acquisti di beni consumati nell’attività (materiali, merci, cancelleria, forniture, ecc.).",
+  Servizi:
+    "Spese per servizi esterni necessari (utenze, consulenze, manutenzioni, trasporti, comunicazione, ecc.).",
+  "Godimento beni di terzi":
+    "Affitti, leasing e noleggi per beni non di proprietà (locali, attrezzature, mezzi, ecc.).",
+  Personale:
+    "Compensi e oneri per lavoratori/collaboratori impiegati nell’attività diversa (stipendi, contributi, rimborsi).",
+  "Uscite diverse":
+    "Spese varie non ricomprese nelle altre voci (bolli, spese minute, commissioni, costi residuali).",
+};
+
 export default function Art6Editor() {
   const nav = useNavigate();
   const { annualitaId, art6Id } = useParams();
@@ -20,21 +68,20 @@ export default function Art6Editor() {
   const [entrate, setEntrate] = useState<any>({});
   const [uscite, setUscite] = useState<any>({});
 
-  const [saveStatus, setSaveStatus] = useState<
-    "idle" | "saving" | "saved" | "error"
-  >("idle");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   // LOAD
   useEffect(() => {
     const run = async () => {
       if (!art6Id) return;
       setLoading(true);
+      setErr(null);
       try {
         const a = await getArt6ById(art6Id);
-        setNome(a.nome ?? "");
-        setDescr(a.descrizione ?? "");
-        setEntrate(a.entrate ?? {});
-        setUscite(a.uscite ?? {});
+        setNome(a?.nome ?? "");
+        setDescr(a?.descrizione ?? "");
+        setEntrate(a?.entrate ?? {});
+        setUscite(a?.uscite ?? {});
       } catch (e: any) {
         setErr(e?.message ?? "Errore caricamento");
       } finally {
@@ -45,15 +92,13 @@ export default function Art6Editor() {
   }, [art6Id]);
 
   // TOTALI
-  const totEntrate = useMemo(
-    () => Object.values(entrate).reduce((s: number, v: any) => s + num(v), 0),
-    [entrate],
-  );
+  const totEntrate = useMemo(() => {
+    return Object.values(entrate).reduce((s: number, v: any) => s + num(v), 0);
+  }, [entrate]);
 
-  const totUscite = useMemo(
-    () => Object.values(uscite).reduce((s: number, v: any) => s + num(v), 0),
-    [uscite],
-  );
+  const totUscite = useMemo(() => {
+    return Object.values(uscite).reduce((s: number, v: any) => s + num(v), 0);
+  }, [uscite]);
 
   // AUTOSAVE
   useEffect(() => {
@@ -76,12 +121,12 @@ export default function Art6Editor() {
     }, 700);
 
     return () => clearTimeout(t);
-  }, [nome, descr, entrate, uscite]);
+  }, [art6Id, loading, nome, descr, entrate, uscite]);
 
   return (
     <div className="mobileShell">
       <header className="mHeader">
-        <button className="iconBtn" onClick={() => nav(`/anno/${annualitaId}`)}>
+        <button className="iconBtn" onClick={() => nav(`/anno/${annualitaId}`)} aria-label="Indietro">
           ←
         </button>
         <div className="mHeaderText">
@@ -92,10 +137,12 @@ export default function Art6Editor() {
             {saveStatus === "error" && "Errore"}
           </div>
         </div>
+        <div className="mHeaderRight" />
       </header>
 
       <main className="mContent">
         {err && <div className="error">{err}</div>}
+
         {loading ? (
           <p>Caricamento…</p>
         ) : (
@@ -107,10 +154,7 @@ export default function Art6Editor() {
               </div>
               <div className="field">
                 <label>Descrizione</label>
-                <input
-                  value={descr}
-                  onChange={(e) => setDescr(e.target.value)}
-                />
+                <input value={descr} onChange={(e) => setDescr(e.target.value)} />
               </div>
             </div>
 
@@ -119,17 +163,13 @@ export default function Art6Editor() {
                 ENTRATE <span>{totEntrate.toFixed(2)}€</span>
               </summary>
               <div className="accBody">
-                {[
-                  "Prestazioni ad associati",
-                  "Contributi privati",
-                  "Prestazioni a terzi",
-                  "Contributi pubblici",
-                  "Contratti pubblici",
-                  "Sponsorizzazioni",
-                  "Altre entrate",
-                ].map((label, i) => (
-                  <div key={i} className="rowInput">
-                    <div>{label}</div>
+                {ENTRATE_LABELS.map((label, i) => (
+                  <div key={label} className="rowInput">
+                    <div className="rowLabel">
+                      <div>{label}</div>
+                      <div className="hint">{ENTRATE_HELP[label]}</div>
+                    </div>
+
                     <input
                       type="number"
                       value={num(entrate[i])}
@@ -150,15 +190,13 @@ export default function Art6Editor() {
                 USCITE <span>{totUscite.toFixed(2)}€</span>
               </summary>
               <div className="accBody">
-                {[
-                  "Materie prime",
-                  "Servizi",
-                  "Godimento beni di terzi",
-                  "Personale",
-                  "Uscite diverse",
-                ].map((label, i) => (
-                  <div key={i} className="rowInput">
-                    <div>{label}</div>
+                {USCITE_LABELS.map((label, i) => (
+                  <div key={label} className="rowInput">
+                    <div className="rowLabel">
+                      <div>{label}</div>
+                      <div className="hint">{USCITE_HELP[label]}</div>
+                    </div>
+
                     <input
                       type="number"
                       value={num(uscite[i])}
@@ -179,4 +217,3 @@ export default function Art6Editor() {
     </div>
   );
 }
-
