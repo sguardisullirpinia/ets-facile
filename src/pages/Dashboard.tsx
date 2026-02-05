@@ -89,7 +89,7 @@ export default function Dashboard() {
 
       {err && <div className="error">{err}</div>}
 
-      <div className="grid">
+      <div className="grid fullWidth">
         {annualita.map((a) => (
           <div key={a.id} className="tile" style={{ textAlign: "left" }}>
             <div className="tileTitle">{a.anno}</div>
@@ -144,3 +144,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
