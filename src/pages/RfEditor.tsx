@@ -114,8 +114,12 @@ export default function RfEditor() {
 
             <details className="acc">
               <summary className="accSum">
-                ENTRATE <span>{totEntrate.toFixed(2)}€</span>
-              </summary>
+              <div className="accLeft">
+                <span className="accChevron">▸</span>
+                <span>ENTRATE</span>
+              </div>
+              <span className="accTot">{totEntrate.toFixed(2)}€</span>
+            </summary>
               <div className="accBody">
                 {["Entrate da raccolte fondi occasionali", "Altre entrate"].map(
                   (label, i) => (
@@ -139,8 +143,12 @@ export default function RfEditor() {
 
             <details className="acc">
               <summary className="accSum">
-                USCITE <span>{totUscite.toFixed(2)}€</span>
-              </summary>
+              <div className="accLeft">
+                <span className="accChevron">▸</span>
+                <span>USCITE</span>
+              </div>
+              <span className="accTot">{totUscite.toFixed(2)}€</span>
+            </summary>
               <div className="accBody">
                 {["Uscite per raccolte fondi occasionali", "Altre uscite"].map(
                   (label, i) => (
@@ -167,3 +175,4 @@ export default function RfEditor() {
     </div>
   );
 }
+
