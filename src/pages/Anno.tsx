@@ -831,7 +831,7 @@ export default function Anno() {
               {tab === "rf" && "Crea raccolta fondi"}
             </h3>
             {tab === "aig" && (
-            <p className="muted" style={{ marginTop: 4 }}>
+            <p className="muted" style={{ fontSize: "0.7rem", opacity: 0.7 }}>
               {"N.B. gli enti con ricavi, rendite, proventi o entrate <= a 300.000 euro, al fine del test di non commercialità possono considerare le diverse attività di interesse generale eventualmente svolte come un’unica attività."}
             </p>
             )}
@@ -905,6 +905,7 @@ export default function Anno() {
     </div>
   );
 }
+
 
 
 
