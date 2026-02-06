@@ -187,15 +187,6 @@ export async function updateArt6(id: string, patch: any) {
   if (error) throw error;
 }
 
-
-export async function updateArt6(id: string, patch: any) {
-  const { error } = await supabase
-    .from("attivita_diverse")
-    .update(patch)
-    .eq("id", id);
-  if (error) throw error;
-}
-
 export async function getRfById(id: string) {
   const { data, error } = await supabase
     .from("raccolte_fondi")
@@ -218,5 +209,6 @@ export async function deleteAnnualita(annualitaId: string) {
   const { error } = await supabase.from("annualita").delete().eq("id", annualitaId);
   if (error) throw error;
 }
+
 
 
