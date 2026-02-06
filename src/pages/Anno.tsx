@@ -24,13 +24,17 @@ type AigRow = {
   costi_fin: any;
   costi_supporto: any;
 };
+
 type Art6Row = {
   id: string;
   nome: string;
   descrizione: string;
   entrate: any;
   uscite: any;
+  // ✅ flag per escludere la voce C) se true
+  occasionale?: boolean;
 };
+
 type RfRow = {
   id: string;
   nome: string;
@@ -99,7 +103,7 @@ function totalCostiDirettiImputati(c: any) {
 }
 
 function totalCostiFinImputati(costiFin: any) {
-  const rb = costiFin?.rapporti_bancari ?? {};
+  constzconst rb = costiFin?.rapporti_bancari ?? {};
   const pr = costiFin?.prestiti ?? {};
   return (
     calcImputato(rb.costo_complessivo, rb.perc) +
@@ -217,7 +221,6 @@ export default function Anno() {
       const entrAll = totalEntrateAigAll(a.entrate);
       const entrTest = totalEntrateAigPerTest(a.entrate, naturaEnte);
 
-      // ✅ usa costi diretti imputati
       const cd = totalCostiDirettiImputati(a.costi_diretti);
       const cf = totalCostiFinImputati(a.costi_fin);
       const cs = totalCostiSupportoImputati(a.costi_supporto);
@@ -271,14 +274,17 @@ export default function Anno() {
       (s: number, x: any) => s + totalArt6EntrateAll(x.entrate),
       0
     );
-    const totEntrNoSpons = art6.reduce(
-      (s: number, x: any) => s + totalArt6EntrateNoSpons(x.entrate),
-      0
-    );
+
+    // ✅ VOCE C: escludi le attività DIVERSE OCCASIONALI
+    const totEntrNoSpons = art6
+      .filter((x: any) => !x.occasionale)
+      .reduce((s: number, x: any) => s + totalArt6EntrateNoSpons(x.entrate), 0);
+
     const totUscite = art6.reduce(
       (s: number, x: any) => s + totalArt6Uscite(x.uscite),
       0
     );
+
     return { totEntrAll, totEntrNoSpons, totUscite };
   }, [art6]);
 
@@ -386,7 +392,9 @@ export default function Anno() {
 
   // ✅ DELETE ART.6
   const handleDeleteArt6 = async (id: string, nomeArt6: string) => {
-    const ok = window.confirm(`Vuoi eliminare l'attività diversa "${nomeArt6}"?`);
+    const ok = window.confirm(
+      `Vuoi eliminare l'attività diversa "${nomeArt6}"?`
+    );
     if (!ok) return;
 
     try {
@@ -518,7 +526,6 @@ export default function Anno() {
             {aigs.map((x) => {
               const comm = aigEsitoById.get(x.id);
               const label = comm ? "COMMERCIALE" : "NON COMMERCIALE";
-              // se non hai pill ok/bad nel CSS, puoi cambiare in "pill warn" / "pill ok"
               const cls = comm ? "pill warn" : "pill ok";
 
               return (
@@ -526,7 +533,6 @@ export default function Anno() {
                   <div className="tileTitle">{x.nome}</div>
                   <div className="tileMeta">{x.descrizione}</div>
 
-                  {/* ✅ esito al posto di DA CALCOLARE */}
                   <div className={cls}>{label}</div>
 
                   <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
@@ -736,7 +742,10 @@ export default function Anno() {
               </div>
 
               <div className="reportRow">
-                <span>C) Entrate da ATTIVITA' DIVERSE (senza sponsorizzazioni ex art. 79, 5° comma, CTS)</span>
+                <span>
+                  C) Entrate da ATTIVITA' DIVERSE (senza sponsorizzazioni ex art.
+                  79, 5° comma, CTS)
+                </span>
                 <b>{art6Computed.totEntrNoSpons.toFixed(2)}€</b>
               </div>
 
@@ -786,7 +795,9 @@ export default function Anno() {
                 <b>{soglia30.toFixed(2)}€</b>
               </div>
 
-              <div className={secondaria30 ? "reportResult ok" : "reportResult bad"}>
+              <div
+                className={secondaria30 ? "reportResult ok" : "reportResult bad"}
+              >
                 {secondaria30
                   ? "SECONDARIE (test 30% OK)"
                   : "NON SECONDARIE (test 30% KO)"}
@@ -804,7 +815,9 @@ export default function Anno() {
                 <b>{soglia66.toFixed(2)}€</b>
               </div>
 
-              <div className={secondaria66 ? "reportResult ok" : "reportResult bad"}>
+              <div
+                className={secondaria66 ? "reportResult ok" : "reportResult bad"}
+              >
                 {secondaria66
                   ? "SECONDARIE (test 66% OK)"
                   : "NON SECONDARIE (test 66% KO)"}
@@ -830,10 +843,13 @@ export default function Anno() {
               {tab === "art6" && "Crea attività diversa"}
               {tab === "rf" && "Crea raccolta fondi"}
             </h3>
+
             {tab === "aig" && (
-            <p className="muted" style={{ fontSize: "0.7rem", opacity: 0.7 }}>
-              {"N.B. gli enti con ricavi, rendite, proventi o entrate <= a 300.000 euro, al fine del test di non commercialità possono considerare le diverse attività di interesse generale eventualmente svolte come un’unica attività."}
-            </p>
+              <p className="muted" style={{ fontSize: "0.7rem", opacity: 0.7 }}>
+                {
+                  "N.B. gli enti con ricavi, rendite, proventi o entrate <= a 300.000 euro, al fine del test di non commercialità possono considerare le diverse attività di interesse generale eventualmente svolte come un’unica attività."
+                }
+              </p>
             )}
 
             <div className="field">
@@ -905,9 +921,3 @@ export default function Anno() {
     </div>
   );
 }
-
-
-
-
-
-
