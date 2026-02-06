@@ -52,9 +52,10 @@ export async function listAig(annualitaId: string) {
 export async function listArt6(annualitaId: string) {
   const { data, error } = await supabase
     .from("attivita_diverse")
-    .select("id,nome,descrizione,entrate,uscite")
+    .select("id,nome,descrizione,entrate,uscite,occasionale")
     .eq("annualita_id", annualitaId)
     .order("created_at", { ascending: false });
+
   if (error) throw error;
   return data ?? [];
 }
@@ -206,3 +207,4 @@ export async function deleteAnnualita(annualitaId: string) {
   const { error } = await supabase.from("annualita").delete().eq("id", annualitaId);
   if (error) throw error;
 }
+
