@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import Topbar from "../components/Topbar";
 
 type Annualita = { id: string; anno: number };
 
@@ -152,3 +153,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
