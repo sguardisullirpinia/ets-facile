@@ -644,3 +644,4 @@ hr {
 .acc[open] .accChevron {
   transform: rotate(90deg);
 }
+.accChevron { color: #eaf0ff; }
