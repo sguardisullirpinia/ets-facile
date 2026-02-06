@@ -592,3 +592,40 @@ hr {
   .topbarTitle { font-size: 18px; }
   .topbarRight { gap: 8px; }
 }
+/* nasconde il triangolino nativo di <summary> */
+.acc > summary::-webkit-details-marker { display: none; }
+.acc > summary::marker { content: ""; }
+
+/* layout del summary */
+.accSum{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  cursor:pointer;
+  user-select:none;
+}
+
+.accLeft{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+}
+
+/* freccia */
+.accChevron{
+  display:inline-flex;
+  width:18px;
+  height:18px;
+  align-items:center;
+  justify-content:center;
+  transition: transform .18s ease;
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* ruota quando l'accordion è aperto */
+.acc[open] .accChevron{
+  transform: rotate(90deg);
+}
