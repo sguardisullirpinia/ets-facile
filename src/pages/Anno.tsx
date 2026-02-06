@@ -723,25 +723,25 @@ export default function Anno() {
         {!loading && tab === "riepilogo" && (
           <div className="cardBlock">
             <div className="reportCard">
-              <div className="reportTitle">TEST COMMERCIALITÀ DELL’ENTE</div>
+              <div className="reportTitle">TEST COMMERCIALITÀ DELL’INTERO ENTE</div>
 
               <div className="reportRow">
-                <span>A) Entrate AIG COMMERCIALI (per test)</span>
+                <span>A) Entrate da AIG COMMERCIALI</span>
                 <b>{aigComputed.totEntrCommerciali.toFixed(2)}€</b>
               </div>
 
               <div className="reportRow">
-                <span>B) Entrate AIG NON COMMERCIALI (tutte)</span>
+                <span>B) Entrate da AIG NON COMMERCIALI</span>
                 <b>{aigComputed.totEntrNonCommerciali.toFixed(2)}€</b>
               </div>
 
               <div className="reportRow">
-                <span>C) Entrate Attività diverse (senza spons.)</span>
+                <span>C) Entrate da ATTIVITA' DIVERSE (senza sponsorizzazioni ex art. 79, 5° comma, CTS)</span>
                 <b>{art6Computed.totEntrNoSpons.toFixed(2)}€</b>
               </div>
 
               <div className="reportRow">
-                <span>D) Proventi NON commerciali (Extra)</span>
+                <span>D) Proventi NON COMMERCIALI per natura</span>
                 <b>{extraNonCommerciali.toFixed(2)}€</b>
               </div>
 
@@ -900,3 +900,4 @@ export default function Anno() {
     </div>
   );
 }
+
