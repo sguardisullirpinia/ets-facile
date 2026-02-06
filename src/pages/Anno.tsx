@@ -329,8 +329,8 @@ export default function Anno() {
   const totaleCostiEnte =
     aigComputed.totCostiAig + art6Computed.totUscite + rfComputed.totUscite;
 
-  const soglia60 = totaleCostiEnte * 0.6;
-  const secondaria60 = art6Computed.totEntrAll <= soglia60;
+  const soglia66 = totaleCostiEnte * 0.66;
+  const secondaria66 = art6Computed.totEntrAll <= soglia66;
 
   const showFab = tab === "aig" || tab === "art6" || tab === "rf";
 
@@ -900,4 +900,5 @@ export default function Anno() {
     </div>
   );
 }
+
 
