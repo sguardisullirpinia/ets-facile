@@ -832,7 +832,7 @@ export default function Anno() {
             </h3>
             {tab === "aig" && (
             <p className="muted" style={{ marginTop: 4 }}>
-              N.B. gli enti con ricavi, rendite, proventi o entrate <= a 300.000 euro, al fine del test di non commercialità possono considerare le diverse attività di interesse generale eventualmente svolte come un’unica attività.
+              {"N.B. gli enti con ricavi, rendite, proventi o entrate <= a 300.000 euro, al fine del test di non commercialità possono considerare le diverse attività di interesse generale eventualmente svolte come un’unica attività."}
             </p>
             )}
 
@@ -905,6 +905,7 @@ export default function Anno() {
     </div>
   );
 }
+
 
 
 
