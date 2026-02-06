@@ -1,9 +1,17 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import { getEnteProfile } from "../lib/db";
 
 type Natura = "APS" | "ODV";
+
+type EnteProfileRow = {
+  user_id: string;
+  denominazione: string;
+  codice_fiscale: string;
+  piva: string | null;
+  sede_legale: string;
+  natura: Natura;
+};
 
 export default function Ente() {
   const nav = useNavigate();
@@ -24,17 +32,24 @@ export default function Ente() {
     setLoading(true);
 
     try {
-      // protezione: se non loggato, vai al login
-      const { data } = await supabase.auth.getUser();
-      if (!data.user) return nav("/login");
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return nav("/login");
 
-      const p = await getEnteProfile();
+      const { data, error } = await supabase
+        .from("ente_profiles")
+        .select("user_id, denominazione, codice_fiscale, piva, sede_legale, natura")
+        .eq("user_id", u.user.id)
+        .single();
 
-      setDenominazione(p?.denominazione ?? "");
-      setCodiceFiscale(p?.codice_fiscale ?? "");
-      setPiva(p?.piva ?? "");
-      setSedeLegale(p?.sede_legale ?? "");
-      setNatura((p?.natura as Natura) ?? "APS");
+      if (error) throw error;
+
+      const p = data as EnteProfileRow;
+
+      setDenominazione(p.denominazione ?? "");
+      setCodiceFiscale(p.codice_fiscale ?? "");
+      setPiva(p.piva ?? "");
+      setSedeLegale(p.sede_legale ?? "");
+      setNatura(p.natura ?? "APS");
     } catch (e: any) {
       setErr(e?.message ?? "Errore caricamento profilo ente");
     } finally {
@@ -53,9 +68,8 @@ export default function Ente() {
     setOk(null);
 
     try {
-      const { data } = await supabase.auth.getUser();
-      const userId = data.user?.id;
-      if (!userId) return nav("/login");
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return nav("/login");
 
       const { error } = await supabase
         .from("ente_profiles")
@@ -66,7 +80,7 @@ export default function Ente() {
           sede_legale: sedeLegale,
           natura,
         })
-        .eq("user_id", userId);
+        .eq("user_id", u.user.id);
 
       if (error) throw error;
 
@@ -134,4 +148,3 @@ export default function Ente() {
     </div>
   );
 }
-
