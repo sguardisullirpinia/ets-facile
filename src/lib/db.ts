@@ -170,12 +170,23 @@ export async function updateAig(
 export async function getArt6ById(id: string) {
   const { data, error } = await supabase
     .from("attivita_diverse")
-    .select("id, nome, descrizione, entrate, uscite")
+    .select("id,nome,descrizione,entrate,uscite,occasionale,annualita_id")
     .eq("id", id)
     .single();
+
   if (error) throw error;
-  return data as any;
+  return data;
 }
+
+export async function updateArt6(id: string, patch: any) {
+  const { error } = await supabase
+    .from("attivita_diverse")
+    .update(patch)
+    .eq("id", id);
+
+  if (error) throw error;
+}
+
 
 export async function updateArt6(id: string, patch: any) {
   const { error } = await supabase
@@ -207,4 +218,5 @@ export async function deleteAnnualita(annualitaId: string) {
   const { error } = await supabase.from("annualita").delete().eq("id", annualitaId);
   if (error) throw error;
 }
+
 
