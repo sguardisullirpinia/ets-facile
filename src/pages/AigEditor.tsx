@@ -6,7 +6,7 @@ type Natura = "APS" | "ODV";
 
 const ENTRATE_KEYS = [
   { k: "entrate_associati_mutuali", label: "1) Entrate dagli associati per attività mutuali" },
-  { k: "prestazioni_soci_fondatori", label: "2) Prestazioni e cessioni ad associati e fondatori" },
+  { k: "prestazioni_soci_fondatori", label: "2) Prestazioni e cessioni a iscritti, associati e fondatori" },
   { k: "contributi_privati", label: "6) Contributi da soggetti privati" },
   { k: "prestazioni_terzi", label: "7) Prestazioni e cessioni a terzi" },
   { k: "contributi_pubblici", label: "8) Contributi da enti pubblici" },
@@ -46,7 +46,7 @@ const ENTRATE_HELP: Record<(typeof ENTRATE_KEYS)[number]["k"], string> = {
   entrate_associati_mutuali:
     "Corrispettivi versati dai soci per attività svolte verso gli associati a condizioni più favorevoli (tipiche della mutualità).",
   prestazioni_soci_fondatori:
-    "Corrispettivi versati da soci o fondatori per prestazioni/cessioni (anche a condizioni di mercato).",
+    "Corrispettivi versati da iscritti, soci o fondatori per prestazioni/cessioni (anche a condizioni di mercato) N.B. Gli iscritti sono coloro che non beneficiano dei diritti di partecipazione e voto nelle assemblee dell’associazione, ma che hanno un forte e duraturo legame con l’associazione.",
   contributi_privati:
     "Contributi/donazioni da privati senza una controprestazione specifica, spesso legati a progetti e rendicontazione.",
   prestazioni_terzi: "Vendite o servizi a terzi (non soci) con corrispettivo.",
@@ -681,3 +681,4 @@ export default function AigEditor() {
     </div>
   );
 }
+
