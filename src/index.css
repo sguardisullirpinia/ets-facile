@@ -573,8 +573,7 @@ hr {
 .acc > summary::marker { content: ""; }
 
 /* =========================
-   ACCORDION (.acc) – CORRETTO
-   (sostituisci TUTTE le regole .acc/.accSum/.accTot/.accBody/.accLeft/.accChevron e marker)
+   ACCORDION (.acc) – BLOCCO COMPLETO
    ========================= */
 
 .acc {
@@ -586,12 +585,8 @@ hr {
 }
 
 /* Nasconde il triangolino nativo di <summary> */
-.acc > summary::-webkit-details-marker {
-  display: none;
-}
-.acc > summary::marker {
-  content: "";
-}
+.acc > summary::-webkit-details-marker { display: none; }
+.acc > summary::marker { content: ""; }
 
 /* Summary (barra titolo) */
 .accSum {
@@ -603,7 +598,7 @@ hr {
   cursor: pointer;
   user-select: none;
   font-weight: 800;
-  list-style: none; /* evita marker in alcuni browser */
+  list-style: none;
 }
 
 /* Lato sinistro: freccia + titolo */
@@ -638,10 +633,10 @@ hr {
   line-height: 1;
   flex-shrink: 0;
   transition: transform 0.18s ease;
+  color: #eaf0ff; /* ✅ forza visibilità */
 }
 
 /* Ruota quando aperto */
 .acc[open] .accChevron {
   transform: rotate(90deg);
 }
-.accChevron { color: #eaf0ff; }
