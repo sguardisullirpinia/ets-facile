@@ -516,7 +516,7 @@ hr {
 .grid.fullWidth {
   grid-template-columns: 1fr;
 }
-/* ===== Topbar component (global) ===== */
+/* ===== TOPBAR (global, riutilizzabile) ===== */
 .topbar {
   display: flex;
   align-items: center;
@@ -529,11 +529,22 @@ hr {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-width: 0;
+  min-width: 0; /* evita overflow */
+}
+
+.topbarBack {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #eaf0ff;
+  font-size: 18px;
+  cursor: pointer;
 }
 
 .appLogo {
-  height: 54px;
+  height: 34px; /* cambia 32/36 a gusto */
   width: auto;
   display: block;
 }
@@ -570,11 +581,11 @@ hr {
 .topbarRight {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 10px; /* qui aumenti lo "spazio" tra Ente/Help/Esci */
   flex-shrink: 0;
 }
 
-/* mobile */
+/* Mobile: stringe un po' e nasconde divider */
 @media (max-width: 520px) {
   .appLogo { height: 30px; }
   .topbarDivider { display: none; }
