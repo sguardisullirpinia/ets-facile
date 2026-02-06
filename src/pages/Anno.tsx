@@ -800,14 +800,14 @@ export default function Anno() {
               </div>
 
               <div className="reportRow">
-                <span>Soglia 60% del totale costi ente</span>
-                <b>{soglia60.toFixed(2)}€</b>
+                <span>Soglia 66% del totale costi ente</span>
+                <b>{soglia66.toFixed(2)}€</b>
               </div>
 
-              <div className={secondaria60 ? "reportResult ok" : "reportResult bad"}>
-                {secondaria60
-                  ? "SECONDARIE (test 60% OK)"
-                  : "NON SECONDARIE (test 60% KO)"}
+              <div className={secondaria66 ? "reportResult ok" : "reportResult bad"}>
+                {secondaria66
+                  ? "SECONDARIE (test 66% OK)"
+                  : "NON SECONDARIE (test 66% KO)"}
               </div>
             </div>
           </div>
@@ -900,5 +900,6 @@ export default function Anno() {
     </div>
   );
 }
+
 
 
