@@ -203,7 +203,7 @@ export default function Anno() {
       case "rf":
         return "Raccolte fondi";
       case "extra":
-        return "Extra";
+        return "Entrate non Commerciali";
       case "riepilogo":
         return "Riepilogo";
     }
@@ -618,7 +618,7 @@ export default function Anno() {
           </div>
         )}
 
-        {/* EXTRA */}
+        {/* EXTRA (Entrate non Commerciali) */}
         {!loading && tab === "extra" && (
           <div className="cardBlock">
             <div
@@ -630,7 +630,7 @@ export default function Anno() {
               }}
             >
               <p className="muted" style={{ margin: 0 }}>
-                Voci annuali extra (autosave).
+                Entrate non Commerciali
               </p>
               <span className="muted" style={{ fontSize: 12 }}>
                 {extraStatus === "saving" && "Salvataggio…"}
@@ -887,7 +887,7 @@ export default function Anno() {
           onClick={() => setTab("extra")}
         >
           <div className="navIcon">€</div>
-          <div className="navLabel">Extra</div>
+          <div className="navLabel">Entrate non commerciali</div>
         </button>
         <button
           className={tab === "riepilogo" ? "navBtn active" : "navBtn"}
@@ -900,5 +900,3 @@ export default function Anno() {
     </div>
   );
 }
-
-
