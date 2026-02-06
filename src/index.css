@@ -568,15 +568,11 @@ hr {
   .topbarTitle { font-size: 18px; }
   .topbarRight { gap: 8px; }
 }
-/* nasconde il triangolino nativo di <summary> */
-.acc > summary::-webkit-details-marker { display: none; }
-.acc > summary::marker { content: ""; }
-
 /* =========================
-   ACCORDION (.acc) – BLOCCO COMPLETO
+   ACCORDION (.acc) – UNICO E CORRETTO
    ========================= */
 
-.acc {
+details.acc {
   background: #121420;
   border: 1px solid #23284a;
   border-radius: 16px;
@@ -584,12 +580,16 @@ hr {
   overflow: hidden;
 }
 
-/* Nasconde il triangolino nativo di <summary> */
-.acc > summary::-webkit-details-marker { display: none; }
-.acc > summary::marker { content: ""; }
+/* ✅ Nasconde il triangolino nativo (CORRETTO: details.acc > summary) */
+details.acc > summary::-webkit-details-marker {
+  display: none;
+}
+details.acc > summary::marker {
+  content: "";
+}
 
 /* Summary (barra titolo) */
-.accSum {
+details.acc > summary.accSum {
   padding: 14px;
   display: flex;
   align-items: center;
@@ -602,7 +602,7 @@ hr {
 }
 
 /* Lato sinistro: freccia + titolo */
-.accLeft {
+details.acc > summary .accLeft {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -610,20 +610,20 @@ hr {
 }
 
 /* Totale a destra */
-.accTot {
+details.acc > summary .accTot {
   opacity: 0.85;
   font-weight: 800;
   flex-shrink: 0;
 }
 
 /* Corpo accordion */
-.accBody {
+details.acc .accBody {
   padding: 12px 14px 14px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 /* Freccia */
-.accChevron {
+details.acc .accChevron {
   display: inline-flex;
   width: 18px;
   height: 18px;
@@ -633,10 +633,10 @@ hr {
   line-height: 1;
   flex-shrink: 0;
   transition: transform 0.18s ease;
-  color: #eaf0ff; /* ✅ forza visibilità */
+  color: #eaf0ff;
 }
 
-/* Ruota quando aperto */
-.acc[open] .accChevron {
+/* ✅ Ruota quando aperto */
+details.acc[open] .accChevron {
   transform: rotate(90deg);
 }
