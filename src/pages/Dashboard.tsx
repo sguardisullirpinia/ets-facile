@@ -14,15 +14,23 @@ export default function Dashboard() {
 
   const load = async () => {
     setErr(null);
+
     const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return nav("/login");
+    if (!userData.user) {
+      nav("/login");
+      return;
+    }
 
     const { data, error } = await supabase
       .from("annualita")
       .select("id, anno")
       .order("anno", { ascending: false });
 
-    if (error) return setErr(error.message);
+    if (error) {
+      setErr(error.message);
+      return;
+    }
+
     setAnnualita((data ?? []) as Annualita[]);
   };
 
@@ -36,7 +44,11 @@ export default function Dashboard() {
     if (!ok) return;
 
     try {
-      const { error } = await supabase.from("annualita").delete().eq("id", id);
+      const { error } = await supabase
+        .from("annualita")
+        .delete()
+        .eq("id", id);
+
       if (error) throw error;
 
       setAnnualita((prev) => prev.filter((x) => x.id !== id));
@@ -47,9 +59,13 @@ export default function Dashboard() {
 
   const createAnnualita = async () => {
     setErr(null);
+
     const { data: userData } = await supabase.auth.getUser();
     const user = userData.user;
-    if (!user) return nav("/login");
+    if (!user) {
+      nav("/login");
+      return;
+    }
 
     const { error } = await supabase.from("annualita").insert({
       user_id: user.id,
@@ -63,7 +79,10 @@ export default function Dashboard() {
       },
     });
 
-    if (error) return setErr(error.message);
+    if (error) {
+      setErr(error.message);
+      return;
+    }
 
     setOpen(false);
     load();
@@ -76,29 +95,27 @@ export default function Dashboard() {
 
   return (
     <div className="wrap">
-      <header className="topbar">
-        <div className="topbarLeft">
-          <img src="/logo.png" alt="Logo" className="appLogo" />
-          <h2 style={{ margin: 0 }}>Dashboard</h2>
-        </div>
-
-        <div className="topbarRight">
-          <button className="ghost" onClick={() => nav("/ente")}>
-            Ente
-          </button>
-
-          <button className="ghost" onClick={() => nav("/help")}>
-            Help
-          </button>
-
-          <button className="ghost" onClick={logout}>
-            Esci
-          </button>
-        </div>
-      </header>
+      {/* TOPBAR RIUTILIZZABILE */}
+      <Topbar
+        title="Dashboard"
+        right={
+          <>
+            <button className="ghost" onClick={() => nav("/ente")}>
+              Ente
+            </button>
+            <button className="ghost" onClick={() => nav("/help")}>
+              Help
+            </button>
+            <button className="ghost" onClick={logout}>
+              Esci
+            </button>
+          </>
+        }
+      />
 
       {err && <div className="error">{err}</div>}
 
+      {/* GRID ANNUALITÀ */}
       <div className="grid fullWidth">
         {annualita.map((a) => (
           <div key={a.id} className="tile" style={{ textAlign: "left" }}>
@@ -121,7 +138,9 @@ export default function Dashboard() {
         ))}
 
         {annualita.length === 0 && (
-          <p className="muted">Nessuna annualità. Clicca “+” per crearne una.</p>
+          <p className="muted">
+            Nessuna annualità. Clicca “+” per crearne una.
+          </p>
         )}
       </div>
 
@@ -130,17 +149,21 @@ export default function Dashboard() {
         +
       </button>
 
-      {/* Modal semplice */}
+      {/* MODAL CREAZIONE ANNUALITÀ */}
       {open && (
         <div className="modalOverlay" onClick={() => setOpen(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3>Crea annualità</h3>
+
             <label>Anno</label>
             <input
               type="number"
               value={anno}
-              onChange={(e) => setAnno(parseInt(e.target.value || "0", 10))}
+              onChange={(e) =>
+                setAnno(parseInt(e.target.value || "0", 10))
+              }
             />
+
             <div className="row">
               <button className="ghost" onClick={() => setOpen(false)}>
                 Annulla
@@ -153,4 +176,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
