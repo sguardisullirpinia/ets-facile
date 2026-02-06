@@ -225,15 +225,19 @@ hr {
   font-size: 12px;
   border: 1px solid #23284a;
 }
+/* NON COMMERCIALE → VERDE */
 .pill.ok {
-  border-color: #2f6b3b;
-  background: rgba(20, 60, 30, 0.35);
-}
-.pill.warn {
-  border-color: #6b5a2f;
-  background: rgba(80, 65, 10, 0.3);
+  background: rgba(0, 140, 90, 0.25);
+  color: rgb(0, 120, 80);
+  border: 1px solid rgba(0, 140, 90, 0.5);
 }
 
+/* COMMERCIALE → ROSSO */
+.pill.warn {
+  background: rgba(200, 40, 40, 0.25);
+  color: rgb(170, 30, 30);
+  border: 1px solid rgba(200, 40, 40, 0.6);
+}
 /* Extra / Riepilogo blocks */
 .cardBlock {
   background: #121420;
