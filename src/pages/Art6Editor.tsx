@@ -7,6 +7,18 @@ function num(v: any) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function clampPerc(v: any) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(100, n));
+}
+
+function calcImputato(costoCompl: any, perc: any) {
+  return num(costoCompl) * (clampPerc(perc) / 100);
+}
+
+type RigaImputazione = { costo_complessivo: number; perc: number };
+
 const ENTRATE_LABELS = [
   "Prestazioni ad associati",
   "Contributi privati",
@@ -66,9 +78,13 @@ export default function Art6Editor() {
   const [descr, setDescr] = useState("");
 
   const [entrate, setEntrate] = useState<any>({});
-  const [uscite, setUscite] = useState<any>({});
 
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  // ✅ USCITE ora imputabili: { costo_complessivo, perc }
+  const [uscite, setUscite] = useState<Record<number, RigaImputazione>>({});
+
+  const [saveStatus, setSaveStatus] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle");
 
   // LOAD
   useEffect(() => {
@@ -76,12 +92,28 @@ export default function Art6Editor() {
       if (!art6Id) return;
       setLoading(true);
       setErr(null);
+
       try {
         const a = await getArt6ById(art6Id);
         setNome(a?.nome ?? "");
         setDescr(a?.descrizione ?? "");
         setEntrate(a?.entrate ?? {});
-        setUscite(a?.uscite ?? {});
+
+        // ✅ retro-compat: se prima erano numeri, li trasformo in {costo_complessivo, perc: 100}
+        const u = a?.uscite ?? {};
+        const mapped: Record<number, RigaImputazione> = {};
+        USCITE_LABELS.forEach((_, i) => {
+          const v = u?.[i];
+          if (typeof v === "number") {
+            mapped[i] = { costo_complessivo: num(v), perc: 100 };
+          } else {
+            mapped[i] = {
+              costo_complessivo: num(v?.costo_complessivo),
+              perc: clampPerc(v?.perc),
+            };
+          }
+        });
+        setUscite(mapped);
       } catch (e: any) {
         setErr(e?.message ?? "Errore caricamento");
       } finally {
@@ -93,11 +125,15 @@ export default function Art6Editor() {
 
   // TOTALI
   const totEntrate = useMemo(() => {
-    return Object.values(entrate).reduce((s: number, v: any) => s + num(v), 0);
+    return Object.values(entrate ?? {}).reduce((s: number, v: any) => s + num(v), 0);
   }, [entrate]);
 
-  const totUscite = useMemo(() => {
-    return Object.values(uscite).reduce((s: number, v: any) => s + num(v), 0);
+  // ✅ totale uscite imputate (somma importi imputati)
+  const totUsciteImputate = useMemo(() => {
+    return USCITE_LABELS.reduce((s, _, i) => {
+      const row = uscite?.[i] ?? { costo_complessivo: 0, perc: 0 };
+      return s + calcImputato(row.costo_complessivo, row.perc);
+    }, 0);
   }, [uscite]);
 
   // AUTOSAVE
@@ -111,7 +147,7 @@ export default function Art6Editor() {
           nome,
           descrizione: descr,
           entrate,
-          uscite,
+          uscite, // ✅ salva la nuova struttura
         });
         setSaveStatus("saved");
         setTimeout(() => setSaveStatus("idle"), 800);
@@ -126,7 +162,11 @@ export default function Art6Editor() {
   return (
     <div className="mobileShell">
       <header className="mHeader">
-        <button className="iconBtn" onClick={() => nav(`/anno/${annualitaId}`)} aria-label="Indietro">
+        <button
+          className="iconBtn"
+          onClick={() => nav(`/anno/${annualitaId}`)}
+          aria-label="Indietro"
+        >
           ←
         </button>
         <div className="mHeaderText">
@@ -154,10 +194,14 @@ export default function Art6Editor() {
               </div>
               <div className="field">
                 <label>Descrizione</label>
-                <input value={descr} onChange={(e) => setDescr(e.target.value)} />
+                <input
+                  value={descr}
+                  onChange={(e) => setDescr(e.target.value)}
+                />
               </div>
             </div>
 
+            {/* ENTRATE (come prima) */}
             <details className="acc">
               <summary className="accSum">
                 ENTRATE <span>{totEntrate.toFixed(2)}€</span>
@@ -185,30 +229,82 @@ export default function Art6Editor() {
               </div>
             </details>
 
+            {/* ✅ USCITE (ora imputabili come AigEditor) */}
             <details className="acc">
               <summary className="accSum">
-                USCITE <span>{totUscite.toFixed(2)}€</span>
+                USCITE (IMPUTAZIONE) <span>{totUsciteImputate.toFixed(2)}€</span>
               </summary>
-              <div className="accBody">
-                {USCITE_LABELS.map((label, i) => (
-                  <div key={label} className="rowInput">
-                    <div className="rowLabel">
-                      <div>{label}</div>
-                      <div className="hint">{USCITE_HELP[label]}</div>
-                    </div>
 
-                    <input
-                      type="number"
-                      value={num(uscite[i])}
-                      onChange={(e) =>
-                        setUscite((p: any) => ({
-                          ...p,
-                          [i]: Number(e.target.value || 0),
-                        }))
-                      }
-                    />
-                  </div>
-                ))}
+              <div className="accBody">
+                <div className="hint" style={{ marginBottom: 10 }}>
+                  Inserisci il costo complessivo e la % imputabile a questa
+                  attività. L’app calcola l’importo imputato.
+                </div>
+
+                {USCITE_LABELS.map((label, i) => {
+                  const row = uscite?.[i] ?? { costo_complessivo: 0, perc: 0 };
+                  const imputato = calcImputato(row.costo_complessivo, row.perc);
+
+                  return (
+                    <div key={label} className="blockInput">
+                      <div className="blockTitle">{label}</div>
+                      <div className="hint">{USCITE_HELP[label]}</div>
+
+                      <div className="miniGrid">
+                        <div>
+                          <div className="miniLabel">Costo complessivo (€)</div>
+                          <input
+                            type="number"
+                            value={num(row.costo_complessivo)}
+                            onChange={(e) =>
+                              setUscite((p) => ({
+                                ...p,
+                                [i]: {
+                                  ...row,
+                                  costo_complessivo: Number(e.target.value || 0),
+                                },
+                              }))
+                            }
+                          />
+                        </div>
+
+                        <div>
+                          <div className="miniLabel">% imputazione</div>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            step="0.01"
+                            value={num(row.perc)}
+                            onChange={(e) =>
+                              setUscite((p) => ({
+                                ...p,
+                                [i]: {
+                                  ...row,
+                                  perc: e.target.value === "" ? 0 : Number(e.target.value),
+                                },
+                              }))
+                            }
+                            onBlur={(e) =>
+                              setUscite((p) => ({
+                                ...p,
+                                [i]: {
+                                  ...row,
+                                  perc: clampPerc(e.target.value),
+                                },
+                              }))
+                            }
+                          />
+                          <div className="hint">Da 0 a 100 (puoi usare decimali)</div>
+                        </div>
+                      </div>
+
+                      <div className="accFooter">
+                        <div className="muted">Importo imputato</div>
+                        <b>{imputato.toFixed(2)}€</b>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </details>
           </>
@@ -217,4 +313,3 @@ export default function Art6Editor() {
     </div>
   );
 }
-
