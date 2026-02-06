@@ -1,53 +1,16 @@
-import { ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import type { ReactNode } from "react";
 
 type TopbarProps = {
-  title: string;
-  subtitle?: string;
-  /** Se true mostra freccia indietro */
-  showBack?: boolean;
-  /** Dove andare al click “indietro” (se non lo metti fa nav(-1)) */
-  backTo?: string;
-  /** Percorso del logo (default /logo.png) */
-  logoSrc?: string;
-  /** Alt text del logo */
-  logoAlt?: string;
-  /** Bottoni/azioni a destra (es. Ente/Help/Esci) */
+  title?: string;
   right?: ReactNode;
 };
 
-export default function Topbar({
-  title,
-  subtitle,
-  showBack = false,
-  backTo,
-  logoSrc = "/logo.png",
-  logoAlt = "Logo",
-  right,
-}: TopbarProps) {
-  const nav = useNavigate();
-
-  const onBack = () => {
-    if (backTo) nav(backTo);
-    else nav(-1);
-  };
-
+export default function Topbar({ title, right }: TopbarProps) {
   return (
     <header className="topbar">
       <div className="topbarLeft">
-        {showBack && (
-          <button className="iconBtn" onClick={onBack} aria-label="Indietro">
-            ←
-          </button>
-        )}
-
-        <img src={logoSrc} alt={logoAlt} className="appLogo" />
-        <span className="topbarDivider" />
-
-        <div className="topbarText">
-          <div className="topbarTitle">{title}</div>
-          {subtitle ? <div className="topbarSubtitle">{subtitle}</div> : null}
-        </div>
+        <img src="/logo.png" alt="Logo" className="appLogo" />
+        {title && <h2 style={{ margin: 0 }}>{title}</h2>}
       </div>
 
       <div className="topbarRight">{right}</div>
