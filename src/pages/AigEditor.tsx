@@ -55,8 +55,7 @@ const ENTRATE_HELP: Record<(typeof ENTRATE_KEYS)[number]["k"], string> = {
   contratti_pubblici:
     "Corrispettivi da enti pubblici per servizi/affidamenti/convenzioni: l’ente eroga un servizio e la PA corrisponde un prezzo.",
   altri_ricavi: "Altri proventi collegati all’AIG (rendite, rimborsi, proventi vari).",
-  rimanenze_finali:
-    "Valore delle rimanenze a fine periodo (merci/materiali). Se non gestisci rimanenze, lascia 0.",
+  rimanenze_finali: "Valore delle rimanenze a fine periodo (merci/materiali). Se non gestisci rimanenze, lascia 0.",
 };
 
 /** HELP (costi diretti) */
@@ -69,14 +68,10 @@ const COSTI_DIRETTI_HELP: Record<(typeof COSTI_DIRETTI_KEYS)[number]["k"], strin
     "Canoni e affitti per beni non di proprietà relativi alla specifica AIG (locazione, leasing, noleggio attrezzature).",
   personale:
     "Compensi e oneri per lavoratori/collaboratori impiegati nell’AIG (stipendi, contributi, rimborsi).",
-  ammortamenti:
-    "Quota annua di costo per beni durevoli usati nell’AIG (attrezzature, arredi, PC, ecc.).",
-  accantonamenti:
-    "Quote accantonate per coprire rischi o spese future legate all’attività (fondi rischi/oneri).",
-  oneri_diversi:
-    "Spese varie non classificabili altrove (imposte minori, bolli, spese minute, ecc.).",
-  rimanenze_iniziali:
-    "Valore delle rimanenze a inizio periodo (merci/materiali già presenti a inizio anno).",
+  ammortamenti: "Quota annua di costo per beni durevoli usati nell’AIG (attrezzature, arredi, PC, ecc.).",
+  accantonamenti: "Quote accantonate per coprire rischi o spese future legate all’attività (fondi rischi/oneri).",
+  oneri_diversi: "Spese varie non classificabili altrove (imposte minori, bolli, spese minute, ecc.).",
+  rimanenze_iniziali: "Valore delle rimanenze a inizio periodo (merci/materiali già presenti a inizio anno).",
 };
 
 function num(v: any) {
@@ -294,38 +289,16 @@ export default function AigEditor() {
               </div>
             )}
 
-            <div className="reportCard">
-              <div className="reportTitle">TOTALI & TEST (live)</div>
-              <div className="reportRow">
-                <span>Totale Entrate (tutte)</span>
-                <b>{totaleEntrate.toFixed(2)}€</b>
-              </div>
-              <div className="reportRow">
-                <span>Totale Entrate “per test”</span>
-                <b>{totaleEntrateTest.toFixed(2)}€</b>
-              </div>
-              <div className="reportRow">
-                <span>Totale Uscite AIG</span>
-                <b>{totaleUscite.toFixed(2)}€</b>
-              </div>
-              <div className="reportRow">
-                <span>Soglia (uscite + 6%)</span>
-                <b>{soglia.toFixed(2)}€</b>
-              </div>
-
-              <div className={badgeClass}>ESITO: {esito}</div>
-
-              <div className="muted" style={{ marginTop: 8 }}>
-                {esito === "NON COMMERCIALE"
-                  ? `✅ Entrate “per test” (${totaleEntrateTest.toFixed(2)}€) ≤ Soglia (${soglia.toFixed(2)}€)`
-                  : `⚠️ Entrate “per test” (${totaleEntrateTest.toFixed(2)}€) > Soglia (${soglia.toFixed(2)}€)`}
-              </div>
-            </div>
-
-            {/* ENTRATE */}
+            {/* 1) ENTRATE */}
             <details className="acc">
               <summary className="accSum">
-                ENTRATE DA AIG <span className="accTot">{totaleEntrate.toFixed(2)}€</span>
+                <span className="accLeft">
+                  <span className="accChevron" aria-hidden="true">
+                    ▸
+                  </span>
+                  <span>ENTRATE DA AIG</span>
+                </span>
+                <span className="accTot">{totaleEntrate.toFixed(2)}€</span>
               </summary>
 
               <div className="accBody">
@@ -360,10 +333,16 @@ export default function AigEditor() {
               </div>
             </details>
 
-            {/* COSTI DIRETTI */}
+            {/* 2) COSTI DIRETTI */}
             <details className="acc">
               <summary className="accSum">
-                COSTI DIRETTI <span className="accTot">{totaleCostiDiretti.toFixed(2)}€</span>
+                <span className="accLeft">
+                  <span className="accChevron" aria-hidden="true">
+                    ▸
+                  </span>
+                  <span>COSTI DIRETTI</span>
+                </span>
+                <span className="accTot">{totaleCostiDiretti.toFixed(2)}€</span>
               </summary>
 
               <div className="accBody">
@@ -393,10 +372,15 @@ export default function AigEditor() {
               </div>
             </details>
 
-            {/* COSTI FINANZIARI */}
+            {/* 3) COSTI FINANZIARI/PATRIMONIALI IMPUTABILI */}
             <details className="acc">
               <summary className="accSum">
-                COSTI FINANZIARI/PATRIMONIALI IMPUTABILI{" "}
+                <span className="accLeft">
+                  <span className="accChevron" aria-hidden="true">
+                    ▸
+                  </span>
+                  <span>COSTI FINANZIARI/PATRIMONIALI IMPUTABILI</span>
+                </span>
                 <span className="accTot">{totaleCostiFinImputati.toFixed(2)}€</span>
               </summary>
 
@@ -464,10 +448,15 @@ export default function AigEditor() {
               </div>
             </details>
 
-            {/* COSTI SUPPORTO */}
+            {/* 4) COSTI DI SUPPORTO GENERALE IMPUTABILI */}
             <details className="acc">
               <summary className="accSum">
-                COSTI DI SUPPORTO GENERALE IMPUTABILI{" "}
+                <span className="accLeft">
+                  <span className="accChevron" aria-hidden="true">
+                    ▸
+                  </span>
+                  <span>COSTI DI SUPPORTO GENERALE IMPUTABILI</span>
+                </span>
                 <span className="accTot">{totaleCostiSupportoImputati.toFixed(2)}€</span>
               </summary>
 
@@ -534,10 +523,46 @@ export default function AigEditor() {
                 })}
               </div>
             </details>
+
+            {/* TOTALI & TEST (alla fine) */}
+            <div className="reportCard">
+              <div className="reportTitle">TOTALI & TEST (live)</div>
+
+              <div className="reportRow">
+                <span>Totale Entrate (tutte)</span>
+                <b>{totaleEntrate.toFixed(2)}€</b>
+              </div>
+
+              <div className="reportRow">
+                <span>Totale Entrate “per test”</span>
+                <b>{totaleEntrateTest.toFixed(2)}€</b>
+              </div>
+
+              <div className="reportRow">
+                <span>Totale Uscite AIG</span>
+                <b>{totaleUscite.toFixed(2)}€</b>
+              </div>
+
+              <div className="reportRow">
+                <span>Soglia (uscite + 6%)</span>
+                <b>{soglia.toFixed(2)}€</b>
+              </div>
+
+              <div className={badgeClass}>ESITO: {esito}</div>
+
+              <div className="muted" style={{ marginTop: 8 }}>
+                {esito === "NON COMMERCIALE"
+                  ? `✅ Entrate “per test” (${totaleEntrateTest.toFixed(2)}€) ≤ Soglia (${soglia.toFixed(
+                      2
+                    )}€)`
+                  : `⚠️ Entrate “per test” (${totaleEntrateTest.toFixed(2)}€) > Soglia (${soglia.toFixed(
+                      2
+                    )}€)`}
+              </div>
+            </div>
           </>
         )}
       </main>
     </div>
   );
 }
-
