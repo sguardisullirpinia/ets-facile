@@ -519,7 +519,7 @@ export default function Anno() {
               const comm = aigEsitoById.get(x.id);
               const label = comm ? "COMMERCIALE" : "NON COMMERCIALE";
               // se non hai pill ok/bad nel CSS, puoi cambiare in "pill warn" / "pill ok"
-              const cls = comm ? "pill warm" : "pill ok";
+              const cls = comm ? "pill warn" : "pill ok";
 
               return (
                 <div key={x.id} className="tile" style={{ textAlign: "left" }}>
@@ -900,4 +900,5 @@ export default function Anno() {
     </div>
   );
 }
+
 
