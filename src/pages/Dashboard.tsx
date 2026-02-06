@@ -97,21 +97,16 @@ export default function Dashboard() {
     <div className="wrap">
       {/* TOPBAR RIUTILIZZABILE */}
       <Topbar
-        title="Dashboard"
-        right={
-          <>
-            <button className="ghost" onClick={() => nav("/ente")}>
-              Ente
-            </button>
-            <button className="ghost" onClick={() => nav("/help")}>
-              Help
-            </button>
-            <button className="ghost" onClick={logout}>
-              Esci
-            </button>
-          </>
-        }
-      />
+  title="Dashboard"
+  right={
+    <>
+      <button className="ghost" onClick={() => nav("/ente")}>Ente</button>
+      <button className="ghost" onClick={() => nav("/help")}>Help</button>
+      <button className="ghost" onClick={logout}>Esci</button>
+    </>
+  }
+/>
+
 
       {err && <div className="error">{err}</div>}
 
@@ -176,3 +171,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
