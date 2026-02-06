@@ -79,13 +79,22 @@ function num(v: any) {
   return Number.isFinite(n) ? n : 0;
 }
 
+/** clamp semplice per % 0..100 */
+function clampPerc(v: any) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(100, n));
+}
+
 function calcImputato(costoCompl: any, perc: any) {
-  return num(costoCompl) * (num(perc) / 100);
+  return num(costoCompl) * (clampPerc(perc) / 100);
 }
 
 function isEsclusaTestAPS(k: (typeof ENTRATE_KEYS)[number]["k"]) {
   return k === "entrate_associati_mutuali" || k === "prestazioni_soci_fondatori";
 }
+
+type RigaImputazione = { costo_complessivo: number; perc: number };
 
 export default function AigEditor() {
   const nav = useNavigate();
@@ -100,9 +109,11 @@ export default function AigEditor() {
   const [descr, setDescr] = useState("");
 
   const [entrate, setEntrate] = useState<any>({});
-  const [costiDiretti, setCostiDiretti] = useState<any>({});
-  const [costiFin, setCostiFin] = useState<any>({});
-  const [costiSupporto, setCostiSupporto] = useState<any>({});
+
+  // ✅ Ora anche i costi diretti sono "imputabili" (costo_complessivo + %)
+  const [costiDiretti, setCostiDiretti] = useState<Record<string, RigaImputazione>>({});
+  const [costiFin, setCostiFin] = useState<Record<string, RigaImputazione>>({});
+  const [costiSupporto, setCostiSupporto] = useState<Record<string, RigaImputazione>>({});
 
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
@@ -112,21 +123,59 @@ export default function AigEditor() {
       if (!aigId) return;
       setLoading(true);
       setErr(null);
+
       try {
         const [p, a] = await Promise.all([getEnteProfile(), getAigById(aigId)]);
+
         setNatura(p?.natura ?? "APS");
         setNome(a?.nome ?? "");
         setDescr(a?.descrizione ?? "");
         setEntrate(a?.entrate ?? {});
-        setCostiDiretti(a?.costi_diretti ?? {});
-        setCostiFin(a?.costi_fin ?? {});
-        setCostiSupporto(a?.costi_supporto ?? {});
+
+        // ✅ retro-compat: se prima erano numeri, li trasformo in {costo_complessivo, perc}
+        const cd = a?.costi_diretti ?? {};
+        const mappedDiretti: Record<string, RigaImputazione> = {};
+        COSTI_DIRETTI_KEYS.forEach((x) => {
+          const v = cd?.[x.k];
+          if (typeof v === "number") {
+            mappedDiretti[x.k] = { costo_complessivo: v, perc: 100 };
+          } else {
+            mappedDiretti[x.k] = {
+              costo_complessivo: num(v?.costo_complessivo),
+              perc: clampPerc(v?.perc),
+            };
+          }
+        });
+        setCostiDiretti(mappedDiretti);
+
+        const cf = a?.costi_fin ?? {};
+        const mappedFin: Record<string, RigaImputazione> = {};
+        COSTI_FIN_KEYS.forEach((x) => {
+          const v = cf?.[x.k];
+          mappedFin[x.k] = {
+            costo_complessivo: num(v?.costo_complessivo),
+            perc: clampPerc(v?.perc),
+          };
+        });
+        setCostiFin(mappedFin);
+
+        const cs = a?.costi_supporto ?? {};
+        const mappedSup: Record<string, RigaImputazione> = {};
+        COSTI_SUPPORTO_KEYS.forEach((x) => {
+          const v = cs?.[x.k];
+          mappedSup[x.k] = {
+            costo_complessivo: num(v?.costo_complessivo),
+            perc: clampPerc(v?.perc),
+          };
+        });
+        setCostiSupporto(mappedSup);
       } catch (e: any) {
         setErr(e?.message ?? "Errore caricamento");
       } finally {
         setLoading(false);
       }
     };
+
     run();
   }, [aigId]);
 
@@ -143,15 +192,18 @@ export default function AigEditor() {
     }, 0);
   }, [entrate, natura]);
 
-  // Totale costi diretti
-  const totaleCostiDiretti = useMemo(() => {
-    return COSTI_DIRETTI_KEYS.reduce((s, x) => s + num(costiDiretti[x.k]), 0);
+  // ✅ Totale costi diretti imputati (somma degli importi imputati)
+  const totaleCostiDirettiImputati = useMemo(() => {
+    return COSTI_DIRETTI_KEYS.reduce((s, x) => {
+      const row = costiDiretti?.[x.k] ?? { costo_complessivo: 0, perc: 0 };
+      return s + calcImputato(row.costo_complessivo, row.perc);
+    }, 0);
   }, [costiDiretti]);
 
   // Totale costi finanziari imputati
   const totaleCostiFinImputati = useMemo(() => {
     return COSTI_FIN_KEYS.reduce((s, x) => {
-      const row = costiFin?.[x.k] ?? {};
+      const row = costiFin?.[x.k] ?? { costo_complessivo: 0, perc: 0 };
       return s + calcImputato(row.costo_complessivo, row.perc);
     }, 0);
   }, [costiFin]);
@@ -159,15 +211,15 @@ export default function AigEditor() {
   // Totale costi supporto imputati
   const totaleCostiSupportoImputati = useMemo(() => {
     return COSTI_SUPPORTO_KEYS.reduce((s, x) => {
-      const row = costiSupporto?.[x.k] ?? {};
+      const row = costiSupporto?.[x.k] ?? { costo_complessivo: 0, perc: 0 };
       return s + calcImputato(row.costo_complessivo, row.perc);
     }, 0);
   }, [costiSupporto]);
 
   // Totale uscite
   const totaleUscite = useMemo(() => {
-    return totaleCostiDiretti + totaleCostiFinImputati + totaleCostiSupportoImputati;
-  }, [totaleCostiDiretti, totaleCostiFinImputati, totaleCostiSupportoImputati]);
+    return totaleCostiDirettiImputati + totaleCostiFinImputati + totaleCostiSupportoImputati;
+  }, [totaleCostiDirettiImputati, totaleCostiFinImputati, totaleCostiSupportoImputati]);
 
   // Soglia (uscite + 6%)
   const soglia = useMemo(() => totaleUscite * 1.06, [totaleUscite]);
@@ -182,6 +234,14 @@ export default function AigEditor() {
     const w: string[] = [];
 
     if (!descr.trim()) w.push("Manca la descrizione (obbligatoria).");
+
+    // ✅ diretti: se % > 0 e costo complessivo = 0
+    COSTI_DIRETTI_KEYS.forEach((x) => {
+      const row = costiDiretti?.[x.k] ?? {};
+      if (num(row.perc) > 0 && num(row.costo_complessivo) === 0) {
+        w.push(`Costi diretti: su “${x.label}” hai impostato una % > 0 ma il costo complessivo è 0.`);
+      }
+    });
 
     COSTI_FIN_KEYS.forEach((x) => {
       const row = costiFin?.[x.k] ?? {};
@@ -202,7 +262,7 @@ export default function AigEditor() {
     }
 
     return w;
-  }, [descr, costiFin, costiSupporto, totaleEntrateTest, totaleUscite]);
+  }, [descr, costiDiretti, costiFin, costiSupporto, totaleEntrateTest, totaleUscite]);
 
   // Autosalvataggio (debounce)
   useEffect(() => {
@@ -216,7 +276,7 @@ export default function AigEditor() {
           nome,
           descrizione: descr,
           entrate,
-          costi_diretti: costiDiretti,
+          costi_diretti: costiDiretti, // ✅ ora struttura imputabile
           costi_fin: costiFin,
           costi_supporto: costiSupporto,
         });
@@ -333,46 +393,91 @@ export default function AigEditor() {
               </div>
             </details>
 
-            {/* 2) COSTI DIRETTI */}
+            {/* 2) COSTI DIRETTI (ora imputabili) */}
             <details className="acc">
               <summary className="accSum">
                 <span className="accLeft">
                   <span className="accChevron" aria-hidden="true">
                     ▸
                   </span>
-                  <span>COSTI DIRETTI</span>
+                  <span>COSTI DIRETTI (IMPUTAZIONE)</span>
                 </span>
-                <span className="accTot">{totaleCostiDiretti.toFixed(2)}€</span>
+                <span className="accTot">{totaleCostiDirettiImputati.toFixed(2)}€</span>
               </summary>
 
               <div className="accBody">
                 <div className="hint" style={{ marginBottom: 10 }}>
-                  Costi sostenuti direttamente per svolgere l’AIG (materie, servizi, personale, ecc.).
+                  Inserisci il costo complessivo e la % imputabile a questa AIG. L’app calcola l’importo imputato.
                 </div>
 
-                {COSTI_DIRETTI_KEYS.map((x) => (
-                  <div key={x.k} className="rowInput">
-                    <div className="rowLabel">
-                      <div>{x.label}</div>
-                      <div className="hint">{COSTI_DIRETTI_HELP[x.k]}</div>
-                    </div>
+                {COSTI_DIRETTI_KEYS.map((x) => {
+                  const row = costiDiretti?.[x.k] ?? { costo_complessivo: 0, perc: 0 };
+                  const imputato = calcImputato(row.costo_complessivo, row.perc);
 
-                    <input
-                      type="number"
-                      value={num(costiDiretti[x.k])}
-                      onChange={(e) =>
-                        setCostiDiretti((p: any) => ({
-                          ...p,
-                          [x.k]: Number(e.target.value || 0),
-                        }))
-                      }
-                    />
-                  </div>
-                ))}
+                  return (
+                    <div key={x.k} className="blockInput">
+                      <div className="blockTitle">{x.label}</div>
+                      <div className="hint">{COSTI_DIRETTI_HELP[x.k]}</div>
+
+                      <div className="miniGrid">
+                        <div>
+                          <div className="miniLabel">Costo complessivo (€)</div>
+                          <input
+                            type="number"
+                            value={num(row.costo_complessivo)}
+                            onChange={(e) =>
+                              setCostiDiretti((p) => ({
+                                ...p,
+                                [x.k]: {
+                                  ...row,
+                                  costo_complessivo: Number(e.target.value || 0),
+                                },
+                              }))
+                            }
+                          />
+                        </div>
+
+                        <div>
+                          <div className="miniLabel">% imputazione</div>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            step="0.01"
+                            value={num(row.perc)}
+                            onChange={(e) =>
+                              setCostiDiretti((p) => ({
+                                ...p,
+                                [x.k]: {
+                                  ...row,
+                                  perc: e.target.value === "" ? 0 : Number(e.target.value),
+                                },
+                              }))
+                            }
+                            onBlur={(e) =>
+                              setCostiDiretti((p) => ({
+                                ...p,
+                                [x.k]: {
+                                  ...row,
+                                  perc: clampPerc(e.target.value),
+                                },
+                              }))
+                            }
+                          />
+                          <div className="hint">Da 0 a 100 (puoi usare decimali)</div>
+                        </div>
+                      </div>
+
+                      <div className="accFooter">
+                        <div className="muted">Importo imputato</div>
+                        <b>{imputato.toFixed(2)}€</b>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </details>
 
-            {/* 3) COSTI FINANZIARI/PATRIMONIALI IMPUTABILI */}
+            {/* 3) COSTI FINANZIARI/PATRIMONIALI IMPUTABILI (percentuale manuale) */}
             <details className="acc">
               <summary className="accSum">
                 <span className="accLeft">
@@ -404,7 +509,7 @@ export default function AigEditor() {
                             type="number"
                             value={num(row.costo_complessivo)}
                             onChange={(e) =>
-                              setCostiFin((p: any) => ({
+                              setCostiFin((p) => ({
                                 ...p,
                                 [x.k]: {
                                   ...row,
@@ -417,24 +522,31 @@ export default function AigEditor() {
 
                         <div>
                           <div className="miniLabel">% imputazione</div>
-                          <select
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            step="0.01"
                             value={num(row.perc)}
                             onChange={(e) =>
-                              setCostiFin((p: any) => ({
+                              setCostiFin((p) => ({
                                 ...p,
                                 [x.k]: {
                                   ...row,
-                                  perc: Number(e.target.value || 0),
+                                  perc: e.target.value === "" ? 0 : Number(e.target.value),
                                 },
                               }))
                             }
-                          >
-                            {[0, 10, 20, 25, 30, 40, 50, 66, 100].map((v) => (
-                              <option key={v} value={v}>
-                                {v}%
-                              </option>
-                            ))}
-                          </select>
+                            onBlur={(e) =>
+                              setCostiFin((p) => ({
+                                ...p,
+                                [x.k]: {
+                                  ...row,
+                                  perc: clampPerc(e.target.value),
+                                },
+                              }))
+                            }
+                          />
+                          <div className="hint">Da 0 a 100 (puoi usare decimali)</div>
                         </div>
                       </div>
 
@@ -448,7 +560,7 @@ export default function AigEditor() {
               </div>
             </details>
 
-            {/* 4) COSTI DI SUPPORTO GENERALE IMPUTABILI */}
+            {/* 4) COSTI DI SUPPORTO GENERALE IMPUTABILI (percentuale manuale) */}
             <details className="acc">
               <summary className="accSum">
                 <span className="accLeft">
@@ -480,7 +592,7 @@ export default function AigEditor() {
                             type="number"
                             value={num(row.costo_complessivo)}
                             onChange={(e) =>
-                              setCostiSupporto((p: any) => ({
+                              setCostiSupporto((p) => ({
                                 ...p,
                                 [x.k]: {
                                   ...row,
@@ -493,24 +605,31 @@ export default function AigEditor() {
 
                         <div>
                           <div className="miniLabel">% imputazione</div>
-                          <select
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            step="0.01"
                             value={num(row.perc)}
                             onChange={(e) =>
-                              setCostiSupporto((p: any) => ({
+                              setCostiSupporto((p) => ({
                                 ...p,
                                 [x.k]: {
                                   ...row,
-                                  perc: Number(e.target.value || 0),
+                                  perc: e.target.value === "" ? 0 : Number(e.target.value),
                                 },
                               }))
                             }
-                          >
-                            {[0, 10, 20, 25, 30, 40, 50, 66, 100].map((v) => (
-                              <option key={v} value={v}>
-                                {v}%
-                              </option>
-                            ))}
-                          </select>
+                            onBlur={(e) =>
+                              setCostiSupporto((p) => ({
+                                ...p,
+                                [x.k]: {
+                                  ...row,
+                                  perc: clampPerc(e.target.value),
+                                },
+                              }))
+                            }
+                          />
+                          <div className="hint">Da 0 a 100 (puoi usare decimali)</div>
                         </div>
                       </div>
 
@@ -552,12 +671,8 @@ export default function AigEditor() {
 
               <div className="muted" style={{ marginTop: 8 }}>
                 {esito === "NON COMMERCIALE"
-                  ? `✅ Entrate “per test” (${totaleEntrateTest.toFixed(2)}€) ≤ Soglia (${soglia.toFixed(
-                      2
-                    )}€)`
-                  : `⚠️ Entrate “per test” (${totaleEntrateTest.toFixed(2)}€) > Soglia (${soglia.toFixed(
-                      2
-                    )}€)`}
+                  ? `✅ Entrate “per test” (${totaleEntrateTest.toFixed(2)}€) ≤ Soglia (${soglia.toFixed(2)}€)`
+                  : `⚠️ Entrate “per test” (${totaleEntrateTest.toFixed(2)}€) > Soglia (${soglia.toFixed(2)}€)`}
               </div>
             </div>
           </>
