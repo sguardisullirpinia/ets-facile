@@ -103,7 +103,7 @@ function totalCostiDirettiImputati(c: any) {
 }
 
 function totalCostiFinImputati(costiFin: any) {
-  constzconst rb = costiFin?.rapporti_bancari ?? {};
+  const rb = costiFin?.rapporti_bancari ?? {};
   const pr = costiFin?.prestiti ?? {};
   return (
     calcImputato(rb.costo_complessivo, rb.perc) +
@@ -921,3 +921,4 @@ export default function Anno() {
     </div>
   );
 }
+
