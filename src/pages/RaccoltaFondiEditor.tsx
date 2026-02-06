@@ -37,14 +37,9 @@ export default function RaccoltaFondiEditor() {
         {/* ENTRATE */}
         <details className="acc">
           <summary className="accSum">
-            <div className="accLeft">
-              {/* usa la stessa classe del tuo CSS che ruota */}
-              <span className="accChevron">▸</span>
-              <span>ENTRATE</span>
-            </div>
+            <span>ENTRATE</span>
             <span className="accTot">0€</span>
           </summary>
-
           <div className="accBody">
             <p className="muted">Qui inseriremo le voci di Entrata della raccolta fondi.</p>
           </div>
@@ -53,13 +48,9 @@ export default function RaccoltaFondiEditor() {
         {/* USCITE */}
         <details className="acc">
           <summary className="accSum">
-            <div className="accLeft">
-              <span className="accChevron">▸</span>
-              <span>USCITE</span>
-            </div>
+            <span>USCITE</span>
             <span className="accTot">0€</span>
           </summary>
-
           <div className="accBody">
             <p className="muted">Qui inseriremo le voci di Uscita della raccolta fondi.</p>
           </div>
