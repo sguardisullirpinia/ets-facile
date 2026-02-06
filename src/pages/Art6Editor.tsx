@@ -205,7 +205,7 @@ export default function Art6Editor() {
             <details className="acc">
               <summary className="accSum">
                 <div className="accLeft">
-                  <span className="accArrow">▸</span>
+                  <span className="accChevron">▸</span>
                   <span>ENTRATE</span>
                 </div>
                 <span className="accTot">{totEntrate.toFixed(2)}€</span>
@@ -237,7 +237,7 @@ export default function Art6Editor() {
             <details className="acc">
               <summary className="accSum">
                 <div className="accLeft">
-                  <span className="accArrow">▸</span>
+                  <span className="accChevron">▸</span>
                   <span>USCITE (IMPUTAZIONE)</span>
                 </div>
                 <span className="accTot">{totUsciteImputate.toFixed(2)}€</span>
@@ -320,5 +320,6 @@ export default function Art6Editor() {
     </div>
   );
 }
+
 
 
