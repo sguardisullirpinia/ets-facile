@@ -203,9 +203,13 @@ export default function Art6Editor() {
 
             {/* ENTRATE (come prima) */}
             <details className="acc">
-              <summary className="accSum">
-                ENTRATE <span>{totEntrate.toFixed(2)}€</span>
-              </summary>
+            <summary className="accSum">
+              <span className="accLeft">
+                <span className="accArrow">▸</span>
+                ENTRATE
+              </span>
+              <span className="accTot">{totEntrate.toFixed(2)}€</span>
+            </summary>
               <div className="accBody">
                 {ENTRATE_LABELS.map((label, i) => (
                   <div key={label} className="rowInput">
@@ -231,9 +235,13 @@ export default function Art6Editor() {
 
             {/* ✅ USCITE (ora imputabili come AigEditor) */}
             <details className="acc">
-              <summary className="accSum">
-                USCITE (IMPUTAZIONE) <span>{totUsciteImputate.toFixed(2)}€</span>
-              </summary>
+            <summary className="accSum">
+              <span className="accLeft">
+                <span className="accArrow">▸</span>
+                USCITE (IMPUTAZIONE)
+              </span>
+              <span className="accTot">{totUsciteImputate.toFixed(2)}€</span>
+            </summary>
 
               <div className="accBody">
                 <div className="hint" style={{ marginBottom: 10 }}>
@@ -313,3 +321,4 @@ export default function Art6Editor() {
     </div>
   );
 }
+
