@@ -62,23 +62,39 @@ function totalEntrateAigAll(entrate: any) {
   );
 }
 
-// Entrate AIG “per test” (APS esclude prestazioni soci/fondatori)
+// ✅ Entrate AIG “per test” (APS esclude 1 e 2)
 function totalEntrateAigPerTest(entrate: any, natura: "APS" | "ODV") {
   const all = totalEntrateAigAll(entrate);
-  if (natura === "APS") return all - num(entrate?.prestazioni_soci_fondatori);
+  if (natura === "APS") {
+    return (
+      all -
+      num(entrate?.entrate_associati_mutuali) -
+      num(entrate?.prestazioni_soci_fondatori)
+    );
+  }
   return all;
 }
 
-function totalCostiDiretti(c: any) {
+// ✅ Costi diretti: ora imputati (costo_complessivo + %), come in AigEditor nuovo
+function totalCostiDirettiImputati(c: any) {
+  const mp = c?.materie_prime ?? {};
+  const se = c?.servizi ?? {};
+  const gb = c?.godimento_beni_terzi ?? {};
+  const pe = c?.personale ?? {};
+  const am = c?.ammortamenti ?? {};
+  const ac = c?.accantonamenti ?? {};
+  const od = c?.oneri_diversi ?? {};
+  const ri = c?.rimanenze_iniziali ?? {};
+
   return (
-    num(c?.materie_prime) +
-    num(c?.servizi) +
-    num(c?.godimento_beni_terzi) +
-    num(c?.personale) +
-    num(c?.ammortamenti) +
-    num(c?.accantonamenti) +
-    num(c?.oneri_diversi) +
-    num(c?.rimanenze_iniziali)
+    calcImputato(mp.costo_complessivo, mp.perc) +
+    calcImputato(se.costo_complessivo, se.perc) +
+    calcImputato(gb.costo_complessivo, gb.perc) +
+    calcImputato(pe.costo_complessivo, pe.perc) +
+    calcImputato(am.costo_complessivo, am.perc) +
+    calcImputato(ac.costo_complessivo, ac.perc) +
+    calcImputato(od.costo_complessivo, od.perc) +
+    calcImputato(ri.costo_complessivo, ri.perc)
   );
 }
 
@@ -114,7 +130,7 @@ function totalCostiSupportoImputati(c: any) {
 function totalArt6EntrateAll(entrate: any) {
   return Object.values(entrate ?? {}).reduce(
     (s: number, v: any) => s + num(v),
-    0,
+    0
   );
 }
 function totalArt6EntrateNoSpons(entrate: any) {
@@ -125,20 +141,20 @@ function totalArt6EntrateNoSpons(entrate: any) {
 function totalArt6Uscite(uscite: any) {
   return Object.values(uscite ?? {}).reduce(
     (s: number, v: any) => s + num(v),
-    0,
+    0
   );
 }
 
 function totalRfEntrate(entrate: any) {
   return Object.values(entrate ?? {}).reduce(
     (s: number, v: any) => s + num(v),
-    0,
+    0
   );
 }
 function totalRfUscite(uscite: any) {
   return Object.values(uscite ?? {}).reduce(
     (s: number, v: any) => s + num(v),
-    0,
+    0
   );
 }
 
@@ -201,7 +217,8 @@ export default function Anno() {
       const entrAll = totalEntrateAigAll(a.entrate);
       const entrTest = totalEntrateAigPerTest(a.entrate, naturaEnte);
 
-      const cd = totalCostiDiretti(a.costi_diretti);
+      // ✅ usa costi diretti imputati
+      const cd = totalCostiDirettiImputati(a.costi_diretti);
       const cf = totalCostiFinImputati(a.costi_fin);
       const cs = totalCostiSupportoImputati(a.costi_supporto);
 
@@ -224,9 +241,11 @@ export default function Anno() {
     const totEntrCommerciali = items
       .filter((x) => x.commerciale)
       .reduce((s, x) => s + x.entrTest, 0);
+
     const totEntrNonCommerciali = items
       .filter((x) => !x.commerciale)
       .reduce((s, x) => s + x.entrAll, 0);
+
     const totEntrAigAll = items.reduce((s, x) => s + x.entrAll, 0);
     const totCostiAig = items.reduce((s, x) => s + x.uscite, 0);
 
@@ -239,19 +258,26 @@ export default function Anno() {
     };
   }, [aigs, naturaEnte]);
 
+  // ✅ mappa id -> commerciale per mostrare pill in elenco
+  const aigEsitoById = useMemo(() => {
+    const m = new Map<string, boolean>();
+    aigComputed.items.forEach((it) => m.set(it.id, it.commerciale));
+    return m;
+  }, [aigComputed.items]);
+
   // 2) Totali Art.6
   const art6Computed = useMemo(() => {
     const totEntrAll = art6.reduce(
       (s: number, x: any) => s + totalArt6EntrateAll(x.entrate),
-      0,
+      0
     );
     const totEntrNoSpons = art6.reduce(
       (s: number, x: any) => s + totalArt6EntrateNoSpons(x.entrate),
-      0,
+      0
     );
     const totUscite = art6.reduce(
       (s: number, x: any) => s + totalArt6Uscite(x.uscite),
-      0,
+      0
     );
     return { totEntrAll, totEntrNoSpons, totUscite };
   }, [art6]);
@@ -260,11 +286,11 @@ export default function Anno() {
   const rfComputed = useMemo(() => {
     const totEntr = raccolte.reduce(
       (s: number, x: any) => s + totalRfEntrate(x.entrate),
-      0,
+      0
     );
     const totUscite = raccolte.reduce(
       (s: number, x: any) => s + totalRfUscite(x.uscite),
-      0,
+      0
     );
     return { totEntr, totUscite };
   }, [raccolte]);
@@ -282,6 +308,7 @@ export default function Anno() {
 
   const lhsCommerciale =
     aigComputed.totEntrCommerciali + art6Computed.totEntrNoSpons;
+
   const rhsNonCommerciale =
     aigComputed.totEntrNonCommerciali + extraNonCommerciali;
 
@@ -295,11 +322,13 @@ export default function Anno() {
     art6Computed.totEntrAll +
     rfComputed.totEntr +
     extraNonCommerciali;
+
   const soglia30 = totaleEntrateEnte * 0.3;
   const secondaria30 = art6Computed.totEntrAll <= soglia30;
 
   const totaleCostiEnte =
     aigComputed.totCostiAig + art6Computed.totUscite + rfComputed.totUscite;
+
   const soglia60 = totaleCostiEnte * 0.6;
   const secondaria60 = art6Computed.totEntrAll <= soglia60;
 
@@ -330,6 +359,7 @@ export default function Anno() {
         listArt6(annualitaId),
         listRaccolte(annualitaId),
       ]);
+
       setAigs(aa as any);
       setArt6(bb as any);
       setRaccolte(cc as any);
@@ -356,9 +386,7 @@ export default function Anno() {
 
   // ✅ DELETE ART.6
   const handleDeleteArt6 = async (id: string, nomeArt6: string) => {
-    const ok = window.confirm(
-      `Vuoi eliminare l'attività diversa "${nomeArt6}"?`,
-    );
+    const ok = window.confirm(`Vuoi eliminare l'attività diversa "${nomeArt6}"?`);
     if (!ok) return;
 
     try {
@@ -392,6 +420,7 @@ export default function Anno() {
 
   useEffect(() => {
     loadAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [annualitaId]);
 
   // Autosalvataggio EXTRA (debounce 700ms)
@@ -486,29 +515,38 @@ export default function Anno() {
               <p className="muted">Nessuna AIG. Clicca “+” per crearne una.</p>
             )}
 
-            {aigs.map((x) => (
-              <div key={x.id} className="tile" style={{ textAlign: "left" }}>
-                <div className="tileTitle">{x.nome}</div>
-                <div className="tileMeta">{x.descrizione}</div>
-                <div className="pill warn">DA CALCOLARE</div>
+            {aigs.map((x) => {
+              const comm = aigEsitoById.get(x.id);
+              const label = comm ? "COMMERCIALE" : "NON COMMERCIALE";
+              // se non hai pill ok/bad nel CSS, puoi cambiare in "pill warn" / "pill ok"
+              const cls = comm ? "pill bad" : "pill ok";
 
-                <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-                  <button
-                    className="ghost"
-                    onClick={() => nav(`/anno/${annualitaId}/aig/${x.id}`)}
-                  >
-                    Apri
-                  </button>
+              return (
+                <div key={x.id} className="tile" style={{ textAlign: "left" }}>
+                  <div className="tileTitle">{x.nome}</div>
+                  <div className="tileMeta">{x.descrizione}</div>
 
-                  <button
-                    className="dangerBtn"
-                    onClick={() => handleDeleteAig(x.id, x.nome)}
-                  >
-                    Elimina
-                  </button>
+                  {/* ✅ esito al posto di DA CALCOLARE */}
+                  <div className={cls}>{label}</div>
+
+                  <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+                    <button
+                      className="ghost"
+                      onClick={() => nav(`/anno/${annualitaId}/aig/${x.id}`)}
+                    >
+                      Apri
+                    </button>
+
+                    <button
+                      className="dangerBtn"
+                      onClick={() => handleDeleteAig(x.id, x.nome)}
+                    >
+                      Elimina
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -645,8 +683,13 @@ export default function Anno() {
             </div>
 
             <div className="field">
-              <label>Contributi erogati dalla PA per sostenere l'associazione o un suo progetto, senza che l'ente pubblico riceva nulla in cambio</label>
-              <div className="hint">Nota: convenzioni/affidamenti con corrispettivo rientrano nei test (es. 6%) e non vanno qui.
+              <label>
+                Contributi erogati dalla PA per sostenere l'associazione o un suo
+                progetto, senza che l'ente pubblico riceva nulla in cambio
+              </label>
+              <div className="hint">
+                Nota: convenzioni/affidamenti con corrispettivo rientrano nei
+                test (es. 6%) e non vanno qui.
               </div>
               <input
                 type="number"
@@ -734,9 +777,7 @@ export default function Anno() {
               </div>
 
               <div className="reportRow">
-                <span>
-                  Totale entrate ENTE (AIG + Art.6 + Raccolte + Extra)
-                </span>
+                <span>Totale entrate ENTE (AIG + Art.6 + Raccolte + Extra)</span>
                 <b>{totaleEntrateEnte.toFixed(2)}€</b>
               </div>
 
@@ -745,11 +786,7 @@ export default function Anno() {
                 <b>{soglia30.toFixed(2)}€</b>
               </div>
 
-              <div
-                className={
-                  secondaria30 ? "reportResult ok" : "reportResult bad"
-                }
-              >
+              <div className={secondaria30 ? "reportResult ok" : "reportResult bad"}>
                 {secondaria30
                   ? "SECONDARIE (test 30% OK)"
                   : "NON SECONDARIE (test 30% KO)"}
@@ -767,11 +804,7 @@ export default function Anno() {
                 <b>{soglia60.toFixed(2)}€</b>
               </div>
 
-              <div
-                className={
-                  secondaria60 ? "reportResult ok" : "reportResult bad"
-                }
-              >
+              <div className={secondaria60 ? "reportResult ok" : "reportResult bad"}>
                 {secondaria60
                   ? "SECONDARIE (test 60% OK)"
                   : "NON SECONDARIE (test 60% KO)"}
@@ -867,5 +900,3 @@ export default function Anno() {
     </div>
   );
 }
-
-
