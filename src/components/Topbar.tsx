@@ -16,7 +16,7 @@ export default function Topbar({
   subtitle,
   showBack = false,
   backTo,
-  logoSrc = "/logo.png",
+  logoSrc = "/4justice_logo.png",
   logoAlt = "Logo",
   right,
 }: TopbarProps) {
