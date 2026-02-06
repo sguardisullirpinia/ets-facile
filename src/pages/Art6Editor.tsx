@@ -77,9 +77,12 @@ export default function Art6Editor() {
   const [nome, setNome] = useState("");
   const [descr, setDescr] = useState("");
 
+  // ✅ flag "occasionale"
+  const [occasionale, setOccasionale] = useState(false);
+
   const [entrate, setEntrate] = useState<any>({});
 
-  // ✅ USCITE ora imputabili: { costo_complessivo, perc }
+  // ✅ USCITE imputabili: { costo_complessivo, perc }
   const [uscite, setUscite] = useState<Record<number, RigaImputazione>>({});
 
   const [saveStatus, setSaveStatus] = useState<
@@ -95,9 +98,13 @@ export default function Art6Editor() {
 
       try {
         const a = await getArt6ById(art6Id);
+
         setNome(a?.nome ?? "");
         setDescr(a?.descrizione ?? "");
         setEntrate(a?.entrate ?? {});
+
+        // ✅ carica flag "occasionale" dal DB
+        setOccasionale(!!a?.occasionale);
 
         // ✅ retro-compat: se prima erano numeri, li trasformo in {costo_complessivo, perc: 100}
         const u = a?.uscite ?? {};
@@ -120,15 +127,18 @@ export default function Art6Editor() {
         setLoading(false);
       }
     };
+
     run();
   }, [art6Id]);
 
   // TOTALI
   const totEntrate = useMemo(() => {
-    return Object.values(entrate ?? {}).reduce((s: number, v: any) => s + num(v), 0);
+    return Object.values(entrate ?? {}).reduce(
+      (s: number, v: any) => s + num(v),
+      0
+    );
   }, [entrate]);
 
-  // ✅ totale uscite imputate (somma importi imputati)
   const totUsciteImputate = useMemo(() => {
     return USCITE_LABELS.reduce((s, _, i) => {
       const row = uscite?.[i] ?? { costo_complessivo: 0, perc: 0 };
@@ -147,7 +157,8 @@ export default function Art6Editor() {
           nome,
           descrizione: descr,
           entrate,
-          uscite, // ✅ salva la nuova struttura
+          uscite,
+          occasionale, // ✅ salva flag
         });
         setSaveStatus("saved");
         setTimeout(() => setSaveStatus("idle"), 800);
@@ -157,7 +168,7 @@ export default function Art6Editor() {
     }, 700);
 
     return () => clearTimeout(t);
-  }, [art6Id, loading, nome, descr, entrate, uscite]);
+  }, [art6Id, loading, nome, descr, entrate, uscite, occasionale]);
 
   return (
     <div className="mobileShell">
@@ -169,6 +180,7 @@ export default function Art6Editor() {
         >
           ←
         </button>
+
         <div className="mHeaderText">
           <div className="mTitle">Attività diversa</div>
           <div className="mSubtitle">
@@ -177,6 +189,7 @@ export default function Art6Editor() {
             {saveStatus === "error" && "Errore"}
           </div>
         </div>
+
         <div className="mHeaderRight" />
       </header>
 
@@ -188,20 +201,35 @@ export default function Art6Editor() {
         ) : (
           <>
             <div className="cardBlock">
+              {/* ✅ checkbox prima di tutto */}
+              <div className="field">
+                <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={occasionale}
+                    onChange={(e) => setOccasionale(e.target.checked)}
+                  />
+                  Attività diverse svolte occasionalmente
+                </label>
+
+                <div className="hint">
+                  Se spuntata, i proventi di questa attività NON confluiscono
+                  nella voce C) del riepilogo.
+                </div>
+              </div>
+
               <div className="field">
                 <label>Nome attività</label>
                 <input value={nome} onChange={(e) => setNome(e.target.value)} />
               </div>
+
               <div className="field">
                 <label>Descrizione</label>
-                <input
-                  value={descr}
-                  onChange={(e) => setDescr(e.target.value)}
-                />
+                <input value={descr} onChange={(e) => setDescr(e.target.value)} />
               </div>
             </div>
 
-            {/* ENTRATE (come prima) */}
+            {/* ENTRATE */}
             <details className="acc">
               <summary className="accSum">
                 <div className="accLeft">
@@ -210,6 +238,7 @@ export default function Art6Editor() {
                 </div>
                 <span className="accTot">{totEntrate.toFixed(2)}€</span>
               </summary>
+
               <div className="accBody">
                 {ENTRATE_LABELS.map((label, i) => (
                   <div key={label} className="rowInput">
@@ -233,7 +262,7 @@ export default function Art6Editor() {
               </div>
             </details>
 
-            {/* ✅ USCITE (ora imputabili come AigEditor) */}
+            {/* USCITE */}
             <details className="acc">
               <summary className="accSum">
                 <div className="accLeft">
@@ -242,6 +271,7 @@ export default function Art6Editor() {
                 </div>
                 <span className="accTot">{totUsciteImputate.toFixed(2)}€</span>
               </summary>
+
               <div className="accBody">
                 <div className="hint" style={{ marginBottom: 10 }}>
                   Inserisci il costo complessivo e la % imputabile a questa
@@ -287,7 +317,10 @@ export default function Art6Editor() {
                                 ...p,
                                 [i]: {
                                   ...row,
-                                  perc: e.target.value === "" ? 0 : Number(e.target.value),
+                                  perc:
+                                    e.target.value === ""
+                                      ? 0
+                                      : Number(e.target.value),
                                 },
                               }))
                             }
@@ -301,7 +334,9 @@ export default function Art6Editor() {
                               }))
                             }
                           />
-                          <div className="hint">Da 0 a 100 (puoi usare decimali)</div>
+                          <div className="hint">
+                            Da 0 a 100 (puoi usare decimali)
+                          </div>
                         </div>
                       </div>
 
@@ -320,6 +355,3 @@ export default function Art6Editor() {
     </div>
   );
 }
-
-
-
