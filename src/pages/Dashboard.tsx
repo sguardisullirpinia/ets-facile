@@ -44,11 +44,7 @@ export default function Dashboard() {
     if (!ok) return;
 
     try {
-      const { error } = await supabase
-        .from("annualita")
-        .delete()
-        .eq("id", id);
-
+      const { error } = await supabase.from("annualita").delete().eq("id", id);
       if (error) throw error;
 
       setAnnualita((prev) => prev.filter((x) => x.id !== id));
@@ -95,22 +91,25 @@ export default function Dashboard() {
 
   return (
     <div className="wrap">
-      {/* TOPBAR RIUTILIZZABILE */}
       <Topbar
-  title="Dashboard"
-  right={
-    <>
-      <button className="ghost" onClick={() => nav("/ente")}>Ente</button>
-      <button className="ghost" onClick={() => nav("/help")}>Help</button>
-      <button className="ghost" onClick={logout}>Esci</button>
-    </>
-  }
-/>
-
+        title="Dashboard"
+        right={
+          <>
+            <button className="ghost" onClick={() => nav("/ente")}>
+              Ente
+            </button>
+            <button className="ghost" onClick={() => nav("/help")}>
+              Help
+            </button>
+            <button className="ghost" onClick={logout}>
+              Esci
+            </button>
+          </>
+        }
+      />
 
       {err && <div className="error">{err}</div>}
 
-      {/* GRID ANNUALITÀ */}
       <div className="grid fullWidth">
         {annualita.map((a) => (
           <div key={a.id} className="tile" style={{ textAlign: "left" }}>
@@ -133,18 +132,14 @@ export default function Dashboard() {
         ))}
 
         {annualita.length === 0 && (
-          <p className="muted">
-            Nessuna annualità. Clicca “+” per crearne una.
-          </p>
+          <p className="muted">Nessuna annualità. Clicca “+” per crearne una.</p>
         )}
       </div>
 
-      {/* FAB */}
       <button className="fab" onClick={() => setOpen(true)} aria-label="Crea">
         +
       </button>
 
-      {/* MODAL CREAZIONE ANNUALITÀ */}
       {open && (
         <div className="modalOverlay" onClick={() => setOpen(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -154,9 +149,7 @@ export default function Dashboard() {
             <input
               type="number"
               value={anno}
-              onChange={(e) =>
-                setAnno(parseInt(e.target.value || "0", 10))
-              }
+              onChange={(e) => setAnno(parseInt(e.target.value || "0", 10))}
             />
 
             <div className="row">
@@ -171,4 +164,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
