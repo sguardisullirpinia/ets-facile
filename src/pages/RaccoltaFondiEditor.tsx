@@ -37,22 +37,34 @@ export default function RaccoltaFondiEditor() {
         {/* ENTRATE */}
         <details className="acc">
           <summary className="accSum">
-            <span>ENTRATE</span>
+            <div className="accLeft">
+              <span className="accChevron">▸</span>
+              <span>ENTRATE</span>
+            </div>
             <span className="accTot">0€</span>
           </summary>
+
           <div className="accBody">
-            <p className="muted">Qui inseriremo le voci di Entrata della raccolta fondi.</p>
+            <p className="muted">
+              Qui inseriremo le voci di Entrata della raccolta fondi.
+            </p>
           </div>
         </details>
 
         {/* USCITE */}
         <details className="acc">
           <summary className="accSum">
-            <span>USCITE</span>
+            <div className="accLeft">
+              <span className="accChevron">▸</span>
+              <span>USCITE</span>
+            </div>
             <span className="accTot">0€</span>
           </summary>
+
           <div className="accBody">
-            <p className="muted">Qui inseriremo le voci di Uscita della raccolta fondi.</p>
+            <p className="muted">
+              Qui inseriremo le voci di Uscita della raccolta fondi.
+            </p>
           </div>
         </details>
       </main>
