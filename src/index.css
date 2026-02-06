@@ -228,7 +228,7 @@ hr {
 /* NON COMMERCIALE → VERDE */
 .pill.ok {
   background: rgba(0, 140, 90, 0.25);
-  color: rgb(0, 120, 80);
+  color: white;
   border: 1px solid rgba(0, 140, 90, 0.5);
 }
 
