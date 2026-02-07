@@ -228,8 +228,8 @@ export default function Art6Editor() {
                   checked={occasionale}
                   onChange={(e) => setOccasionale(e.target.checked)}
                   style={{
-                    width: 28,
-                    height: 28,
+                    width: 26,
+                    height: 26,
                     cursor: "pointer",
                     accentColor: "#2563eb", // blu visibile (puoi cambiarlo o togliere la riga)
                   }}
@@ -361,5 +361,6 @@ export default function Art6Editor() {
     </div>
   );
 }
+
 
 
