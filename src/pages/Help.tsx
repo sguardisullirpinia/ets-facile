@@ -87,10 +87,13 @@ export default function Help() {
 
           <div style={{ overflow: "auto", borderRadius: 12 }}>
             <Document
-            file={{
-              url: "/CIRCOLARE_AdE_CODICE_TERZO_SETTORE.pdf",
-              withCredentials: false,
-            }}
+              file="/CIRCOLARE_AdE_CODICE_TERZO_SETTORE.pdf"
+              loading={<div style={{ padding: 12 }}>Caricamento PDF…</div>}
+              error={<div style={{ padding: 12 }}>Errore nel caricamento del PDF.</div>}
+              onLoadSuccess={({ numPages }) => {
+                setNumPages(numPages);
+                setPage(1);
+              }}
             >
               <Page
                 pageNumber={page}
@@ -105,4 +108,3 @@ export default function Help() {
     </div>
   );
 }
-
