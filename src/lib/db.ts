@@ -38,6 +38,17 @@ export async function getAnnualita(annualitaId: string) {
   if (error) throw error;
   return data as { id: string; anno: number; extra: any };
 }
+export async function getArt6ById(art6Id: string) {
+  const { data, error } = await supabase
+    .from("attivita_diverse")
+    .select("id,nome,descrizione,entrate,uscite,occasionale,annualita_id,created_at")
+    .eq("id", art6Id)
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
 
 export async function listAig(annualitaId: string) {
   const { data, error } = await supabase
@@ -198,6 +209,7 @@ export async function deleteAnnualita(annualitaId: string) {
   const { error } = await supabase.from("annualita").delete().eq("id", annualitaId);
   if (error) throw error;
 }
+
 
 
 
