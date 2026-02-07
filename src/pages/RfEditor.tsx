@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getRfById, updateRf } from "../lib/db";
+import * as XLSX from "xlsx";
 
 function num(v: any) {
   const n = Number(v);
@@ -20,9 +21,7 @@ export default function RfEditor() {
   const [entrate, setEntrate] = useState<any>({});
   const [uscite, setUscite] = useState<any>({});
 
-  const [saveStatus, setSaveStatus] = useState<
-    "idle" | "saving" | "saved" | "error"
-  >("idle");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   // LOAD
   useEffect(() => {
@@ -74,7 +73,44 @@ export default function RfEditor() {
     }, 700);
 
     return () => clearTimeout(t);
-  }, [nome, descr, entrate, uscite]);
+  }, [rfId, loading, nome, descr, entrate, uscite]);
+
+  // ✅ EXPORT XLSX (non valorizzati => 0)
+  const exportXlsx = () => {
+    const safeNome = (nome || "RACCOLTA_FONDI").replace(/[\\/:*?"<>|]+/g, "-").trim();
+    const fileName = `RF_${safeNome}_${annualitaId ?? ""}.xlsx`;
+
+    const entrateLabels = ["Entrate da raccolte fondi occasionali", "Altre entrate"];
+    const usciteLabels = ["Uscite per raccolte fondi occasionali", "Altre uscite"];
+
+    const rows: (string | number)[][] = [];
+
+    rows.push(["ETS-FACILE — Export Raccolta Fondi"]);
+    rows.push(["Annualità ID", annualitaId ?? ""]);
+    rows.push(["RF ID", rfId ?? ""]);
+    rows.push(["Nome raccolta", nome || ""]);
+    rows.push(["Descrizione", descr || ""]);
+    rows.push([]);
+
+    rows.push(["ENTRATE"]);
+    rows.push(["Voce", "Importo (€)"]);
+    entrateLabels.forEach((label, i) => rows.push([label, num(entrate?.[i])]));
+    rows.push(["Totale entrate", Number(totEntrate.toFixed(2))]);
+    rows.push([]);
+
+    rows.push(["USCITE"]);
+    rows.push(["Voce", "Importo (€)"]);
+    usciteLabels.forEach((label, i) => rows.push([label, num(uscite?.[i])]));
+    rows.push(["Totale uscite", Number(totUscite.toFixed(2))]);
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws["!cols"] = [{ wch: 45 }, { wch: 22 }];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "RF");
+
+    XLSX.writeFile(wb, fileName);
+  };
 
   return (
     <div className="mobileShell">
@@ -105,74 +141,88 @@ export default function RfEditor() {
               </div>
               <div className="field">
                 <label>Descrizione</label>
-                <input
-                  value={descr}
-                  onChange={(e) => setDescr(e.target.value)}
-                />
+                <input value={descr} onChange={(e) => setDescr(e.target.value)} />
               </div>
             </div>
 
             <details className="acc">
               <summary className="accSum">
-              <div className="accLeft">
-                <span className="accChevron">▸</span>
-                <span>ENTRATE</span>
-              </div>
-              <span className="accTot">{totEntrate.toFixed(2)}€</span>
-            </summary>
+                <div className="accLeft">
+                  <span className="accChevron">▸</span>
+                  <span>ENTRATE</span>
+                </div>
+                <span className="accTot">{totEntrate.toFixed(2)}€</span>
+              </summary>
               <div className="accBody">
-                {["Entrate da raccolte fondi occasionali", "Altre entrate"].map(
-                  (label, i) => (
-                    <div key={i} className="rowInput">
-                      <div>{label}</div>
-                      <input
-                        type="number"
-                        value={num(entrate[i])}
-                        onChange={(e) =>
-                          setEntrate((p: any) => ({
-                            ...p,
-                            [i]: Number(e.target.value || 0),
-                          }))
-                        }
-                      />
-                    </div>
-                  ),
-                )}
+                {["Entrate da raccolte fondi occasionali", "Altre entrate"].map((label, i) => (
+                  <div key={i} className="rowInput">
+                    <div>{label}</div>
+                    <input
+                      type="number"
+                      value={num(entrate[i])}
+                      onChange={(e) =>
+                        setEntrate((p: any) => ({
+                          ...p,
+                          [i]: Number(e.target.value || 0),
+                        }))
+                      }
+                    />
+                  </div>
+                ))}
               </div>
             </details>
 
             <details className="acc">
               <summary className="accSum">
-              <div className="accLeft">
-                <span className="accChevron">▸</span>
-                <span>USCITE</span>
-              </div>
-              <span className="accTot">{totUscite.toFixed(2)}€</span>
-            </summary>
+                <div className="accLeft">
+                  <span className="accChevron">▸</span>
+                  <span>USCITE</span>
+                </div>
+                <span className="accTot">{totUscite.toFixed(2)}€</span>
+              </summary>
               <div className="accBody">
-                {["Uscite per raccolte fondi occasionali", "Altre uscite"].map(
-                  (label, i) => (
-                    <div key={i} className="rowInput">
-                      <div>{label}</div>
-                      <input
-                        type="number"
-                        value={num(uscite[i])}
-                        onChange={(e) =>
-                          setUscite((p: any) => ({
-                            ...p,
-                            [i]: Number(e.target.value || 0),
-                          }))
-                        }
-                      />
-                    </div>
-                  ),
-                )}
+                {["Uscite per raccolte fondi occasionali", "Altre uscite"].map((label, i) => (
+                  <div key={i} className="rowInput">
+                    <div>{label}</div>
+                    <input
+                      type="number"
+                      value={num(uscite[i])}
+                      onChange={(e) =>
+                        setUscite((p: any) => ({
+                          ...p,
+                          [i]: Number(e.target.value || 0),
+                        }))
+                      }
+                    />
+                  </div>
+                ))}
               </div>
             </details>
+
+            {/* ✅ PULSANTE EXPORT XLSX (verde) */}
+            <div style={{ marginTop: 12 }}>
+              <button
+                type="button"
+                onClick={exportXlsx}
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  borderRadius: 12,
+                  fontWeight: 800,
+                  border: "1px solid rgba(0,0,0,0.10)",
+                  cursor: "pointer",
+                  background: "#16a34a",
+                  color: "#fff",
+                }}
+                onMouseEnter={(e) => ((e.currentTarget.style.background = "#15803d"))}
+                onMouseLeave={(e) => ((e.currentTarget.style.background = "#16a34a"))}
+              >
+                ⬇️ Scarica Excel (.xlsx) — Raccolta fondi
+              </button>
+            </div>
           </>
         )}
       </main>
     </div>
   );
 }
-
