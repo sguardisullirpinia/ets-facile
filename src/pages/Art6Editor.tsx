@@ -77,12 +77,12 @@ export default function Art6Editor() {
   const [nome, setNome] = useState("");
   const [descr, setDescr] = useState("");
 
-  // ✅ flag "occasionale"
-  const [occasionale, setOccasionale] = useState(false);
-
   const [entrate, setEntrate] = useState<any>({});
 
-  // ✅ USCITE imputabili: { costo_complessivo, perc }
+  // ✅ flag occasionale
+  const [occasionale, setOccasionale] = useState<boolean>(false);
+
+  // ✅ USCITE imputabili
   const [uscite, setUscite] = useState<Record<number, RigaImputazione>>({});
 
   const [saveStatus, setSaveStatus] = useState<
@@ -103,10 +103,10 @@ export default function Art6Editor() {
         setDescr(a?.descrizione ?? "");
         setEntrate(a?.entrate ?? {});
 
-        // ✅ carica flag "occasionale" dal DB
-        setOccasionale(!!a?.occasionale);
+        // ✅ carica flag (default false)
+        setOccasionale(Boolean(a?.occasionale));
 
-        // ✅ retro-compat: se prima erano numeri, li trasformo in {costo_complessivo, perc: 100}
+        // retro-compat: se prima erano numeri, li trasformo in {costo_complessivo, perc: 100}
         const u = a?.uscite ?? {};
         const mapped: Record<number, RigaImputazione> = {};
         USCITE_LABELS.forEach((_, i) => {
@@ -146,7 +146,7 @@ export default function Art6Editor() {
     }, 0);
   }, [uscite]);
 
-  // AUTOSAVE
+  // AUTOSAVE (include anche "occasionale")
   useEffect(() => {
     if (!art6Id || loading) return;
 
@@ -158,8 +158,9 @@ export default function Art6Editor() {
           descrizione: descr,
           entrate,
           uscite,
-          occasionale, // ✅ salva flag
+          occasionale, // ✅ salva la spunta
         });
+
         setSaveStatus("saved");
         setTimeout(() => setSaveStatus("idle"), 800);
       } catch {
@@ -180,7 +181,6 @@ export default function Art6Editor() {
         >
           ←
         </button>
-
         <div className="mHeaderText">
           <div className="mTitle">Attività diversa</div>
           <div className="mSubtitle">
@@ -189,7 +189,6 @@ export default function Art6Editor() {
             {saveStatus === "error" && "Errore"}
           </div>
         </div>
-
         <div className="mHeaderRight" />
       </header>
 
@@ -201,7 +200,7 @@ export default function Art6Editor() {
         ) : (
           <>
             <div className="cardBlock">
-              {/* ✅ checkbox prima di tutto */}
+              {/* ✅ CHECKBOX PRIMA DI TUTTO */}
               <div className="field">
                 <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
                   <input
@@ -209,12 +208,11 @@ export default function Art6Editor() {
                     checked={occasionale}
                     onChange={(e) => setOccasionale(e.target.checked)}
                   />
-                  Attività diverse svolte occasionalmente
+                  Attività diversa svolta occasionalmente
                 </label>
-
                 <div className="hint">
-                  Se spuntata, i proventi di questa attività NON confluiscono
-                  nella voce C) del riepilogo.
+                  Se spuntata, i proventi di questa attività <b>non</b> concorrono
+                  alla voce <b>C)</b> nel riepilogo (test dell’ente).
                 </div>
               </div>
 
@@ -222,7 +220,6 @@ export default function Art6Editor() {
                 <label>Nome attività</label>
                 <input value={nome} onChange={(e) => setNome(e.target.value)} />
               </div>
-
               <div className="field">
                 <label>Descrizione</label>
                 <input value={descr} onChange={(e) => setDescr(e.target.value)} />
@@ -238,7 +235,6 @@ export default function Art6Editor() {
                 </div>
                 <span className="accTot">{totEntrate.toFixed(2)}€</span>
               </summary>
-
               <div className="accBody">
                 {ENTRATE_LABELS.map((label, i) => (
                   <div key={label} className="rowInput">
@@ -262,7 +258,7 @@ export default function Art6Editor() {
               </div>
             </details>
 
-            {/* USCITE */}
+            {/* USCITE (IMPUTAZIONE) */}
             <details className="acc">
               <summary className="accSum">
                 <div className="accLeft">
@@ -271,11 +267,10 @@ export default function Art6Editor() {
                 </div>
                 <span className="accTot">{totUsciteImputate.toFixed(2)}€</span>
               </summary>
-
               <div className="accBody">
                 <div className="hint" style={{ marginBottom: 10 }}>
-                  Inserisci il costo complessivo e la % imputabile a questa
-                  attività. L’app calcola l’importo imputato.
+                  Inserisci il costo complessivo e la % imputabile a questa attività.
+                  L’app calcola l’importo imputato.
                 </div>
 
                 {USCITE_LABELS.map((label, i) => {
@@ -317,10 +312,7 @@ export default function Art6Editor() {
                                 ...p,
                                 [i]: {
                                   ...row,
-                                  perc:
-                                    e.target.value === ""
-                                      ? 0
-                                      : Number(e.target.value),
+                                  perc: e.target.value === "" ? 0 : Number(e.target.value),
                                 },
                               }))
                             }
@@ -334,9 +326,7 @@ export default function Art6Editor() {
                               }))
                             }
                           />
-                          <div className="hint">
-                            Da 0 a 100 (puoi usare decimali)
-                          </div>
+                          <div className="hint">Da 0 a 100 (puoi usare decimali)</div>
                         </div>
                       </div>
 
