@@ -211,11 +211,11 @@ export default function RfEditor() {
                   fontWeight: 800,
                   border: "1px solid rgba(0,0,0,0.10)",
                   cursor: "pointer",
-                  background: "#16a34a",
+                  background: "#000f86",
                   color: "#fff",
                 }}
-                onMouseEnter={(e) => ((e.currentTarget.style.background = "#15803d"))}
-                onMouseLeave={(e) => ((e.currentTarget.style.background = "#16a34a"))}
+                onMouseEnter={(e) => ((e.currentTarget.style.background = "#000f86"))}
+                onMouseLeave={(e) => ((e.currentTarget.style.background = "#000f86"))}
               >
                 ⬇️ Scarica Excel (.xlsx) — Raccolta fondi
               </button>
@@ -226,3 +226,4 @@ export default function RfEditor() {
     </div>
   );
 }
+
