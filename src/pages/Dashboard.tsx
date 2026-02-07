@@ -132,7 +132,7 @@ export default function Dashboard() {
         ))}
 
         {annualita.length === 0 && (
-          <p className="muted"> Clicca “+” per creare l'annualità da monitorare e sottoporre ai test di commercialità per le AIG e di secondarietà per le Attività diverse.".</p>
+          <p className="muted"> Clicca “+” per creare l'annualità da monitorare e applicare il test di commercialità e i test di secondarietà prevista dal Codice del Terzo Settore.".</p>
         )}
       </div>
 
@@ -164,4 +164,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
