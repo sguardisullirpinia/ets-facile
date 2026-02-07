@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getAigById, updateAig, getEnteProfile } from "../lib/db";
+import * as XLSX from "xlsx";
 
 type Natura = "APS" | "ODV";
 
@@ -298,6 +299,88 @@ export default function AigEditor() {
       return;
     }
     nav(`/anno/${annualitaId}`);
+  };
+
+  // ✅ EXPORT XLSX (tutti i campi - non valorizzati => 0)
+  const exportXlsx = () => {
+    const safeNome = (nome || "AIG").replace(/[\\/:*?"<>|]+/g, "-").trim();
+    const fileName = `AIG_${safeNome}_${annualitaId ?? ""}.xlsx`;
+
+    const rows: (string | number)[][] = [];
+
+    // Header
+    rows.push(["ETS-FACILE — Export AIG"]);
+    rows.push(["Annualità ID", annualitaId ?? ""]);
+    rows.push(["AIG ID", aigId ?? ""]);
+    rows.push(["Natura ente", natura]);
+    rows.push(["Nome AIG", nome || ""]);
+    rows.push(["Descrizione", descr || ""]);
+    rows.push([]);
+
+    // Entrate
+    rows.push(["ENTRATE DA AIG"]);
+    rows.push(["Voce", "Importo (€)"]);
+    ENTRATE_KEYS.forEach((x) => {
+      rows.push([x.label, num(entrate?.[x.k])]);
+    });
+    rows.push(["Totale entrate (tutte)", Number(totaleEntrate.toFixed(2))]);
+    rows.push(["Totale entrate (per test)", Number(totaleEntrateTest.toFixed(2))]);
+    rows.push([]);
+
+    // Costi diretti
+    rows.push(["COSTI DIRETTI (IMPUTAZIONE)"]);
+    rows.push(["Voce", "Costo complessivo (€)", "% imputazione", "Importo imputato (€)"]);
+    COSTI_DIRETTI_KEYS.forEach((x) => {
+      const row = costiDiretti?.[x.k] ?? { costo_complessivo: 0, perc: 0 };
+      const costo = num(row.costo_complessivo);
+      const perc = clampPerc(row.perc);
+      const imputato = calcImputato(costo, perc);
+      rows.push([x.label, costo, perc, Number(imputato.toFixed(2))]);
+    });
+    rows.push(["Totale costi diretti imputati", Number(totaleCostiDirettiImputati.toFixed(2))]);
+    rows.push([]);
+
+    // Costi fin
+    rows.push(["COSTI FINANZIARI/PATRIMONIALI (IMPUTAZIONE)"]);
+    rows.push(["Voce", "Costo complessivo (€)", "% imputazione", "Importo imputato (€)"]);
+    COSTI_FIN_KEYS.forEach((x) => {
+      const row = costiFin?.[x.k] ?? { costo_complessivo: 0, perc: 0 };
+      const costo = num(row.costo_complessivo);
+      const perc = clampPerc(row.perc);
+      const imputato = calcImputato(costo, perc);
+      rows.push([x.label, costo, perc, Number(imputato.toFixed(2))]);
+    });
+    rows.push(["Totale costi fin imputati", Number(totaleCostiFinImputati.toFixed(2))]);
+    rows.push([]);
+
+    // Costi supporto
+    rows.push(["COSTI DI SUPPORTO GENERALE (IMPUTAZIONE)"]);
+    rows.push(["Voce", "Costo complessivo (€)", "% imputazione", "Importo imputato (€)"]);
+    COSTI_SUPPORTO_KEYS.forEach((x) => {
+      const row = costiSupporto?.[x.k] ?? { costo_complessivo: 0, perc: 0 };
+      const costo = num(row.costo_complessivo);
+      const perc = clampPerc(row.perc);
+      const imputato = calcImputato(costo, perc);
+      rows.push([x.label, costo, perc, Number(imputato.toFixed(2))]);
+    });
+    rows.push(["Totale costi supporto imputati", Number(totaleCostiSupportoImputati.toFixed(2))]);
+    rows.push([]);
+
+    // Totali & Test
+    rows.push(["TOTALI & TEST"]);
+    rows.push(["Totale entrate (tutte)", Number(totaleEntrate.toFixed(2))]);
+    rows.push(["Totale entrate (per test)", Number(totaleEntrateTest.toFixed(2))]);
+    rows.push(["Totale uscite AIG", Number(totaleUscite.toFixed(2))]);
+    rows.push(["Soglia (uscite + 6%)", Number(soglia.toFixed(2))]);
+    rows.push(["Esito", esito]);
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws["!cols"] = [{ wch: 62 }, { wch: 22 }, { wch: 16 }, { wch: 22 }];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "AIG");
+
+    XLSX.writeFile(wb, fileName);
   };
 
   return (
@@ -674,6 +757,24 @@ export default function AigEditor() {
                   ? `✅ Entrate “per test” (${totaleEntrateTest.toFixed(2)}€) ≤ Soglia (${soglia.toFixed(2)}€)`
                   : `⚠️ Entrate “per test” (${totaleEntrateTest.toFixed(2)}€) > Soglia (${soglia.toFixed(2)}€)`}
               </div>
+
+              {/* ✅ PULSANTE EXPORT XLSX */}
+              <div style={{ marginTop: 12 }}>
+                <button
+                  type="button"
+                  onClick={exportXlsx}
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    borderRadius: 12,
+                    fontWeight: 800,
+                    border: "1px solid rgba(0,0,0,0.12)",
+                    cursor: "pointer",
+                  }}
+                >
+                  ⬇️ Scarica Excel (.xlsx) con tutti i campi
+                </button>
+              </div>
             </div>
           </>
         )}
@@ -681,4 +782,3 @@ export default function AigEditor() {
     </div>
   );
 }
-
