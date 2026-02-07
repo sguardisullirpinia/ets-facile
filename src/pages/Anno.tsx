@@ -552,8 +552,13 @@ export default function Anno() {
                 borderRadius: 10,
                 whiteSpace: "nowrap",
                 fontWeight: 700,
-              }}
-            >
+                background: "#dc2626", // rosso
+                color: "#fff",
+                border: "1px solid #b91c1c",
+               }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "#b91c1c")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "#dc2626")}
+              >
               IRES
             </button>
           ) : (
@@ -947,6 +952,7 @@ export default function Anno() {
     </div>
   );
 }
+
 
 
 
