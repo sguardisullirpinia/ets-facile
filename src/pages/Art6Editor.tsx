@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { updateArt6, getArt6ById } from "../lib/db";
+import * as XLSX from "xlsx";
 
 function num(v: any) {
   const n = Number(v);
@@ -85,9 +86,7 @@ export default function Art6Editor() {
   // ✅ USCITE imputabili
   const [uscite, setUscite] = useState<Record<number, RigaImputazione>>({});
 
-  const [saveStatus, setSaveStatus] = useState<
-    "idle" | "saving" | "saved" | "error"
-  >("idle");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   // LOAD
   useEffect(() => {
@@ -133,10 +132,7 @@ export default function Art6Editor() {
 
   // TOTALI
   const totEntrate = useMemo(() => {
-    return Object.values(entrate ?? {}).reduce(
-      (s: number, v: any) => s + num(v),
-      0
-    );
+    return Object.values(entrate ?? {}).reduce((s: number, v: any) => s + num(v), 0);
   }, [entrate]);
 
   const totUsciteImputate = useMemo(() => {
@@ -171,14 +167,55 @@ export default function Art6Editor() {
     return () => clearTimeout(t);
   }, [art6Id, loading, nome, descr, entrate, uscite, occasionale]);
 
+  // ✅ EXPORT XLSX (tutti i campi - non valorizzati => 0)
+  const exportXlsx = () => {
+    const safeNome = (nome || "ATTIVITA_DIVERSA").replace(/[\\/:*?"<>|]+/g, "-").trim();
+    const fileName = `ART6_${safeNome}_${annualitaId ?? ""}.xlsx`;
+
+    const rows: (string | number)[][] = [];
+
+    rows.push(["ETS-FACILE — Export Attività diversa (Art. 6 CTS)"]);
+    rows.push(["Annualità ID", annualitaId ?? ""]);
+    rows.push(["Art6 ID", art6Id ?? ""]);
+    rows.push(["Nome attività", nome || ""]);
+    rows.push(["Descrizione", descr || ""]);
+    rows.push(["Occasionale", occasionale ? "SI" : "NO"]);
+    rows.push([]);
+
+    // ENTRATE
+    rows.push(["ENTRATE"]);
+    rows.push(["Voce", "Importo (€)"]);
+    ENTRATE_LABELS.forEach((label, i) => {
+      rows.push([label, num(entrate?.[i])]);
+    });
+    rows.push(["Totale entrate", Number(totEntrate.toFixed(2))]);
+    rows.push([]);
+
+    // USCITE imputazione
+    rows.push(["USCITE (IMPUTAZIONE)"]);
+    rows.push(["Voce", "Costo complessivo (€)", "% imputazione", "Importo imputato (€)"]);
+    USCITE_LABELS.forEach((label, i) => {
+      const row = uscite?.[i] ?? { costo_complessivo: 0, perc: 0 };
+      const costo = num(row.costo_complessivo);
+      const perc = clampPerc(row.perc);
+      const imputato = calcImputato(costo, perc);
+      rows.push([label, costo, perc, Number(imputato.toFixed(2))]);
+    });
+    rows.push(["Totale uscite imputate", Number(totUsciteImputate.toFixed(2))]);
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws["!cols"] = [{ wch: 45 }, { wch: 22 }, { wch: 16 }, { wch: 22 }];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "ART6");
+
+    XLSX.writeFile(wb, fileName);
+  };
+
   return (
     <div className="mobileShell">
       <header className="mHeader">
-        <button
-          className="iconBtn"
-          onClick={() => nav(`/anno/${annualitaId}`)}
-          aria-label="Indietro"
-        >
+        <button className="iconBtn" onClick={() => nav(`/anno/${annualitaId}`)} aria-label="Indietro">
           ←
         </button>
         <div className="mHeaderText">
@@ -199,7 +236,7 @@ export default function Art6Editor() {
           <p>Caricamento…</p>
         ) : (
           <>
-             <div className="cardBlock">
+            <div className="cardBlock">
               <div className="field">
                 <label>Nome attività</label>
                 <input value={nome} onChange={(e) => setNome(e.target.value)} />
@@ -209,50 +246,47 @@ export default function Art6Editor() {
                 <input value={descr} onChange={(e) => setDescr(e.target.value)} />
               </div>
             </div>
+
             {/* ✅ CHECKBOX */}
-<div className="field">
-  <div
-    style={{
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: 12,
-    }}
-  >
-    <div style={{ fontWeight: 600 }}>
-      Attività diversa svolta occasionalmente
-    </div>
+            <div className="field">
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                }}
+              >
+                <div style={{ fontWeight: 600 }}>Attività diversa svolta occasionalmente</div>
 
-    <input
-      type="checkbox"
-      checked={occasionale}
-      onChange={(e) => setOccasionale(e.target.checked)}
-      style={{
-        width: 26,
-        height: 26,
-        cursor: "pointer",
-        accentColor: "#2563eb",
-      }}
-      aria-label="Attività diversa svolta occasionalmente"
-    />
-  </div>
+                <input
+                  type="checkbox"
+                  checked={occasionale}
+                  onChange={(e) => setOccasionale(e.target.checked)}
+                  style={{
+                    width: 26,
+                    height: 26,
+                    cursor: "pointer",
+                    accentColor: "#2563eb",
+                  }}
+                  aria-label="Attività diversa svolta occasionalmente"
+                />
+              </div>
 
-  <div
-    className="hint"
-    style={{
-      marginTop: 6,
-      marginBottom: 24,
-      lineHeight: 1.4,
-    }}
-  >
-    <b>N.B.</b> deve trattarsi di attività svolta in modo episodico durante l'anno e senza una struttura permanente. In questo caso, i ricavi di questa attività <b>non</b> sono
-    considerati nel test di commercialità dell'Ente e quindi <b>non</b>
-     confluiscono nella voce <b>C)</b> del riepilogo.
-  </div>
-</div>
- 
+              <div
+                className="hint"
+                style={{
+                  marginTop: 6,
+                  marginBottom: 24,
+                  lineHeight: 1.4,
+                }}
+              >
+                <b>N.B.</b> deve trattarsi di attività svolta in modo episodico durante l'anno e senza una struttura
+                permanente. In questo caso, i ricavi di questa attività <b>non</b> sono considerati nel test di
+                commercialità dell'Ente e quindi <b>non</b> confluiscono nella voce <b>C)</b> del riepilogo.
+              </div>
+            </div>
 
-              
             {/* ENTRATE */}
             <details className="acc">
               <summary className="accSum">
@@ -296,8 +330,7 @@ export default function Art6Editor() {
               </summary>
               <div className="accBody">
                 <div className="hint" style={{ marginBottom: 10 }}>
-                  Inserisci il costo complessivo e la % imputabile a questa attività.
-                  L’app calcola l’importo imputato.
+                  Inserisci il costo complessivo e la % imputabile a questa attività. L’app calcola l’importo imputato.
                 </div>
 
                 {USCITE_LABELS.map((label, i) => {
@@ -366,23 +399,31 @@ export default function Art6Editor() {
                 })}
               </div>
             </details>
+
+            {/* ✅ PULSANTE EXPORT XLSX (verde) */}
+            <div style={{ marginTop: 12 }}>
+              <button
+                type="button"
+                onClick={exportXlsx}
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  borderRadius: 12,
+                  fontWeight: 800,
+                  border: "1px solid rgba(0,0,0,0.10)",
+                  cursor: "pointer",
+                  background: "#16a34a",
+                  color: "#fff",
+                }}
+                onMouseEnter={(e) => ((e.currentTarget.style.background = "#15803d"))}
+                onMouseLeave={(e) => ((e.currentTarget.style.background = "#16a34a"))}
+              >
+                ⬇️ Scarica Excel (.xlsx) — Attività diversa
+              </button>
+            </div>
           </>
         )}
       </main>
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
