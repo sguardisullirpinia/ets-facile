@@ -202,19 +202,37 @@ export default function Art6Editor() {
             <div className="cardBlock">
               {/* ✅ CHECKBOX PRIMA DI TUTTO */}
               <div className="field">
-                <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                  <input
-                    type="checkbox"
-                    checked={occasionale}
-                    onChange={(e) => setOccasionale(e.target.checked)}
-                  />
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                }}
+              >
+                <div style={{ fontWeight: 600 }}>
                   Attività diversa svolta occasionalmente
-                </label>
-                <div className="hint">
-                  Se spuntata, i proventi di questa attività <b>non</b> concorrono
-                  alla voce <b>C)</b> nel riepilogo (test dell’ente).
                 </div>
+            
+                <input
+                  type="checkbox"
+                  checked={occasionale}
+                  onChange={(e) => setOccasionale(e.target.checked)}
+                  style={{
+                    width: 26,
+                    height: 26,
+                    cursor: "pointer",
+                    accentColor: "#2563eb", // blu visibile (puoi cambiarlo o togliere la riga)
+                  }}
+                  aria-label="Attività diversa svolta occasionalmente"
+                />
               </div>
+
+  <div className="hint" style={{ marginTop: 6 }}>
+    N.B. Se spuntata, i proventi di questa attività <b>non</b> sono considerati nel test di commercialità dell'Ente e, quindi,non confluiscono nella voce <b>C)</b> del riepilogo.
+  </div>
+</div>
+
 
               <div className="field">
                 <label>Nome attività</label>
@@ -345,3 +363,4 @@ export default function Art6Editor() {
     </div>
   );
 }
+
