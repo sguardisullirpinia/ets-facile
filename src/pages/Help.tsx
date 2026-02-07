@@ -69,7 +69,7 @@ export default function Help() {
 
             <a
               className="iconBtn"
-              href="/CIRCOLARE_AdE_CODICE_TERZO_SETTORE.pdf"
+              href="/circolare.pdf"
               target="_blank"
               rel="noreferrer"
               style={{
@@ -108,4 +108,5 @@ export default function Help() {
     </div>
   );
 }
+
 
