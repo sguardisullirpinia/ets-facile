@@ -412,7 +412,7 @@ export default function Art6Editor() {
                   fontWeight: 800,
                   border: "1px solid rgba(0,0,0,0.10)",
                   cursor: "pointer",
-                  background: "#16a34a",
+                  background: "#000f86",
                   color: "#fff",
                 }}
                 onMouseEnter={(e) => ((e.currentTarget.style.background = "#15803d"))}
@@ -427,3 +427,4 @@ export default function Art6Editor() {
     </div>
   );
 }
+
