@@ -471,6 +471,52 @@ export default function Anno() {
     XLSX.writeFile(wb, fileName);
   };
 
+  // ✅ EXPORT XLSX — RIEPILOGO (test ente + secondarietà)
+  const exportRiepilogoXlsx = () => {
+    const fileName = `RIEPILOGO_${anno ?? ""}_${annualitaId ?? ""}.xlsx`;
+
+    const rows: (string | number)[][] = [];
+
+    rows.push(["ETS-FACILE — Export Riepilogo"]);
+    rows.push(["Annualità", anno ?? ""]);
+    rows.push(["Annualità ID", annualitaId ?? ""]);
+    rows.push(["Ente", ente?.denominazione ?? ""]);
+    rows.push(["Natura", ente?.natura ?? ""]);
+    rows.push([]);
+
+    rows.push(["TEST COMMERCIALITÀ DELL’INTERO ENTE"]);
+    rows.push(["Voce", "Importo (€)"]);
+    rows.push(["A) Entrate da AIG COMMERCIALI", Number(aigComputed.totEntrCommerciali.toFixed(2))]);
+    rows.push(["B) Entrate da AIG NON COMMERCIALI", Number(aigComputed.totEntrNonCommerciali.toFixed(2))]);
+    rows.push([
+      "C) Entrate da ATTIVITA' DIVERSE (senza sponsorizzazioni ex art. 79, 5° comma, CTS)",
+      Number(art6Computed.totEntrNoSpons.toFixed(2)),
+    ]);
+    rows.push(["D) Proventi NON COMMERCIALI per natura", Number(extraNonCommerciali.toFixed(2))]);
+    rows.push(["Lato “COMM” = A + C", Number(lhsCommerciale.toFixed(2))]);
+    rows.push(["Lato “NON COMM” = B + D", Number(rhsNonCommerciale.toFixed(2))]);
+    rows.push(["ESITO", esitoEnte]);
+    rows.push([]);
+
+    rows.push(["TEST DI SECONDARIETÀ (ATTIVITÀ DIVERSE)"]);
+    rows.push(["Voce", "Valore"]);
+    rows.push(["Totale entrate Attività diverse (tutte)", Number(art6Computed.totEntrAll.toFixed(2))]);
+    rows.push(["Totale entrate ENTE (AIG + Art.6 + Raccolte + Extra)", Number(totaleEntrateEnte.toFixed(2))]);
+    rows.push(["Soglia 30% del totale entrate ente", Number(soglia30.toFixed(2))]);
+    rows.push(["Esito test 30%", secondaria30 ? "OK (SECONDARIE)" : "KO (NON SECONDARIE)"]);
+    rows.push(["Totale costi ente (AIG + Art.6 + Raccolte)", Number(totaleCostiEnte.toFixed(2))]);
+    rows.push(["Soglia 66% del totale costi ente", Number(soglia66.toFixed(2))]);
+    rows.push(["Esito test 66%", secondaria66 ? "OK (SECONDARIE)" : "KO (NON SECONDARIE)"]);
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws["!cols"] = [{ wch: 70 }, { wch: 26 }];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "RIEPILOGO");
+
+    XLSX.writeFile(wb, fileName);
+  };
+
   return (
     <div className="mobileShell">
       <header className="mHeader">
@@ -771,6 +817,28 @@ export default function Anno() {
 
               <div className={secondaria66 ? "reportResult ok" : "reportResult bad"}>
                 {secondaria66 ? "SECONDARIE (test 66% OK)" : "NON SECONDARIE (test 66% KO)"}
+              </div>
+
+              {/* ✅ PULSANTE EXPORT XLSX RIEPILOGO (verde) */}
+              <div style={{ marginTop: 12 }}>
+                <button
+                  type="button"
+                  onClick={exportRiepilogoXlsx}
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    borderRadius: 12,
+                    fontWeight: 800,
+                    border: "1px solid rgba(0,0,0,0.10)",
+                    cursor: "pointer",
+                    background: "#16a34a",
+                    color: "#fff",
+                  }}
+                  onMouseEnter={(e) => ((e.currentTarget.style.background = "#15803d"))}
+                  onMouseLeave={(e) => ((e.currentTarget.style.background = "#16a34a"))}
+                >
+                  ⬇️ Scarica Excel (.xlsx) — Riepilogo
+                </button>
               </div>
             </div>
           </div>
