@@ -415,8 +415,8 @@ export default function Art6Editor() {
                   background: "#000f86",
                   color: "#fff",
                 }}
-                onMouseEnter={(e) => ((e.currentTarget.style.background = "#15803d"))}
-                onMouseLeave={(e) => ((e.currentTarget.style.background = "#16a34a"))}
+                onMouseEnter={(e) => ((e.currentTarget.style.background = "#000f86"))}
+                onMouseLeave={(e) => ((e.currentTarget.style.background = "#000f86"))}
               >
                 ⬇️ Scarica Excel (.xlsx) — Attività diversa
               </button>
@@ -427,4 +427,5 @@ export default function Art6Editor() {
     </div>
   );
 }
+
 
