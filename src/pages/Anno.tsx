@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import * as XLSX from "xlsx";
 import {
   getAnnualita,
   getEnteProfile,
@@ -185,9 +186,7 @@ export default function Anno() {
     altri_non_commerciali: 0,
   });
 
-  const [extraStatus, setExtraStatus] = useState<
-    "idle" | "saving" | "saved" | "error"
-  >("idle");
+  const [extraStatus, setExtraStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   const title = useMemo(() => {
     switch (tab) {
@@ -435,6 +434,43 @@ export default function Anno() {
     }
   };
 
+  // ✅ EXPORT XLSX — Entrate non Commerciali (5 voci)
+  const exportExtraXlsx = () => {
+    const fileName = `EXTRA_NON_COMM_${anno ?? ""}_${annualitaId ?? ""}.xlsx`;
+
+    const rows: (string | number)[][] = [];
+
+    rows.push(["ETS-FACILE — Export Entrate non Commerciali"]);
+    rows.push(["Annualità", anno ?? ""]);
+    rows.push(["Annualità ID", annualitaId ?? ""]);
+    rows.push(["Ente", ente?.denominazione ?? ""]);
+    rows.push(["Natura", ente?.natura ?? ""]);
+    rows.push([]);
+
+    rows.push(["ENTRATE NON COMMERCIALI (5 voci)"]);
+    rows.push(["Voce", "Importo (€)"]);
+
+    rows.push(["Quote associative e apporti fondatori", num(extra?.quote_assoc)]);
+    rows.push(["Erogazioni liberali", num(extra?.erogazioni)]);
+    rows.push(["Proventi del 5 per mille", num(extra?.cinque_per_mille)]);
+    rows.push([
+      "Contributi PA senza controprestazione (sostegno associazione/progetto)",
+      num(extra?.convenzioni_art56),
+    ]);
+    rows.push(["Altri proventi non commerciali", num(extra?.altri_non_commerciali)]);
+
+    rows.push([]);
+    rows.push(["TOTALE", Number(extraNonCommerciali.toFixed(2))]);
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws["!cols"] = [{ wch: 65 }, { wch: 18 }];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "EXTRA_NON_COMM");
+
+    XLSX.writeFile(wb, fileName);
+  };
+
   return (
     <div className="mobileShell">
       <header className="mHeader">
@@ -632,6 +668,28 @@ export default function Anno() {
                   setExtra((x: any) => ({ ...x, altri_non_commerciali: Number(e.target.value || 0) }))
                 }
               />
+            </div>
+
+            {/* ✅ PULSANTE EXPORT XLSX (verde) */}
+            <div style={{ marginTop: 12 }}>
+              <button
+                type="button"
+                onClick={exportExtraXlsx}
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  borderRadius: 12,
+                  fontWeight: 800,
+                  border: "1px solid rgba(0,0,0,0.10)",
+                  cursor: "pointer",
+                  background: "#16a34a",
+                  color: "#fff",
+                }}
+                onMouseEnter={(e) => ((e.currentTarget.style.background = "#15803d"))}
+                onMouseLeave={(e) => ((e.currentTarget.style.background = "#16a34a"))}
+              >
+                ⬇️ Scarica Excel (.xlsx) — Entrate non commerciali
+              </button>
             </div>
           </div>
         )}
