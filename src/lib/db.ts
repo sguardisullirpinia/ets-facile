@@ -116,9 +116,11 @@ export async function createArt6(
       descrizione,
       entrate: {},
       uscite: {},
+      occasionale: false, // ✅ aggiunto
     })
     .select("id")
     .single();
+
   if (error) throw error;
   return data!.id as string;
 }
@@ -209,6 +211,7 @@ export async function deleteAnnualita(annualitaId: string) {
   const { error } = await supabase.from("annualita").delete().eq("id", annualitaId);
   if (error) throw error;
 }
+
 
 
 
