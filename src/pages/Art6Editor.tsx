@@ -209,43 +209,48 @@ export default function Art6Editor() {
                 <input value={descr} onChange={(e) => setDescr(e.target.value)} />
               </div>
             </div>
-              {/* ✅ CHECKBOX PRIMA DI TUTTO */}
-              <div className="field">
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 12,
-                }}
-              >
-                <div style={{ fontWeight: 600 }}>
-                  Attività diversa svolta occasionalmente
-                </div>
-            
-                <input
-                  type="checkbox"
-                  checked={occasionale}
-                  onChange={(e) => setOccasionale(e.target.checked)}
-                  style={{
-                    width: 26,
-                    height: 26,
-                    cursor: "pointer",
-                    accentColor: "#2563eb", // blu visibile (puoi cambiarlo o togliere la riga)
-                  }}
-                  aria-label="Attività diversa svolta occasionalmente"
-                />
-              </div>
+            {/* ✅ CHECKBOX */}
+<div className="field">
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 12,
+    }}
+  >
+    <div style={{ fontWeight: 600 }}>
+      Attività diversa svolta occasionalmente
+    </div>
 
-               <div className="hint" 
-                 style={{
-                  marginTop: 6,
-                  marginBottom: 24,
-                  lineHeight: 1.4,
-                }}
-                 N.B. Se spuntata, i proventi di questa attività <b>non</b> sono considerati nel test di commercialità dell'Ente e, quindi,non confluiscono nella voce <b>C)</b> del riepilogo. 
-               </div> 
-              </div>
+    <input
+      type="checkbox"
+      checked={occasionale}
+      onChange={(e) => setOccasionale(e.target.checked)}
+      style={{
+        width: 26,
+        height: 26,
+        cursor: "pointer",
+        accentColor: "#2563eb",
+      }}
+      aria-label="Attività diversa svolta occasionalmente"
+    />
+  </div>
+
+  <div
+    className="hint"
+    style={{
+      marginTop: 6,
+      marginBottom: 24,
+      lineHeight: 1.4,
+    }}
+  >
+    <b>N.B.</b> Se spuntata, i proventi di questa attività <b>non</b> sono
+    considerati nel test di commercialità dell'Ente e quindi <b>non</b>
+    confluiscono nella voce <b>C)</b> del riepilogo.
+  </div>
+</div>
+ 
 
               
             {/* ENTRATE */}
@@ -367,6 +372,7 @@ export default function Art6Editor() {
     </div>
   );
 }
+
 
 
 
