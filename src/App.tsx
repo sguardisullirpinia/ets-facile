@@ -11,6 +11,7 @@ import Art6Editor from "./pages/Art6Editor";
 import RaccoltaFondiEditor from "./pages/RaccoltaFondiEditor";
 import RfEditor from "./pages/RfEditor";
 import Help from "./pages/Help";
+import IresPage from "./pages/IresPage";
 
 export default function App() {
   return (
@@ -26,6 +27,9 @@ export default function App() {
         {/* dashboard + profilo ente */}
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/ente" element={<Ente />} />
+
+        {/* Ires */}
+        <Route path="/anno/:annualitaId/ires" element={<IresPage />} />
 
         {/* help */}
         <Route path="/help" element={<Help />} />
