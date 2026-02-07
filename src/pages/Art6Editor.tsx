@@ -247,7 +247,7 @@ export default function Art6Editor() {
   >
     <b>N.B.</b> Se spuntata, i ricavi di questa attività <b>non</b> sono
     considerati nel test di commercialità dell'Ente e quindi <b>non</b>
-    confluiscono nella voce <b>C)</b> del riepilogo.
+     confluiscono nella voce <b>C)</b> del riepilogo.
   </div>
 </div>
  
@@ -372,6 +372,7 @@ export default function Art6Editor() {
     </div>
   );
 }
+
 
 
 
