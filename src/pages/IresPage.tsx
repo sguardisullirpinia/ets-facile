@@ -20,15 +20,14 @@ export default function IresPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
-  // Campi IRES (base, poi li estendiamo quando vuoi)
-  const [ires, setIres] = useState<any>({
-    imponibile: 0,        // base imponibile
-    aliquota: 24,         // %
-    imposta_lorda: 0,     // calcolata (imponibile * aliquota)
-    acconti_versati: 0,   // acconti
-    ritenute: 0,          // eventuali ritenute/crediti
-    imposta_netta: 0,     // calcolata
-    saldo: 0,             // calcolata (netta - acconti - ritenute)
+  const [data, setData] = useState<any>({
+    imponibile: 0,
+    aliquota: 24,
+    imposta_lorda: 0,
+    imposta_netta: 0,
+    acconti_versati: 0,
+    ritenute: 0,
+    saldo: 0,
     note: "",
   });
 
@@ -43,14 +42,17 @@ export default function IresPage() {
 
       try {
         const row = await getIresByAnnualitaId(annualitaId);
-
-        // se non esiste ancora, rimaniamo con i default
         if (row) {
-          setIres((p: any) => ({
-            ...p,
-            ...row,
-            aliquota: Number(row?.aliquota ?? 24),
-          }));
+          setData({
+            imponibile: num(row.imponibile),
+            aliquota: num(row.aliquota) || 24,
+            imposta_lorda: num(row.imposta_lorda),
+            imposta_netta: num(row.imposta_netta),
+            acconti_versati: num(row.acconti_versati),
+            ritenute: num(row.ritenute),
+            saldo: num(row.saldo),
+            note: row.note ?? "",
+          });
         }
       } catch (e: any) {
         setErr(e?.message ?? "Errore caricamento IRES");
@@ -64,21 +66,21 @@ export default function IresPage() {
 
   // CALCOLI LIVE
   const impostaLorda = useMemo(() => {
-    return num(ires.imponibile) * (clampPerc(ires.aliquota) / 100);
-  }, [ires.imponibile, ires.aliquota]);
+    return num(data.imponibile) * (clampPerc(data.aliquota) / 100);
+  }, [data.imponibile, data.aliquota]);
 
   const impostaNetta = useMemo(() => {
-    // qui puoi inserire altre detrazioni/crediti quando vuoi
+    // per ora = lorda, poi aggiungiamo crediti/detrazioni se vuoi
     return impostaLorda;
   }, [impostaLorda]);
 
   const saldo = useMemo(() => {
-    return impostaNetta - num(ires.acconti_versati) - num(ires.ritenute);
-  }, [impostaNetta, ires.acconti_versati, ires.ritenute]);
+    return impostaNetta - num(data.acconti_versati) - num(data.ritenute);
+  }, [impostaNetta, data.acconti_versati, data.ritenute]);
 
-  // Manteniamo i calcolati nello state (così li salviamo in DB)
+  // aggiorno i campi calcolati nello state (così li salvo)
   useEffect(() => {
-    setIres((p: any) => ({
+    setData((p: any) => ({
       ...p,
       imposta_lorda: impostaLorda,
       imposta_netta: impostaNetta,
@@ -95,7 +97,7 @@ export default function IresPage() {
     setSaveStatus("saving");
     const t = setTimeout(async () => {
       try {
-        await upsertIresByAnnualitaId(annualitaId, ires);
+        await upsertIresByAnnualitaId(annualitaId, data);
         setSaveStatus("saved");
         setTimeout(() => setSaveStatus("idle"), 900);
       } catch {
@@ -104,7 +106,7 @@ export default function IresPage() {
     }, 700);
 
     return () => clearTimeout(t);
-  }, [annualitaId, loading, ires]);
+  }, [annualitaId, loading, data]);
 
   return (
     <div className="mobileShell">
@@ -123,7 +125,7 @@ export default function IresPage() {
             {saveStatus === "saving" && "Salvataggio…"}
             {saveStatus === "saved" && "Salvato ✓"}
             {saveStatus === "error" && "Errore salvataggio"}
-            {saveStatus === "idle" && "Calcolo e memorizzazione dati IRES"}
+            {saveStatus === "idle" && "Inserisci dati e calcolo automatico"}
           </div>
         </div>
 
@@ -142,30 +144,44 @@ export default function IresPage() {
                 <label>Base imponibile (€)</label>
                 <input
                   type="number"
-                  value={num(ires.imponibile)}
-                  onChange={(e) => setIres((p: any) => ({ ...p, imponibile: Number(e.target.value || 0) }))}
+                  value={num(data.imponibile)}
+                  onChange={(e) =>
+                    setData((p: any) => ({ ...p, imponibile: Number(e.target.value || 0) }))
+                  }
                 />
               </div>
 
               <div className="field">
-                <label>Aliquota IRES (%)</label>
+                <label>Aliquota (%)</label>
                 <input
                   type="number"
                   step="0.01"
                   inputMode="decimal"
-                  value={num(ires.aliquota)}
-                  onChange={(e) => setIres((p: any) => ({ ...p, aliquota: e.target.value === "" ? 0 : Number(e.target.value) }))}
-                  onBlur={(e) => setIres((p: any) => ({ ...p, aliquota: clampPerc(e.target.value) }))}
+                  value={num(data.aliquota)}
+                  onChange={(e) =>
+                    setData((p: any) => ({
+                      ...p,
+                      aliquota: e.target.value === "" ? 0 : Number(e.target.value),
+                    }))
+                  }
+                  onBlur={(e) =>
+                    setData((p: any) => ({ ...p, aliquota: clampPerc(e.target.value) }))
+                  }
                 />
-                <div className="hint">Valore tipico: 24%</div>
+                <div className="hint">Di norma 24%</div>
               </div>
 
               <div className="field">
                 <label>Acconti versati (€)</label>
                 <input
                   type="number"
-                  value={num(ires.acconti_versati)}
-                  onChange={(e) => setIres((p: any) => ({ ...p, acconti_versati: Number(e.target.value || 0) }))}
+                  value={num(data.acconti_versati)}
+                  onChange={(e) =>
+                    setData((p: any) => ({
+                      ...p,
+                      acconti_versati: Number(e.target.value || 0),
+                    }))
+                  }
                 />
               </div>
 
@@ -173,16 +189,21 @@ export default function IresPage() {
                 <label>Ritenute / crediti (€)</label>
                 <input
                   type="number"
-                  value={num(ires.ritenute)}
-                  onChange={(e) => setIres((p: any) => ({ ...p, ritenute: Number(e.target.value || 0) }))}
+                  value={num(data.ritenute)}
+                  onChange={(e) =>
+                    setData((p: any) => ({
+                      ...p,
+                      ritenute: Number(e.target.value || 0),
+                    }))
+                  }
                 />
               </div>
 
               <div className="field">
                 <label>Note</label>
                 <input
-                  value={ires.note ?? ""}
-                  onChange={(e) => setIres((p: any) => ({ ...p, note: e.target.value }))}
+                  value={data.note ?? ""}
+                  onChange={(e) => setData((p: any) => ({ ...p, note: e.target.value }))}
                   placeholder="Annotazioni…"
                 />
               </div>
@@ -193,21 +214,27 @@ export default function IresPage() {
 
               <div className="reportRow">
                 <span>Imposta lorda</span>
-                <b>{num(ires.imposta_lorda).toFixed(2)}€</b>
+                <b>{num(data.imposta_lorda).toFixed(2)}€</b>
               </div>
 
               <div className="reportRow">
                 <span>Imposta netta</span>
-                <b>{num(ires.imposta_netta).toFixed(2)}€</b>
+                <b>{num(data.imposta_netta).toFixed(2)}€</b>
               </div>
 
               <div className="reportRow">
                 <span>Saldo (netta - acconti - ritenute)</span>
-                <b>{num(ires.saldo).toFixed(2)}€</b>
+                <b>{num(data.saldo).toFixed(2)}€</b>
               </div>
 
-              <div className={num(ires.saldo) > 0 ? "reportResult bad" : "reportResult ok"}>
-                {num(ires.saldo) > 0 ? "IMPOSTA DA VERSARE" : "A CREDITO / ZERO"}
+              <div className={num(data.saldo) > 0 ? "reportResult bad" : "reportResult ok"}>
+                {num(data.saldo) > 0 ? "IMPOSTA DA VERSARE" : "A CREDITO / ZERO"}
+              </div>
+
+              <div className="muted" style={{ marginTop: 8 }}>
+                {num(data.saldo) > 0
+                  ? "Il saldo è positivo: imposta dovuta."
+                  : "Saldo nullo o negativo: a credito o nessun versamento."}
               </div>
             </div>
           </>
@@ -216,4 +243,3 @@ export default function IresPage() {
     </div>
   );
 }
-
