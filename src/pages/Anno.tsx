@@ -31,8 +31,7 @@ type Art6Row = {
   descrizione: string;
   entrate: any;
   uscite: any;
-  // ✅ flag per escludere la voce C) se true
-  occasionale?: boolean;
+  occasionale?: boolean; // ✅ se true: ESCLUSA dalla voce C)
 };
 
 type RfRow = {
@@ -66,7 +65,7 @@ function totalEntrateAigAll(entrate: any) {
   );
 }
 
-// ✅ Entrate AIG “per test” (APS esclude 1 e 2)
+// Entrate AIG “per test” (APS esclude 1 e 2)
 function totalEntrateAigPerTest(entrate: any, natura: "APS" | "ODV") {
   const all = totalEntrateAigAll(entrate);
   if (natura === "APS") {
@@ -79,7 +78,7 @@ function totalEntrateAigPerTest(entrate: any, natura: "APS" | "ODV") {
   return all;
 }
 
-// ✅ Costi diretti: ora imputati (costo_complessivo + %), come in AigEditor nuovo
+// Costi diretti imputati
 function totalCostiDirettiImputati(c: any) {
   const mp = c?.materie_prime ?? {};
   const se = c?.servizi ?? {};
@@ -130,36 +129,27 @@ function totalCostiSupportoImputati(c: any) {
   );
 }
 
-// Art.6: nel tuo editor usi indici 0..6 per entrate, dove indice 5 = Sponsorizzazioni
+// Art.6 entrate: indici 0..6, indice 5 = Sponsorizzazioni
 function totalArt6EntrateAll(entrate: any) {
-  return Object.values(entrate ?? {}).reduce(
-    (s: number, v: any) => s + num(v),
-    0
-  );
+  return Object.values(entrate ?? {}).reduce((s: number, v: any) => s + num(v), 0);
 }
+
 function totalArt6EntrateNoSpons(entrate: any) {
   const all = totalArt6EntrateAll(entrate);
   const spons = num((entrate ?? {})[5]);
   return all - spons;
 }
+
 function totalArt6Uscite(uscite: any) {
-  return Object.values(uscite ?? {}).reduce(
-    (s: number, v: any) => s + num(v),
-    0
-  );
+  return Object.values(uscite ?? {}).reduce((s: number, v: any) => s + num(v), 0);
 }
 
 function totalRfEntrate(entrate: any) {
-  return Object.values(entrate ?? {}).reduce(
-    (s: number, v: any) => s + num(v),
-    0
-  );
+  return Object.values(entrate ?? {}).reduce((s: number, v: any) => s + num(v), 0);
 }
+
 function totalRfUscite(uscite: any) {
-  return Object.values(uscite ?? {}).reduce(
-    (s: number, v: any) => s + num(v),
-    0
-  );
+  return Object.values(uscite ?? {}).reduce((s: number, v: any) => s + num(v), 0);
 }
 
 export default function Anno() {
@@ -172,6 +162,7 @@ export default function Anno() {
     denominazione: string;
     natura: "APS" | "ODV";
   } | null>(null);
+
   const [anno, setAnno] = useState<number | null>(null);
 
   const [aigs, setAigs] = useState<AigRow[]>([]);
@@ -194,9 +185,7 @@ export default function Anno() {
     altri_non_commerciali: 0,
   });
 
-  const [extraStatus, setExtraStatus] = useState<
-    "idle" | "saving" | "saved" | "error"
-  >("idle");
+  const [extraStatus, setExtraStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   const title = useMemo(() => {
     switch (tab) {
@@ -215,9 +204,9 @@ export default function Anno() {
 
   const naturaEnte = ente?.natura ?? "APS";
 
-  // 1) Totali AIG per riepilogo
+  // 1) Totali AIG
   const aigComputed = useMemo(() => {
-    const items = aigs.map((a: any) => {
+    const items = aigs.map((a) => {
       const entrAll = totalEntrateAigAll(a.entrate);
       const entrTest = totalEntrateAigPerTest(a.entrate, naturaEnte);
 
@@ -227,41 +216,20 @@ export default function Anno() {
 
       const uscite = cd + cf + cs;
       const soglia = uscite * 1.06;
-
       const commerciale = entrTest > soglia;
 
-      return {
-        id: a.id,
-        nome: a.nome,
-        entrAll,
-        entrTest,
-        uscite,
-        soglia,
-        commerciale,
-      };
+      return { id: a.id, nome: a.nome, entrAll, entrTest, uscite, soglia, commerciale };
     });
 
-    const totEntrCommerciali = items
-      .filter((x) => x.commerciale)
-      .reduce((s, x) => s + x.entrTest, 0);
-
-    const totEntrNonCommerciali = items
-      .filter((x) => !x.commerciale)
-      .reduce((s, x) => s + x.entrAll, 0);
+    const totEntrCommerciali = items.filter((x) => x.commerciale).reduce((s, x) => s + x.entrTest, 0);
+    const totEntrNonCommerciali = items.filter((x) => !x.commerciale).reduce((s, x) => s + x.entrAll, 0);
 
     const totEntrAigAll = items.reduce((s, x) => s + x.entrAll, 0);
     const totCostiAig = items.reduce((s, x) => s + x.uscite, 0);
 
-    return {
-      items,
-      totEntrCommerciali,
-      totEntrNonCommerciali,
-      totEntrAigAll,
-      totCostiAig,
-    };
+    return { items, totEntrCommerciali, totEntrNonCommerciali, totEntrAigAll, totCostiAig };
   }, [aigs, naturaEnte]);
 
-  // ✅ mappa id -> commerciale per mostrare pill in elenco
   const aigEsitoById = useMemo(() => {
     const m = new Map<string, boolean>();
     aigComputed.items.forEach((it) => m.set(it.id, it.commerciale));
@@ -270,34 +238,23 @@ export default function Anno() {
 
   // 2) Totali Art.6
   const art6Computed = useMemo(() => {
-    const totEntrAll = art6.reduce(
-      (s: number, x: any) => s + totalArt6EntrateAll(x.entrate),
-      0
-    );
+    // tutte (per secondarietà e totale generale)
+    const totEntrAll = art6.reduce((s, x) => s + totalArt6EntrateAll(x.entrate), 0);
 
-    // ✅ VOCE C: escludi le attività DIVERSE OCCASIONALI
+    // ✅ VOCE C: SOLO art.6 NON occasionali + senza spons
     const totEntrNoSpons = art6
-      .filter((x: any) => !x.occasionale)
-      .reduce((s: number, x: any) => s + totalArt6EntrateNoSpons(x.entrate), 0);
+      .filter((x) => !Boolean(x.occasionale))
+      .reduce((s, x) => s + totalArt6EntrateNoSpons(x.entrate), 0);
 
-    const totUscite = art6.reduce(
-      (s: number, x: any) => s + totalArt6Uscite(x.uscite),
-      0
-    );
+    const totUscite = art6.reduce((s, x) => s + totalArt6Uscite(x.uscite), 0);
 
     return { totEntrAll, totEntrNoSpons, totUscite };
   }, [art6]);
 
   // 3) Totali Raccolte
   const rfComputed = useMemo(() => {
-    const totEntr = raccolte.reduce(
-      (s: number, x: any) => s + totalRfEntrate(x.entrate),
-      0
-    );
-    const totUscite = raccolte.reduce(
-      (s: number, x: any) => s + totalRfUscite(x.uscite),
-      0
-    );
+    const totEntr = raccolte.reduce((s, x) => s + totalRfEntrate(x.entrate), 0);
+    const totUscite = raccolte.reduce((s, x) => s + totalRfUscite(x.uscite), 0);
     return { totEntr, totUscite };
   }, [raccolte]);
 
@@ -312,29 +269,20 @@ export default function Anno() {
     );
   }, [extra]);
 
-  const lhsCommerciale =
-    aigComputed.totEntrCommerciali + art6Computed.totEntrNoSpons;
+  // Test ente
+  const lhsCommerciale = aigComputed.totEntrCommerciali + art6Computed.totEntrNoSpons;
+  const rhsNonCommerciale = aigComputed.totEntrNonCommerciali + extraNonCommerciali;
 
-  const rhsNonCommerciale =
-    aigComputed.totEntrNonCommerciali + extraNonCommerciali;
+  const esitoEnte = lhsCommerciale > rhsNonCommerciale ? "ENTE COMMERCIALE" : "ENTE NON COMMERCIALE";
 
-  const esitoEnte =
-    lhsCommerciale > rhsNonCommerciale
-      ? "ENTE COMMERCIALE"
-      : "ENTE NON COMMERCIALE";
-
+  // Secondarietà
   const totaleEntrateEnte =
-    aigComputed.totEntrAigAll +
-    art6Computed.totEntrAll +
-    rfComputed.totEntr +
-    extraNonCommerciali;
+    aigComputed.totEntrAigAll + art6Computed.totEntrAll + rfComputed.totEntr + extraNonCommerciali;
 
   const soglia30 = totaleEntrateEnte * 0.3;
   const secondaria30 = art6Computed.totEntrAll <= soglia30;
 
-  const totaleCostiEnte =
-    aigComputed.totCostiAig + art6Computed.totUscite + rfComputed.totUscite;
-
+  const totaleCostiEnte = aigComputed.totCostiAig + art6Computed.totUscite + rfComputed.totUscite;
   const soglia66 = totaleCostiEnte * 0.66;
   const secondaria66 = art6Computed.totEntrAll <= soglia66;
 
@@ -345,10 +293,7 @@ export default function Anno() {
     setErr(null);
     setLoading(true);
     try {
-      const [p, a] = await Promise.all([
-        getEnteProfile(),
-        getAnnualita(annualitaId),
-      ]);
+      const [p, a] = await Promise.all([getEnteProfile(), getAnnualita(annualitaId)]);
       setEnte(p);
       setAnno(a.anno);
 
@@ -376,7 +321,7 @@ export default function Anno() {
     }
   };
 
-  // ✅ DELETE AIG
+  // DELETE AIG
   const handleDeleteAig = async (id: string, nomeAig: string) => {
     const ok = window.confirm(`Vuoi eliminare l'AIG "${nomeAig}"?`);
     if (!ok) return;
@@ -384,43 +329,35 @@ export default function Anno() {
     try {
       const { error } = await supabase.from("aig").delete().eq("id", id);
       if (error) throw error;
-      setAigs((prev: any[]) => prev.filter((x) => x.id !== id));
+      setAigs((prev) => prev.filter((x) => x.id !== id));
     } catch (e: any) {
       alert(e?.message ?? "Errore eliminazione AIG");
     }
   };
 
-  // ✅ DELETE ART.6
+  // DELETE ART.6
   const handleDeleteArt6 = async (id: string, nomeArt6: string) => {
-    const ok = window.confirm(
-      `Vuoi eliminare l'attività diversa "${nomeArt6}"?`
-    );
+    const ok = window.confirm(`Vuoi eliminare l'attività diversa "${nomeArt6}"?`);
     if (!ok) return;
 
     try {
-      const { error } = await supabase
-        .from("attivita_diverse")
-        .delete()
-        .eq("id", id);
+      const { error } = await supabase.from("attivita_diverse").delete().eq("id", id);
       if (error) throw error;
-      setArt6((prev: any[]) => prev.filter((x) => x.id !== id));
+      setArt6((prev) => prev.filter((x) => x.id !== id));
     } catch (e: any) {
       alert(e?.message ?? "Errore eliminazione Attività diverse");
     }
   };
 
-  // ✅ DELETE RACCOLTA FONDI
+  // DELETE RACCOLTA FONDI
   const handleDeleteRf = async (id: string, nomeRf: string) => {
     const ok = window.confirm(`Vuoi eliminare la raccolta fondi "${nomeRf}"?`);
     if (!ok) return;
 
     try {
-      const { error } = await supabase
-        .from("raccolte_fondi")
-        .delete()
-        .eq("id", id);
+      const { error } = await supabase.from("raccolte_fondi").delete().eq("id", id);
       if (error) throw error;
-      setRaccolte((prev: any[]) => prev.filter((x) => x.id !== id));
+      setRaccolte((prev) => prev.filter((x) => x.id !== id));
     } catch (e: any) {
       alert(e?.message ?? "Errore eliminazione Raccolta fondi");
     }
@@ -470,12 +407,14 @@ export default function Anno() {
         await loadAll();
         nav(`/anno/${annualitaId}/aig/${id}`);
       }
+
       if (tab === "art6") {
         const id = await createArt6(annualitaId, nome.trim(), descr.trim());
         setOpenCreate(false);
         await loadAll();
         nav(`/anno/${annualitaId}/art6/${id}`);
       }
+
       if (tab === "rf") {
         const id = await createRaccolta(annualitaId, nome.trim(), descr.trim());
         setOpenCreate(false);
@@ -490,20 +429,14 @@ export default function Anno() {
   return (
     <div className="mobileShell">
       <header className="mHeader">
-        <button
-          className="iconBtn"
-          onClick={() => nav("/dashboard")}
-          aria-label="Indietro"
-        >
+        <button className="iconBtn" onClick={() => nav("/dashboard")} aria-label="Indietro">
           ←
         </button>
 
         <div className="mHeaderText">
           <div className="mTitle">Annualità {anno ?? ""}</div>
           <div className="mSubtitle">
-            {ente
-              ? `Ente: ${ente.natura} • ${ente.denominazione}`
-              : "Caricamento…"}
+            {ente ? `Ente: ${ente.natura} • ${ente.denominazione}` : "Caricamento…"}
           </div>
         </div>
 
@@ -519,9 +452,7 @@ export default function Anno() {
         {/* AIG */}
         {!loading && tab === "aig" && (
           <div className="list">
-            {aigs.length === 0 && (
-              <p className="muted">Nessuna AIG. Clicca “+” per crearne una.</p>
-            )}
+            {aigs.length === 0 && <p className="muted">Nessuna AIG. Clicca “+” per crearne una.</p>}
 
             {aigs.map((x) => {
               const comm = aigEsitoById.get(x.id);
@@ -536,17 +467,11 @@ export default function Anno() {
                   <div className={cls}>{label}</div>
 
                   <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-                    <button
-                      className="ghost"
-                      onClick={() => nav(`/anno/${annualitaId}/aig/${x.id}`)}
-                    >
+                    <button className="ghost" onClick={() => nav(`/anno/${annualitaId}/aig/${x.id}`)}>
                       Apri
                     </button>
 
-                    <button
-                      className="dangerBtn"
-                      onClick={() => handleDeleteAig(x.id, x.nome)}
-                    >
+                    <button className="dangerBtn" onClick={() => handleDeleteAig(x.id, x.nome)}>
                       Elimina
                     </button>
                   </div>
@@ -560,9 +485,7 @@ export default function Anno() {
         {!loading && tab === "art6" && (
           <div className="list">
             {art6.length === 0 && (
-              <p className="muted">
-                Nessuna attività diversa. Clicca “+” per crearne una.
-              </p>
+              <p className="muted">Nessuna attività diversa. Clicca “+” per crearne una.</p>
             )}
 
             {art6.map((x) => (
@@ -570,18 +493,15 @@ export default function Anno() {
                 <div className="tileTitle">{x.nome}</div>
                 <div className="tileMeta">{x.descrizione}</div>
 
+                {/* ✅ etichetta visiva se è occasionale */}
+                {Boolean(x.occasionale) && <div className="pill ok">OCCASIONALE</div>}
+
                 <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-                  <button
-                    className="ghost"
-                    onClick={() => nav(`/anno/${annualitaId}/art6/${x.id}`)}
-                  >
+                  <button className="ghost" onClick={() => nav(`/anno/${annualitaId}/art6/${x.id}`)}>
                     Apri
                   </button>
 
-                  <button
-                    className="dangerBtn"
-                    onClick={() => handleDeleteArt6(x.id, x.nome)}
-                  >
+                  <button className="dangerBtn" onClick={() => handleDeleteArt6(x.id, x.nome)}>
                     Elimina
                   </button>
                 </div>
@@ -594,9 +514,7 @@ export default function Anno() {
         {!loading && tab === "rf" && (
           <div className="list">
             {raccolte.length === 0 && (
-              <p className="muted">
-                Nessuna raccolta fondi. Clicca “+” per crearne una.
-              </p>
+              <p className="muted">Nessuna raccolta fondi. Clicca “+” per crearne una.</p>
             )}
 
             {raccolte.map((x) => (
@@ -605,17 +523,11 @@ export default function Anno() {
                 <div className="tileMeta">{x.descrizione}</div>
 
                 <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-                  <button
-                    className="ghost"
-                    onClick={() => nav(`/anno/${annualitaId}/rf/${x.id}`)}
-                  >
+                  <button className="ghost" onClick={() => nav(`/anno/${annualitaId}/rf/${x.id}`)}>
                     Apri
                   </button>
 
-                  <button
-                    className="dangerBtn"
-                    onClick={() => handleDeleteRf(x.id, x.nome)}
-                  >
+                  <button className="dangerBtn" onClick={() => handleDeleteRf(x.id, x.nome)}>
                     Elimina
                   </button>
                 </div>
@@ -624,17 +536,10 @@ export default function Anno() {
           </div>
         )}
 
-        {/* EXTRA (Entrate non Commerciali) */}
+        {/* EXTRA */}
         {!loading && tab === "extra" && (
           <div className="cardBlock">
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: 10,
-              }}
-            >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
               <p className="muted" style={{ margin: 0 }}>
                 Entrate non Commerciali
               </p>
@@ -642,7 +547,6 @@ export default function Anno() {
                 {extraStatus === "saving" && "Salvataggio…"}
                 {extraStatus === "saved" && "Salvato ✓"}
                 {extraStatus === "error" && "Errore salvataggio"}
-                {extraStatus === "idle" && ""}
               </span>
             </div>
 
@@ -652,10 +556,7 @@ export default function Anno() {
                 type="number"
                 value={extra.quote_assoc}
                 onChange={(e) =>
-                  setExtra((x: any) => ({
-                    ...x,
-                    quote_assoc: Number(e.target.value || 0),
-                  }))
+                  setExtra((x: any) => ({ ...x, quote_assoc: Number(e.target.value || 0) }))
                 }
               />
             </div>
@@ -666,10 +567,7 @@ export default function Anno() {
                 type="number"
                 value={extra.erogazioni}
                 onChange={(e) =>
-                  setExtra((x: any) => ({
-                    ...x,
-                    erogazioni: Number(e.target.value || 0),
-                  }))
+                  setExtra((x: any) => ({ ...x, erogazioni: Number(e.target.value || 0) }))
                 }
               />
             </div>
@@ -680,31 +578,24 @@ export default function Anno() {
                 type="number"
                 value={extra.cinque_per_mille}
                 onChange={(e) =>
-                  setExtra((x: any) => ({
-                    ...x,
-                    cinque_per_mille: Number(e.target.value || 0),
-                  }))
+                  setExtra((x: any) => ({ ...x, cinque_per_mille: Number(e.target.value || 0) }))
                 }
               />
             </div>
 
             <div className="field">
               <label>
-                Contributi erogati dalla PA per sostenere l'associazione o un suo
-                progetto, senza che l'ente pubblico riceva nulla in cambio
+                Contributi erogati dalla PA per sostenere l'associazione o un suo progetto, senza che l'ente pubblico riceva
+                nulla in cambio
               </label>
               <div className="hint">
-                Nota: convenzioni/affidamenti con corrispettivo rientrano nei
-                test (es. 6%) e non vanno qui.
+                Nota: convenzioni/affidamenti con corrispettivo rientrano nei test (es. 6%) e non vanno qui.
               </div>
               <input
                 type="number"
                 value={extra.convenzioni_art56}
                 onChange={(e) =>
-                  setExtra((x: any) => ({
-                    ...x,
-                    convenzioni_art56: Number(e.target.value || 0),
-                  }))
+                  setExtra((x: any) => ({ ...x, convenzioni_art56: Number(e.target.value || 0) }))
                 }
               />
             </div>
@@ -715,10 +606,7 @@ export default function Anno() {
                 type="number"
                 value={extra.altri_non_commerciali}
                 onChange={(e) =>
-                  setExtra((x: any) => ({
-                    ...x,
-                    altri_non_commerciali: Number(e.target.value || 0),
-                  }))
+                  setExtra((x: any) => ({ ...x, altri_non_commerciali: Number(e.target.value || 0) }))
                 }
               />
             </div>
@@ -743,8 +631,7 @@ export default function Anno() {
 
               <div className="reportRow">
                 <span>
-                  C) Entrate da ATTIVITA' DIVERSE (senza sponsorizzazioni ex art.
-                  79, 5° comma, CTS)
+                  C) Entrate da ATTIVITA' DIVERSE (senza sponsorizzazioni ex art. 79, 5° comma, CTS)
                 </span>
                 <b>{art6Computed.totEntrNoSpons.toFixed(2)}€</b>
               </div>
@@ -764,21 +651,13 @@ export default function Anno() {
                 <b>{rhsNonCommerciale.toFixed(2)}€</b>
               </div>
 
-              <div
-                className={
-                  lhsCommerciale > rhsNonCommerciale
-                    ? "reportResult bad"
-                    : "reportResult ok"
-                }
-              >
+              <div className={lhsCommerciale > rhsNonCommerciale ? "reportResult bad" : "reportResult ok"}>
                 {esitoEnte}
               </div>
             </div>
 
             <div className="reportCard">
-              <div className="reportTitle">
-                TEST DI SECONDARIETÀ (ATTIVITÀ DIVERSE)
-              </div>
+              <div className="reportTitle">TEST DI SECONDARIETÀ (ATTIVITÀ DIVERSE)</div>
 
               <div className="reportRow">
                 <span>Totale entrate Attività diverse (tutte)</span>
@@ -795,12 +674,8 @@ export default function Anno() {
                 <b>{soglia30.toFixed(2)}€</b>
               </div>
 
-              <div
-                className={secondaria30 ? "reportResult ok" : "reportResult bad"}
-              >
-                {secondaria30
-                  ? "SECONDARIE (test 30% OK)"
-                  : "NON SECONDARIE (test 30% KO)"}
+              <div className={secondaria30 ? "reportResult ok" : "reportResult bad"}>
+                {secondaria30 ? "SECONDARIE (test 30% OK)" : "NON SECONDARIE (test 30% KO)"}
               </div>
 
               <div style={{ height: 10 }} />
@@ -815,12 +690,8 @@ export default function Anno() {
                 <b>{soglia66.toFixed(2)}€</b>
               </div>
 
-              <div
-                className={secondaria66 ? "reportResult ok" : "reportResult bad"}
-              >
-                {secondaria66
-                  ? "SECONDARIE (test 66% OK)"
-                  : "NON SECONDARIE (test 66% KO)"}
+              <div className={secondaria66 ? "reportResult ok" : "reportResult bad"}>
+                {secondaria66 ? "SECONDARIE (test 66% OK)" : "NON SECONDARIE (test 66% KO)"}
               </div>
             </div>
           </div>
@@ -882,34 +753,26 @@ export default function Anno() {
 
       {/* Bottom nav */}
       <nav className="bottomNav">
-        <button
-          className={tab === "aig" ? "navBtn active" : "navBtn"}
-          onClick={() => setTab("aig")}
-        >
+        <button className={tab === "aig" ? "navBtn active" : "navBtn"} onClick={() => setTab("aig")}>
           <div className="navIcon">▦</div>
           <div className="navLabel">AIG</div>
         </button>
-        <button
-          className={tab === "art6" ? "navBtn active" : "navBtn"}
-          onClick={() => setTab("art6")}
-        >
+
+        <button className={tab === "art6" ? "navBtn active" : "navBtn"} onClick={() => setTab("art6")}>
           <div className="navIcon">≡</div>
           <div className="navLabel">Art.6</div>
         </button>
-        <button
-          className={tab === "rf" ? "navBtn active" : "navBtn"}
-          onClick={() => setTab("rf")}
-        >
+
+        <button className={tab === "rf" ? "navBtn active" : "navBtn"} onClick={() => setTab("rf")}>
           <div className="navIcon">⬤</div>
           <div className="navLabel">Raccolte</div>
         </button>
-        <button
-          className={tab === "extra" ? "navBtn active" : "navBtn"}
-          onClick={() => setTab("extra")}
-        >
+
+        <button className={tab === "extra" ? "navBtn active" : "navBtn"} onClick={() => setTab("extra")}>
           <div className="navIcon">€</div>
           <div className="navLabel">Entrate non commerciali</div>
         </button>
+
         <button
           className={tab === "riepilogo" ? "navBtn active" : "navBtn"}
           onClick={() => setTab("riepilogo")}
@@ -921,4 +784,3 @@ export default function Anno() {
     </div>
   );
 }
-
