@@ -87,7 +87,7 @@ export default function Help() {
 
           <div style={{ overflow: "auto", borderRadius: 12 }}>
             <Document
-              file="/CIRCOLARE_AdE_CODICE_TERZO_SETTORE.pdf"
+              file="/circolare.pdf"
               loading={<div style={{ padding: 12 }}>Caricamento PDF…</div>}
               error={<div style={{ padding: 12 }}>Errore nel caricamento del PDF.</div>}
               onLoadSuccess={({ numPages }) => {
@@ -108,3 +108,4 @@ export default function Help() {
     </div>
   );
 }
+
