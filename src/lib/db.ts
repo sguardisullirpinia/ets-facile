@@ -211,12 +211,7 @@ export async function deleteAnnualita(annualitaId: string) {
   const { error } = await supabase.from("annualita").delete().eq("id", annualitaId);
   if (error) throw error;
 }
-import { supabase } from "./supabase";
 
-// Tabella: ires
-// Campi minimi consigliati:
-// annualita_id (uuid) UNIQUE
-// imponibile numeric, aliquota numeric, imposta_lorda numeric, imposta_netta numeric, acconti_versati numeric, ritenute numeric, saldo numeric, note text
 
 export async function getIresByAnnualitaId(annualitaId: string) {
   const { data, error } = await supabase
@@ -248,6 +243,7 @@ export async function upsertIresByAnnualitaId(annualitaId: string, payload: any)
 
   if (error) throw error;
 }
+
 
 
 
