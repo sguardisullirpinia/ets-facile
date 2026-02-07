@@ -238,7 +238,7 @@ export default function Art6Editor() {
               </div>
 
                <div className="hint" 
-                 style={{ marginTop: 6, marginBottom: 26;}}> N.B. Se spuntata, i proventi di questa attività <b>non</b> sono considerati nel test di commercialità dell'Ente e, quindi,non confluiscono nella voce <b>C)</b> del riepilogo. 
+                 style={{ marginBottom: 26;}}> N.B. Se spuntata, i proventi di questa attività <b>non</b> sono considerati nel test di commercialità dell'Ente e, quindi,non confluiscono nella voce <b>C)</b> del riepilogo. 
                </div> 
               </div>
 
@@ -362,6 +362,7 @@ export default function Art6Editor() {
     </div>
   );
 }
+
 
 
 
