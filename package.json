@@ -13,6 +13,8 @@
     "@supabase/supabase-js": "^2.94.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-pdf": "^9.0.0",
+    "pdfjs-dist": "^4.0.379",
     "react-router-dom": "^7.13.0"
   },
   "devDependencies": {
