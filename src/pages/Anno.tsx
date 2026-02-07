@@ -731,7 +731,7 @@ export default function Anno() {
                   background: "#000f86",
                   color: "#fff",
                 }}
-                onMouseEnter={(e) => ((e.currentTarget.style.background = "#15803d"))}
+                onMouseEnter={(e) => ((e.currentTarget.style.background = "#000f86"))}
                 onMouseLeave={(e) => ((e.currentTarget.style.background = "##000f86"))}
               >
                 ⬇️ Scarica Excel (.xlsx) — Entrate non commerciali
@@ -834,7 +834,7 @@ export default function Anno() {
                     background: "#000f86",
                     color: "#fff",
                   }}
-                  onMouseEnter={(e) => ((e.currentTarget.style.background = "#15803d"))}
+                  onMouseEnter={(e) => ((e.currentTarget.style.background = "#000f86"))}
                   onMouseLeave={(e) => ((e.currentTarget.style.background = "#000f86"))}
                 >
                   ⬇️ Scarica Excel (.xlsx) — Riepilogo
@@ -927,4 +927,5 @@ export default function Anno() {
     </div>
   );
 }
+
 
