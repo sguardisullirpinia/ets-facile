@@ -185,7 +185,9 @@ export default function Anno() {
     altri_non_commerciali: 0,
   });
 
-  const [extraStatus, setExtraStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [extraStatus, setExtraStatus] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle");
 
   const title = useMemo(() => {
     switch (tab) {
@@ -221,8 +223,13 @@ export default function Anno() {
       return { id: a.id, nome: a.nome, entrAll, entrTest, uscite, soglia, commerciale };
     });
 
-    const totEntrCommerciali = items.filter((x) => x.commerciale).reduce((s, x) => s + x.entrTest, 0);
-    const totEntrNonCommerciali = items.filter((x) => !x.commerciale).reduce((s, x) => s + x.entrAll, 0);
+    const totEntrCommerciali = items
+      .filter((x) => x.commerciale)
+      .reduce((s, x) => s + x.entrTest, 0);
+
+    const totEntrNonCommerciali = items
+      .filter((x) => !x.commerciale)
+      .reduce((s, x) => s + x.entrAll, 0);
 
     const totEntrAigAll = items.reduce((s, x) => s + x.entrAll, 0);
     const totCostiAig = items.reduce((s, x) => s + x.uscite, 0);
@@ -238,7 +245,6 @@ export default function Anno() {
 
   // 2) Totali Art.6
   const art6Computed = useMemo(() => {
-    // tutte (per secondarietà e totale generale)
     const totEntrAll = art6.reduce((s, x) => s + totalArt6EntrateAll(x.entrate), 0);
 
     // ✅ VOCE C: SOLO art.6 NON occasionali + senza spons
@@ -247,7 +253,6 @@ export default function Anno() {
       .reduce((s, x) => s + totalArt6EntrateNoSpons(x.entrate), 0);
 
     const totUscite = art6.reduce((s, x) => s + totalArt6Uscite(x.uscite), 0);
-
     return { totEntrAll, totEntrNoSpons, totUscite };
   }, [art6]);
 
@@ -272,7 +277,6 @@ export default function Anno() {
   // Test ente
   const lhsCommerciale = aigComputed.totEntrCommerciali + art6Computed.totEntrNoSpons;
   const rhsNonCommerciale = aigComputed.totEntrNonCommerciali + extraNonCommerciali;
-
   const esitoEnte = lhsCommerciale > rhsNonCommerciale ? "ENTE COMMERCIALE" : "ENTE NON COMMERCIALE";
 
   // Secondarietà
@@ -287,6 +291,11 @@ export default function Anno() {
   const secondaria66 = art6Computed.totEntrAll <= soglia66;
 
   const showFab = tab === "aig" || tab === "art6" || tab === "rf";
+
+  const logout = async () => {
+    await supabase.auth.signOut();
+    nav("/login");
+  };
 
   const loadAll = async () => {
     if (!annualitaId) return;
@@ -440,7 +449,30 @@ export default function Anno() {
           </div>
         </div>
 
-        <div className="mHeaderRight" />
+        {/* ✅ pulsanti Ente / Help / Esci */}
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+          <button
+            className="ghost"
+            onClick={() => nav("/ente")}
+            style={{ padding: "8px 10px", borderRadius: 10, whiteSpace: "nowrap" }}
+          >
+            Ente
+          </button>
+          <button
+            className="ghost"
+            onClick={() => nav("/help")}
+            style={{ padding: "8px 10px", borderRadius: 10, whiteSpace: "nowrap" }}
+          >
+            Help
+          </button>
+          <button
+            className="ghost"
+            onClick={logout}
+            style={{ padding: "8px 10px", borderRadius: 10, whiteSpace: "nowrap" }}
+          >
+            Esci
+          </button>
+        </div>
       </header>
 
       <main className="mContent">
@@ -484,16 +516,13 @@ export default function Anno() {
         {/* ART.6 */}
         {!loading && tab === "art6" && (
           <div className="list">
-            {art6.length === 0 && (
-              <p className="muted">Nessuna attività diversa. Clicca “+” per crearne una.</p>
-            )}
+            {art6.length === 0 && <p className="muted">Nessuna attività diversa. Clicca “+” per crearne una.</p>}
 
             {art6.map((x) => (
               <div key={x.id} className="tile" style={{ textAlign: "left" }}>
                 <div className="tileTitle">{x.nome}</div>
                 <div className="tileMeta">{x.descrizione}</div>
 
-                {/* ✅ etichetta visiva se è occasionale */}
                 {Boolean(x.occasionale) && <div className="pill ok">OCCASIONALE</div>}
 
                 <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
@@ -513,9 +542,7 @@ export default function Anno() {
         {/* RACCOLTE FONDI */}
         {!loading && tab === "rf" && (
           <div className="list">
-            {raccolte.length === 0 && (
-              <p className="muted">Nessuna raccolta fondi. Clicca “+” per crearne una.</p>
-            )}
+            {raccolte.length === 0 && <p className="muted">Nessuna raccolta fondi. Clicca “+” per crearne una.</p>}
 
             {raccolte.map((x) => (
               <div key={x.id} className="tile" style={{ textAlign: "left" }}>
@@ -555,9 +582,7 @@ export default function Anno() {
               <input
                 type="number"
                 value={extra.quote_assoc}
-                onChange={(e) =>
-                  setExtra((x: any) => ({ ...x, quote_assoc: Number(e.target.value || 0) }))
-                }
+                onChange={(e) => setExtra((x: any) => ({ ...x, quote_assoc: Number(e.target.value || 0) }))}
               />
             </div>
 
@@ -566,9 +591,7 @@ export default function Anno() {
               <input
                 type="number"
                 value={extra.erogazioni}
-                onChange={(e) =>
-                  setExtra((x: any) => ({ ...x, erogazioni: Number(e.target.value || 0) }))
-                }
+                onChange={(e) => setExtra((x: any) => ({ ...x, erogazioni: Number(e.target.value || 0) }))}
               />
             </div>
 
@@ -630,9 +653,7 @@ export default function Anno() {
               </div>
 
               <div className="reportRow">
-                <span>
-                  C) Entrate da ATTIVITA' DIVERSE (senza sponsorizzazioni ex art. 79, 5° comma, CTS)
-                </span>
+                <span>C) Entrate da ATTIVITA' DIVERSE (senza sponsorizzazioni ex art. 79, 5° comma, CTS)</span>
                 <b>{art6Computed.totEntrNoSpons.toFixed(2)}€</b>
               </div>
 
@@ -725,11 +746,7 @@ export default function Anno() {
 
             <div className="field">
               <label>Nome</label>
-              <input
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
-                placeholder="Es. Doposcuola"
-              />
+              <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Es. Doposcuola" />
             </div>
 
             <div className="field">
