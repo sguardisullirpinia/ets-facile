@@ -132,7 +132,7 @@ export default function Dashboard() {
         ))}
 
         {annualita.length === 0 && (
-          <p className="muted">Nessuna annualità. Clicca “+” per crearne una.</p>
+          <p className="muted"> Clicca “+” per creare l'annualità da monitorare e sottoporre ai test di commercialità per le AIG e di secondarietà per le Attività diverse.".</p>
         )}
       </div>
 
@@ -164,3 +164,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
