@@ -531,8 +531,9 @@ export default function Anno() {
           </div>
         </div>
 
-        {/* ✅ pulsanti Ente / Help / Esci */}
+       {/* ✅ pulsanti Ente / Help / IRES / Esci (dinamici) */}
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+          {/* ENTE sempre visibile */}
           <button
             className="ghost"
             onClick={() => nav("/ente")}
@@ -540,13 +541,32 @@ export default function Anno() {
           >
             Ente
           </button>
-          <button
-            className="ghost"
-            onClick={() => nav("/help")}
-            style={{ padding: "8px 10px", borderRadius: 10, whiteSpace: "nowrap" }}
-          >
-            Help
-          </button>
+        
+          {/* CENTRALE: Help oppure IRES */}
+          {tab === "riepilogo" ? (
+            <button
+              className="ghost"
+              onClick={() => nav(`/anno/${annualitaId}/ires`)}
+              style={{
+                padding: "8px 10px",
+                borderRadius: 10,
+                whiteSpace: "nowrap",
+                fontWeight: 700,
+              }}
+            >
+              IRES
+            </button>
+          ) : (
+            <button
+              className="ghost"
+              onClick={() => nav("/help")}
+              style={{ padding: "8px 10px", borderRadius: 10, whiteSpace: "nowrap" }}
+            >
+              Help
+            </button>
+          )}
+        
+          {/* ESCI sempre visibile */}
           <button
             className="ghost"
             onClick={logout}
@@ -927,5 +947,6 @@ export default function Anno() {
     </div>
   );
 }
+
 
 
