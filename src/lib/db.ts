@@ -211,6 +211,44 @@ export async function deleteAnnualita(annualitaId: string) {
   const { error } = await supabase.from("annualita").delete().eq("id", annualitaId);
   if (error) throw error;
 }
+import { supabase } from "./supabase";
+
+// Tabella: ires
+// Campi minimi consigliati:
+// annualita_id (uuid) UNIQUE
+// imponibile numeric, aliquota numeric, imposta_lorda numeric, imposta_netta numeric, acconti_versati numeric, ritenute numeric, saldo numeric, note text
+
+export async function getIresByAnnualitaId(annualitaId: string) {
+  const { data, error } = await supabase
+    .from("ires")
+    .select("*")
+    .eq("annualita_id", annualitaId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function upsertIresByAnnualitaId(annualitaId: string, payload: any) {
+  const row = {
+    annualita_id: annualitaId,
+    imponibile: Number(payload?.imponibile ?? 0),
+    aliquota: Number(payload?.aliquota ?? 24),
+    imposta_lorda: Number(payload?.imposta_lorda ?? 0),
+    imposta_netta: Number(payload?.imposta_netta ?? 0),
+    acconti_versati: Number(payload?.acconti_versati ?? 0),
+    ritenute: Number(payload?.ritenute ?? 0),
+    saldo: Number(payload?.saldo ?? 0),
+    note: payload?.note ?? "",
+  };
+
+  const { error } = await supabase
+    .from("ires")
+    .upsert(row, { onConflict: "annualita_id" });
+
+  if (error) throw error;
+}
+
 
 
 
