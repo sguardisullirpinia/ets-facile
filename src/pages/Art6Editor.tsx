@@ -199,7 +199,16 @@ export default function Art6Editor() {
           <p>Caricamento…</p>
         ) : (
           <>
-            <div className="cardBlock">
+             <div className="cardBlock">
+              <div className="field">
+                <label>Nome attività</label>
+                <input value={nome} onChange={(e) => setNome(e.target.value)} />
+              </div>
+              <div className="field">
+                <label>Descrizione</label>
+                <input value={descr} onChange={(e) => setDescr(e.target.value)} />
+              </div>
+            </div>
               {/* ✅ CHECKBOX PRIMA DI TUTTO */}
               <div className="field">
               <div
@@ -219,8 +228,8 @@ export default function Art6Editor() {
                   checked={occasionale}
                   onChange={(e) => setOccasionale(e.target.checked)}
                   style={{
-                    width: 26,
-                    height: 26,
+                    width: 28,
+                    height: 28,
                     cursor: "pointer",
                     accentColor: "#2563eb", // blu visibile (puoi cambiarlo o togliere la riga)
                   }}
@@ -232,18 +241,7 @@ export default function Art6Editor() {
     N.B. Se spuntata, i proventi di questa attività <b>non</b> sono considerati nel test di commercialità dell'Ente e, quindi,non confluiscono nella voce <b>C)</b> del riepilogo.
   </div>
 </div>
-
-
-              <div className="field">
-                <label>Nome attività</label>
-                <input value={nome} onChange={(e) => setNome(e.target.value)} />
-              </div>
-              <div className="field">
-                <label>Descrizione</label>
-                <input value={descr} onChange={(e) => setDescr(e.target.value)} />
-              </div>
-            </div>
-
+              
             {/* ENTRATE */}
             <details className="acc">
               <summary className="accSum">
@@ -363,4 +361,5 @@ export default function Art6Editor() {
     </div>
   );
 }
+
 
