@@ -716,7 +716,7 @@ export default function Anno() {
               />
             </div>
 
-            {/* ✅ PULSANTE EXPORT XLSX (verde) */}
+            {/* ✅ PULSANTE EXPORT XLSX (blu) */}
             <div style={{ marginTop: 12 }}>
               <button
                 type="button"
@@ -728,11 +728,11 @@ export default function Anno() {
                   fontWeight: 800,
                   border: "1px solid rgba(0,0,0,0.10)",
                   cursor: "pointer",
-                  background: "#16a34a",
+                  background: "#000f86",
                   color: "#fff",
                 }}
                 onMouseEnter={(e) => ((e.currentTarget.style.background = "#15803d"))}
-                onMouseLeave={(e) => ((e.currentTarget.style.background = "#16a34a"))}
+                onMouseLeave={(e) => ((e.currentTarget.style.background = "##000f86"))}
               >
                 ⬇️ Scarica Excel (.xlsx) — Entrate non commerciali
               </button>
@@ -819,7 +819,7 @@ export default function Anno() {
                 {secondaria66 ? "SECONDARIE (test 66% OK)" : "NON SECONDARIE (test 66% KO)"}
               </div>
 
-              {/* ✅ PULSANTE EXPORT XLSX RIEPILOGO (verde) */}
+              {/* ✅ PULSANTE EXPORT XLSX RIEPILOGO (blu) */}
               <div style={{ marginTop: 12 }}>
                 <button
                   type="button"
@@ -831,11 +831,11 @@ export default function Anno() {
                     fontWeight: 800,
                     border: "1px solid rgba(0,0,0,0.10)",
                     cursor: "pointer",
-                    background: "#16a34a",
+                    background: "#000f86",
                     color: "#fff",
                   }}
                   onMouseEnter={(e) => ((e.currentTarget.style.background = "#15803d"))}
-                  onMouseLeave={(e) => ((e.currentTarget.style.background = "#16a34a"))}
+                  onMouseLeave={(e) => ((e.currentTarget.style.background = "#000f86"))}
                 >
                   ⬇️ Scarica Excel (.xlsx) — Riepilogo
                 </button>
@@ -927,3 +927,4 @@ export default function Anno() {
     </div>
   );
 }
+
