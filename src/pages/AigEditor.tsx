@@ -770,7 +770,7 @@ export default function AigEditor() {
                     fontWeight: 800,
                      border: "1px solid rgba(0,0,0,0.10)",
                       cursor: "pointer",
-                      background: "#16a34a", // verde
+                      background: "#000f86", // verde
                   }}
                 >
                   ⬇️ Scarica Excel (.xlsx) con tutti i campi
@@ -783,4 +783,5 @@ export default function AigEditor() {
     </div>
   );
 }
+
 
