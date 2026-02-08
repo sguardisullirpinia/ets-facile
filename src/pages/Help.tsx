@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import helpIndex from "../help/circolare_index.json";
 
 type Chunk = {
@@ -7,86 +8,66 @@ type Chunk = {
   text: string;
 };
 
-// Normalizza stringa per ricerca semplice
 function norm(s: string) {
   return (s || "")
     .toLowerCase()
     .replace(/[’']/g, "'")
-    .replace(/[\u0300-\u036f]/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }
 
-// Evidenzia parole trovate (semplice)
 function highlight(text: string, terms: string[]) {
   if (!terms.length) return text;
-  let out = text;
 
-  // per evitare problemi con regex, escapizza
   const escaped = terms
     .filter(Boolean)
     .map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
-    .sort((a, b) => b.length - a.length); // prima le parole più lunghe
+    .sort((a, b) => b.length - a.length);
 
   if (!escaped.length) return text;
 
   const re = new RegExp(`(${escaped.join("|")})`, "gi");
-  out = out.replace(re, "⟦$1⟧"); // segnaposto
-  return out;
+  return text.replace(re, "⟦$1⟧");
 }
 
-// Calcolo punteggio pertinenza: più occorrenze + bonus se appare presto
 function scoreChunk(chunkText: string, query: string) {
   const t = norm(chunkText);
   const q = norm(query);
   if (!q) return 0;
 
-  // split in parole (tolgo parole troppo piccole)
   const terms = q.split(" ").filter((w) => w.length >= 3);
   if (!terms.length) return 0;
 
   let score = 0;
 
   for (const term of terms) {
-    // conta occorrenze
     const re = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g");
     const matches = t.match(re);
-    const count = matches ? matches.length : 0;
-    score += count * 10;
+    score += (matches ? matches.length : 0) * 10;
 
-    // bonus se compare presto
     const idx = t.indexOf(term);
-    if (idx >= 0) {
-      score += Math.max(0, 40 - Math.floor(idx / 50)); // più è vicino all’inizio, più punti
-    }
+    if (idx >= 0) score += Math.max(0, 40 - Math.floor(idx / 50));
   }
 
-  // bonus se la query intera è presente
   if (t.includes(q)) score += 60;
-
   return score;
 }
 
-// Estrae un “estratto” vicino alla prima occorrenza (se c’è)
 function makeSnippet(fullText: string, query: string, maxLen = 450) {
   const t = fullText || "";
   const q = norm(query);
   if (!q) return t.slice(0, maxLen);
 
   const idx = norm(t).indexOf(q);
-  if (idx < 0) {
-    return t.slice(0, maxLen);
-  }
+  if (idx < 0) return t.slice(0, maxLen);
 
-  // prova a ritagliare attorno all’area trovata
   const start = Math.max(0, idx - 180);
   const end = Math.min(t.length, idx + maxLen - 40);
-  const snippet = t.slice(start, end);
-
-  return (start > 0 ? "… " : "") + snippet + (end < t.length ? " …" : "");
+  return (start > 0 ? "… " : "") + t.slice(start, end) + (end < t.length ? " …" : "");
 }
 
 export default function Help() {
+  const nav = useNavigate();
   const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState<number | null>(null);
 
@@ -99,31 +80,31 @@ export default function Help() {
   ];
 
   const results = useMemo(() => {
-    const q = query.trim();
-    if (!q) return [];
-
-    const arr = (helpIndex as Chunk[])
-      .map((c) => ({
-        ...c,
-        _score: scoreChunk(c.text, q),
-      }))
+    if (!query.trim()) return [];
+    return (helpIndex as Chunk[])
+      .map((c) => ({ ...c, _score: scoreChunk(c.text, query) }))
       .filter((c) => c._score > 0)
       .sort((a, b) => b._score - a._score)
-      .slice(0, 7); // max 7 risultati
-
-    return arr;
+      .slice(0, 7);
   }, [query]);
 
-  // parole da evidenziare
-  const terms = useMemo(() => {
-    const q = norm(query);
-    if (!q) return [];
-    return q.split(" ").filter((w) => w.length >= 3).slice(0, 8);
-  }, [query]);
+  const terms = useMemo(
+    () => norm(query).split(" ").filter((w) => w.length >= 3),
+    [query]
+  );
 
   return (
     <div className="mobileShell">
       <header className="mHeader">
+        {/* ✅ FRECCIA INDIETRO */}
+        <button
+          className="iconBtn"
+          onClick={() => nav(-1)}
+          aria-label="Indietro"
+        >
+          ←
+        </button>
+
         <div className="mHeaderText">
           <div className="mTitle">Help normativo</div>
           <div className="mSubtitle">
@@ -131,23 +112,13 @@ export default function Help() {
           </div>
         </div>
 
-        <div className="mHeaderRight" style={{ display: "flex", gap: 8 }}>
-          <a
-            className="ghost"
-            href="/circolare.pdf"
-            target="_blank"
-            rel="noreferrer"
-            style={{ padding: "8px 10px", borderRadius: 10, whiteSpace: "nowrap", textDecoration: "none" }}
-          >
-            Apri PDF
-          </a>
-        </div>
+        <div className="mHeaderRight" />
       </header>
 
       <main className="mContent">
-        <div className="cardBlock" style={{ marginBottom: 12 }}>
+        <div className="cardBlock">
           <div className="field">
-            <label>Scrivi un dubbio (ricerca nel testo della circolare)</label>
+            <label>Scrivi un dubbio</label>
             <input
               placeholder="Es. le sponsorizzazioni dove vanno"
               value={query}
@@ -156,8 +127,8 @@ export default function Help() {
                 setOpenId(null);
               }}
             />
-            <div className="hint" style={{ marginTop: 8 }}>
-              Nota: questo Help non usa AI. Cerca nel testo ufficiale e mostra i passaggi più pertinenti.
+            <div className="hint" style={{ marginTop: 6 }}>
+              Ricerca nel testo ufficiale della circolare (nessuna AI).
             </div>
           </div>
 
@@ -170,7 +141,6 @@ export default function Help() {
                   setQuery(s);
                   setOpenId(null);
                 }}
-                style={{ padding: "8px 10px", borderRadius: 999 }}
               >
                 {s}
               </button>
@@ -178,64 +148,37 @@ export default function Help() {
           </div>
         </div>
 
-        {query.trim() && results.length === 0 && (
-          <div className="cardBlock">
-            <div className="muted">Nessun risultato trovato.</div>
-            <div className="hint" style={{ marginTop: 6 }}>
-              Prova a riscrivere con parole diverse (es. “sponsor”, “attività diverse”, “commercialità”, “corrispettivi”).
-            </div>
-          </div>
-        )}
-
         {results.map((r) => {
-          const isOpen = openId === r.id;
-          const snippet = makeSnippet(r.text, query);
-
-          // evidenzia sullo snippet
-          const marked = highlight(snippet, terms);
+          const open = openId === r.id;
+          const snippet = highlight(makeSnippet(r.text, query), terms);
 
           return (
-            <div key={r.id} className="cardBlock" style={{ marginBottom: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                <div className="muted">Pagina {r.page}</div>
-                <div className="muted">Pertinenza: {r._score}</div>
-              </div>
+            <div key={r.id} className="cardBlock" style={{ marginTop: 12 }}>
+              <div className="muted">Pagina {r.page}</div>
 
-              {/* evidenziazione: sostituiamo ⟦ ⟧ con <mark> */}
-              <div style={{ whiteSpace: "pre-wrap", marginTop: 8, lineHeight: 1.5 }}>
-                {marked.split("⟦").map((part, i) => {
-                  if (i === 0) return <span key={i}>{part}</span>;
-                  const [hit, rest] = part.split("⟧");
+              <div style={{ whiteSpace: "pre-wrap", marginTop: 8 }}>
+                {snippet.split("⟦").map((p, i) => {
+                  if (i === 0) return <span key={i}>{p}</span>;
+                  const [hit, rest] = p.split("⟧");
                   return (
                     <span key={i}>
-                      <mark style={{ padding: "0 2px", borderRadius: 4 }}>{hit}</mark>
+                      <mark>{hit}</mark>
                       {rest}
                     </span>
                   );
                 })}
               </div>
 
-              <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-                <button
-                  className="ghost"
-                  onClick={() => setOpenId(isOpen ? null : r.id)}
-                >
-                  {isOpen ? "Mostra meno" : "Mostra tutto"}
-                </button>
+              <button
+                className="ghost"
+                style={{ marginTop: 8 }}
+                onClick={() => setOpenId(open ? null : r.id)}
+              >
+                {open ? "Mostra meno" : "Mostra tutto"}
+              </button>
 
-                <a
-                  className="ghost"
-                  href={`/circolare.pdf#page=${r.page}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{ textDecoration: "none" }}
-                >
-                  Vai alla pagina
-                </a>
-              </div>
-
-              {isOpen && (
-                <div style={{ whiteSpace: "pre-wrap", marginTop: 10, opacity: 0.95 }}>
+              {open && (
+                <div style={{ whiteSpace: "pre-wrap", marginTop: 10 }}>
                   {r.text}
                 </div>
               )}
