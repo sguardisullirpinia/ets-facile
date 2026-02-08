@@ -1,14 +1,15 @@
 /* scripts/build_help_index.cjs */
 const fs = require("fs");
 const path = require("path");
-const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.js");
 
 async function main() {
   const pdfPath = path.join(process.cwd(), "public", "circolare.pdf");
-
   if (!fs.existsSync(pdfPath)) {
     throw new Error("PDF non trovato: " + pdfPath);
   }
+
+  // ✅ pdfjs-dist (v4) è ESM -> lo importiamo con import()
+  const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
 
   const data = new Uint8Array(fs.readFileSync(pdfPath));
   const loadingTask = pdfjsLib.getDocument({ data });
@@ -42,7 +43,7 @@ async function main() {
   const outPath = path.join(outDir, "circolare_index.json");
   fs.writeFileSync(outPath, JSON.stringify(chunks, null, 2), "utf-8");
 
-  console.log("✅ Indice help creato");
+  console.log("✅ Indice help creato:", outPath);
   console.log("📄 Pagine indicizzate:", chunks.length);
 }
 
