@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "help:index": "node scripts/build_help_index.cjs",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build": "npm run help:index && tsc -b && vite build"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.94.0",
