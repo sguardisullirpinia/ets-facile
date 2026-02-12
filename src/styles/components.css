@@ -1,0 +1,684 @@
+/* =========================
+   Top/header
+========================= */
+.appHeader {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  height: var(--header-h);
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.85);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 6px;
+}
+
+.appHeader__inner {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  font-weight: 800;
+  color: var(--text);
+}
+
+.brand img {
+  height: 32px;
+  width: auto;
+}
+
+.headerActions {
+  display: flex;
+  gap: var(--s2);
+  align-items: center;
+}
+
+/* =========================
+   Buttons (sobri)
+========================= */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: none;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1.2;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn--primary {
+  background: var(--primary);
+  color: var(--primary-contrast);
+  border-color: transparent;
+}
+
+.btn--ghost {
+  background: transparent;
+  border-color: transparent;
+}
+
+.btn--block {
+  width: 100%;
+}
+
+/* =========================
+   Bottom bar (compatta)
+========================= */
+.bottomBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  z-index: 50;
+}
+
+.bottomBar__inner {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  height: 64px;
+}
+
+.bottomTab {
+  display: flex;
+  flex-direction: column; /* 🔥 icona sopra, testo sotto */
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  background: none;
+  border: none;
+}
+
+.bottomTab svg {
+  display: block;
+}
+
+.bottomTab__label {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.bottomTab--active {
+  color: #2563eb;
+}
+
+/* =========================
+   Badges (discreti, pro)
+========================= */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  border: 1px solid rgba(17, 24, 39, 0.12);
+  background: rgba(17, 24, 39, 0.04);
+  color: var(--muted);
+  font-weight: 800;
+}
+
+/* =========================
+   Layout shell
+========================= */
+.appShell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.appMain {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--bg);
+  padding-left: 0px;
+  padding-right: 0px;
+  padding-top: var(--s4);
+  padding-bottom: calc(54px + var(--s5));
+}
+
+/* breadcrumb */
+.appCrumbBar {
+  border-top: 1px solid rgba(17, 24, 39, 0.08);
+  background: rgba(255, 255, 255, 0.92);
+  padding-top: 6px;
+}
+
+.appCrumbInner {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--muted);
+  height: 44px; /* prima 40 */
+  padding: 0 var(--s4); /* crea respiro ai lati */
+}
+
+.crumbLink {
+  cursor: pointer;
+  color: var(--text);
+  font-weight: 800;
+}
+.crumbCurrent {
+  color: var(--text);
+  font-weight: 900;
+}
+
+/* Hide on mobile */
+.hide-mobile {
+  display: inline;
+}
+@media (max-width: 520px) {
+  .hide-mobile {
+    display: none;
+  }
+}
+
+/* =========================
+   Page header
+========================= */
+.pageHeader {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  margin-bottom: var(--s3);
+}
+
+.pageTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.2;
+  letter-spacing: -0.2px;
+  padding-top: var(--s6); /* ⬅️ micro-distacco dall’alto */
+}
+
+.pageHelp {
+  margin-top: var(--s2);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.55;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* =========================
+   Sheet (bottom action)
+========================= */
+.sheetOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.32);
+  z-index: 3000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.sheet {
+  width: 100%;
+  max-width: 520px;
+  background: var(--surface);
+  border-top-left-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: 0 -10px 30px rgba(17, 24, 39, 0.16);
+  padding: var(--s4);
+  padding-bottom: var(--s5);
+}
+
+.sheetHandle {
+  width: 44px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(17, 24, 39, 0.14);
+  margin: 6px auto 12px;
+}
+
+.sheetHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s3);
+}
+
+.sheetTitle {
+  font-weight: 900;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.sheetDivider {
+  height: 1px;
+  background: rgba(17, 24, 39, 0.08);
+  margin: 12px 0;
+}
+
+.sheetGrid {
+  margin-top: var(--s3);
+  display: grid;
+  gap: var(--s3);
+}
+
+/* =========================
+   Errors
+========================= */
+.errorText {
+  color: var(--danger);
+  font-weight: 800;
+  margin-top: var(--s2);
+}
+
+/* =========================
+   Icon buttons
+========================= */
+.iconBtn {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  border: 1px solid rgba(17, 24, 39, 0.12);
+  background: transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: var(--muted);
+  box-shadow: none;
+}
+
+.iconBtn:active {
+  transform: translateY(1px);
+}
+
+/* =========================
+   PRO MOBILE: Sections + Ledger List
+========================= */
+.section {
+  margin-top: var(--s5);
+}
+
+.sectionTitle {
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+  margin-bottom: var(--s2);
+}
+
+/* list container */
+.listBox {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+/* row */
+.listRow {
+  padding: 12px 12px;
+  border-top: 1px solid rgba(17, 24, 39, 0.08);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--s3);
+  align-items: start;
+}
+.listRow:first-child {
+  border-top: none;
+}
+
+.rowMain {
+  min-width: 0;
+}
+
+.rowTitle {
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.25;
+  white-space: normal; /* permette a capo */
+  overflow: visible; /* niente taglio */
+  text-overflow: clip; /* niente "..." */
+  word-break: break-word; /* spezza parole lunghe */
+  overflow-wrap: anywhere; /* anche senza spazi */
+}
+
+.rowSub {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+  font-weight: 650;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.rowAmount {
+  font-size: 14px;
+  font-weight: 900;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.rowMeta {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* =========================
+   FAB (+)
+========================= */
+.fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(54px + 16px);
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  border: none;
+  background: var(--primary);
+  color: var(--primary-contrast);
+  box-shadow: 0 12px 30px rgba(17, 24, 39, 0.18);
+  display: grid;
+  place-items: center;
+  z-index: 2000;
+  cursor: pointer;
+}
+
+.fab:active {
+  transform: translateY(1px);
+}
+/* Riga 1: data sx + importo dx */
+.rowTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.rowDate {
+  font-size: 12px;
+  font-weight: 750;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.rowAmount {
+  font-size: 14px;
+  font-weight: 900;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Badge: riga sotto, più aria */
+.rowMeta {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Descrizioni in colonna */
+.rowBlock {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.rowCode {
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.rowOper {
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+/* Azioni sotto a destra */
+.rowActions {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+/* ===============================
+   Entrate/Uscite refinements
+=============================== */
+
+/* 1) evita che il breadcrumb “si intraveda sotto” */
+.appCrumbBar {
+  padding-top: 6px;
+}
+.appCrumbInner {
+  height: 44px;
+  padding: 0 12px;
+}
+
+/* 2) rettangoli bianchi più larghi (quasi bordo telefono) */
+.appMain {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+/* 3) row più ampia */
+.listRow {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+/* 4) layout riga: data sx + importo dx */
+.rowTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.rowDate {
+  font-size: 12px;
+  font-weight: 750;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.rowAmount {
+  font-size: 14px;
+  font-weight: 900;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* 5) blocchi descrizioni + azioni */
+.rowBlock {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.rowCode {
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.rowOper {
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.rowActions {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* 6) FAB un filo più su (non copre contenuti) */
+.fab {
+  bottom: calc(54px + 22px);
+}
+/* ===== Mobile typography tuning ===== */
+@media (max-width: 520px) {
+  .pageTitle {
+    font-size: 16px;
+  }
+
+  .pageHelp {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .sectionTitle {
+    font-size: 12px;
+  }
+
+  .rowTitle {
+    font-size: 13px;
+    line-height: 1.25;
+  }
+
+  .rowSub {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .rowAmount {
+    font-size: 13px;
+  }
+
+  .badge {
+    font-size: 10px;
+    padding: 3px 7px;
+  }
+}
+/* Form a tutta larghezza dentro le card */
+.formCard,
+.card,
+.cardContent,
+.formBody {
+  width: 100%;
+  max-width: 100%;
+}
+
+.field,
+.fieldRow {
+  width: 100%;
+}
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  display: block;
+  box-sizing: border-box;
+}
+
+/* Se avevi una griglia a 2 colonne, forzala a 1 colonna su mobile (e anche desktop se vuoi) */
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr !important;
+  gap: 12px;
+}
+/* =========================
+   FORM FULL-WIDTH FIX
+   (Movimento editor + card forms)
+   ========================= */
+
+/* contenitori a tutta larghezza */
+.formCard,
+.card,
+.cardContent,
+.formBody,
+.section,
+.listBox {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* righe/campi a tutta larghezza */
+.field,
+.fieldRow {
+  width: 100%;
+}
+
+/* input/select/textarea sempre full width dentro la card */
+.field input,
+.field select,
+.field textarea,
+input,
+select,
+textarea {
+  width: 100%;
+  display: block;
+  box-sizing: border-box;
+}
+
+/* se hai una griglia a 2 colonne nel form, rendila 1 colonna */
+.formGrid,
+.twoCols,
+.grid2,
+.fieldsGrid {
+  display: grid;
+  grid-template-columns: 1fr !important;
+  gap: 12px;
+}
+
+/* opzionale: se c’è una colonna destra “stretta” che blocca la width */
+.rightCol,
+.colRight {
+  width: 100%;
+}
+/* ✅ LISTE MOVIMENTI: niente "card per ogni riga" */
+.movList {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* riga piatta */
+.movList .listRow {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* separatore tra righe */
+.movList .listRow + .listRow {
+  border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+}

@@ -1,0 +1,129 @@
+/* Layout helpers */
+.row {
+  display: flex;
+  gap: var(--s3);
+  min-width: 0;
+}
+.col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.center {
+  align-items: center;
+}
+.between {
+  justify-content: space-between;
+}
+
+/* “Stack” = aria verticale consistente */
+.stack {
+  display: grid;
+  gap: var(--s3);
+}
+.stack-lg {
+  display: grid;
+  gap: var(--s4);
+}
+
+/* Gaps */
+.gap-1 {
+  gap: var(--s1);
+}
+.gap-2 {
+  gap: var(--s2);
+}
+.gap-3 {
+  gap: var(--s3);
+}
+.gap-4 {
+  gap: var(--s4);
+}
+.gap-5 {
+  gap: var(--s5);
+}
+
+/* Width */
+.w-full {
+  width: 100%;
+}
+
+/* Text */
+.muted {
+  color: var(--muted);
+}
+.text-sm {
+  font-size: 13px;
+  line-height: 1.45;
+}
+.text-xs {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+/* Spacing */
+.mt-1 {
+  margin-top: var(--s1);
+}
+.mt-2 {
+  margin-top: var(--s2);
+}
+.mt-3 {
+  margin-top: var(--s3);
+}
+.mt-4 {
+  margin-top: var(--s4);
+}
+.mb-1 {
+  margin-bottom: var(--s1);
+}
+.mb-2 {
+  margin-bottom: var(--s2);
+}
+.mb-3 {
+  margin-bottom: var(--s3);
+}
+.mb-4 {
+  margin-bottom: var(--s4);
+}
+
+/* Padding utilities (comode per mobile “arioso”) */
+.p-3 {
+  padding: var(--s3);
+}
+.p-4 {
+  padding: var(--s4);
+}
+
+/* Visibility */
+.hidden {
+  display: none !important;
+}
+
+/* Mobile quality-of-life */
+@media (max-width: 520px) {
+  .row {
+    gap: var(--s2);
+  }
+}
+.kv {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: var(--s3);
+  align-items: start;
+}
+.k {
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.v {
+  color: var(--text);
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.5;
+  word-break: break-word;
+}

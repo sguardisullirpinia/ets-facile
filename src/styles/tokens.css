@@ -1,0 +1,52 @@
+:root {
+  /* Typography */
+  --font-sans:
+    system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
+    "Apple Color Emoji", "Segoe UI Emoji";
+
+  /* Text */
+  --text: #111827;
+  --muted: #6b7280;
+
+  /* Surfaces (documento) */
+  --bg: #f6f5f1;
+  --surface: #ffffff;
+  --surface-2: #f9fafb; /* più pulito */
+
+  /* Borders & shadows */
+  --border: rgba(17, 24, 39, 0.1);
+  --hairline: rgba(17, 24, 39, 0.08);
+  --shadow-sm: 0 1px 0 rgba(17, 24, 39, 0.04);
+  --shadow-md: 0 12px 30px rgba(17, 24, 39, 0.08);
+
+  /* Brand */
+  --primary: #1f4fd6;
+  --primary-contrast: #ffffff;
+  --primary-soft: rgba(31, 79, 214, 0.1);
+
+  /* Feedback */
+  --success: #16a34a;
+  --danger: #dc2626;
+  --warning: #f59e0b;
+
+  /* Radius */
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+
+  /* Spacing */
+  --s1: 6px;
+  --s2: 10px;
+  --s3: 14px;
+  --s4: 18px;
+  --s5: 26px;
+  --s6: 36px;
+
+  /* Layout sizes */
+  --header-h: 56px;
+  --bottom-h: 54px; /* coerente con components.css */
+  --container: 980px;
+
+  /* Mobile padding standard */
+  --page-pad: 16px;
+}
