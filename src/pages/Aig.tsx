@@ -994,7 +994,7 @@ export default function Aig() {
       {activeAig && (
         <div
           className="sheetOverlay"
-          style={fullModalOverlay}
+          style={fullModalOverlay}style={{ ...fullModalOverlay, width: "100vw", height: "100vh" }}
           onClick={() => setActiveAig(null)}
           role="dialog"
           aria-modal="true"
