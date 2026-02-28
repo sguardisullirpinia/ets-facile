@@ -20,13 +20,34 @@ type Movimento = {
   descrizione_operazione?: string | null;
   descrizione_libera?: string | null;
 
-  importo: number;
-  iva: number;
+  importo: any; // number o string
+  iva: any; // number o string
 };
 
+/** ✅ robusta: gestisce "1.234,56" e "1234.56" */
 function num(v: any) {
-  const n = Number(v);
+  if (v === null || v === undefined) return 0;
+  if (typeof v === "number") return Number.isFinite(v) ? v : 0;
+
+  let s = String(v).trim();
+  if (!s) return 0;
+
+  // rimuove eventuali simboli/lettere (es. "€ 10,00")
+  s = s.replace(/[^\d,.\-]/g, "");
+
+  if (s.includes(",") && s.includes(".")) {
+    s = s.replace(/\./g, "").replace(",", ".");
+  } else if (s.includes(",")) {
+    s = s.replace(",", ".");
+  }
+
+  const n = Number(s);
   return Number.isFinite(n) ? n : 0;
+}
+
+/** ✅ totale LORDO movimento = importo + iva */
+function totaleMov(m: Movimento) {
+  return num(m.importo) + num(m.iva);
 }
 
 function fmtDate(d: string | null) {
@@ -152,7 +173,7 @@ export default function RaccolteFondi() {
   };
 
   // =========================
-  // MODALE FULLSCREEN STYLES (come AIG)
+  // MODALE FULLSCREEN STYLES
   // =========================
   const fullModalOverlay: React.CSSProperties = {
     position: "fixed",
@@ -266,14 +287,15 @@ export default function RaccolteFondi() {
             paddingTop: 22,
           }}
         >
-          <EuroFmt v={num(m.importo)} />
+          {/* ✅ importo mostrato = importo + iva */}
+          <EuroFmt v={totaleMov(m)} />
         </div>
       </label>
     );
   };
 
   // =========================
-  // CARD MOVIMENTO ASSEGNATO (con cestino "stacca")
+  // CARD MOVIMENTO ASSEGNATO
   // =========================
   const AssignedMoveCard = ({
     m,
@@ -331,7 +353,8 @@ export default function RaccolteFondi() {
             className="rowAmount"
             style={{ justifySelf: "end", textAlign: "right", fontWeight: 950 }}
           >
-            <EuroFmt v={num(m.importo)} />
+            {/* ✅ importo mostrato = importo + iva */}
+            <EuroFmt v={totaleMov(m)} />
           </div>
 
           <button
@@ -405,7 +428,7 @@ export default function RaccolteFondi() {
   }, [annualitaId, items.length]);
 
   // =========================
-  // MODAL CREA/MODIFICA (bottom sheet)
+  // MODAL CREA/MODIFICA
   // =========================
   const openCreate = () => {
     setEditMode(false);
@@ -462,7 +485,6 @@ export default function RaccolteFondi() {
         return;
       }
 
-      // se sto modificando quella attiva, aggiorno anche la view del dettaglio
       setActive((p) =>
         p && p.id === editingId
           ? { ...p, nome: n, descrizione: descr.trim() || null }
@@ -476,7 +498,7 @@ export default function RaccolteFondi() {
   };
 
   // =========================
-  // DELETE (libera movimenti + cancella)
+  // DELETE
   // =========================
   const deleteItem = async (id: string) => {
     const ok = confirm(
@@ -639,14 +661,14 @@ export default function RaccolteFondi() {
   };
 
   // =========================
-  // TOTALI
+  // TOTALI (✅ LORDO = importo + iva)
   // =========================
   const totEntrate = useMemo(
-    () => assEntrate.reduce((s, m) => s + num(m.importo), 0),
+    () => assEntrate.reduce((s, m) => s + totaleMov(m), 0),
     [assEntrate],
   );
   const totUscite = useMemo(
-    () => assUscite.reduce((s, m) => s + num(m.importo), 0),
+    () => assUscite.reduce((s, m) => s + totaleMov(m), 0),
     [assUscite],
   );
 
@@ -870,7 +892,6 @@ export default function RaccolteFondi() {
 
               <div className="mt-3" />
 
-              {/* CARD A FILO SCHERMO */}
               <div style={fullBleed}>
                 <Card title="Movimenti disponibili (non assegnati)">
                   <div className="splitGrid">
