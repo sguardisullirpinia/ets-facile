@@ -24,6 +24,11 @@ function num(v: any) {
   return Number.isFinite(n) ? n : 0;
 }
 
+// ✅ Totale lordo movimento = importo + iva
+function totaleMov(m: Movimento) {
+  return num(m.importo) + num(m.iva);
+}
+
 function macroLabel(m: string | null) {
   switch (m) {
     case "COSTI_GENERALI":
@@ -268,9 +273,10 @@ export default function EntrateUscite() {
         return ak.localeCompare(bk) * dir;
       }
 
+      // ✅ Ordina per TOTALE (importo + iva)
       if (sortBy === "importo") {
-        const av = num(a.importo);
-        const bv = num(b.importo);
+        const av = totaleMov(a);
+        const bv = totaleMov(b);
         if (av === bv) return ymdKey(b.data).localeCompare(ymdKey(a.data));
         return (av - bv) * dir;
       }
@@ -293,12 +299,12 @@ export default function EntrateUscite() {
     return res;
   }, [movimenti, macroFilter, search, sortBy, sortDir]);
 
-  // ✅ TOTALI GENERALI
+  // ✅ TOTALI GENERALI (importo + iva)
   const totEntrate = useMemo(
     () =>
       movimenti
         .filter((m) => m.tipologia === "ENTRATA")
-        .reduce((s, m) => s + num(m.importo), 0),
+        .reduce((s, m) => s + totaleMov(m), 0),
     [movimenti],
   );
 
@@ -306,16 +312,16 @@ export default function EntrateUscite() {
     () =>
       movimenti
         .filter((m) => m.tipologia === "USCITA")
-        .reduce((s, m) => s + num(m.importo), 0),
+        .reduce((s, m) => s + totaleMov(m), 0),
     [movimenti],
   );
 
-  // ✅ TOTALI PER CONTO
+  // ✅ TOTALI PER CONTO (importo + iva)
   const totEntrateBanca = useMemo(
     () =>
       movimenti
         .filter((m) => m.tipologia === "ENTRATA" && m.conto === "BANCA")
-        .reduce((s, m) => s + num(m.importo), 0),
+        .reduce((s, m) => s + totaleMov(m), 0),
     [movimenti],
   );
 
@@ -323,7 +329,7 @@ export default function EntrateUscite() {
     () =>
       movimenti
         .filter((m) => m.tipologia === "ENTRATA" && m.conto === "CASSA")
-        .reduce((s, m) => s + num(m.importo), 0),
+        .reduce((s, m) => s + totaleMov(m), 0),
     [movimenti],
   );
 
@@ -331,7 +337,7 @@ export default function EntrateUscite() {
     () =>
       movimenti
         .filter((m) => m.tipologia === "USCITA" && m.conto === "BANCA")
-        .reduce((s, m) => s + num(m.importo), 0),
+        .reduce((s, m) => s + totaleMov(m), 0),
     [movimenti],
   );
 
@@ -339,11 +345,11 @@ export default function EntrateUscite() {
     () =>
       movimenti
         .filter((m) => m.tipologia === "USCITA" && m.conto === "CASSA")
-        .reduce((s, m) => s + num(m.importo), 0),
+        .reduce((s, m) => s + totaleMov(m), 0),
     [movimenti],
   );
 
-  // ✅ AVANZI T-1
+  // ✅ AVANZI T-1 (di norma IVA=0, ma sommare non farebbe danni)
   const avanzoBancaT1 = useMemo(
     () =>
       avanzi
@@ -417,6 +423,7 @@ export default function EntrateUscite() {
       "Descrizione operazione": m.descrizione_operazione || "",
       Importo: num(m.importo),
       IVA: num(m.iva),
+      Totale: totaleMov(m), // ✅ nuovo: importo + iva
     }));
 
     const rowsAvanzi = avanzi.map((m) => ({
@@ -428,6 +435,7 @@ export default function EntrateUscite() {
       "Cassa/Banca": contoLabel(m.conto),
       Importo: num(m.importo),
       IVA: num(m.iva),
+      Totale: totaleMov(m),
     }));
 
     const wb = XLSX.utils.book_new();
@@ -601,7 +609,8 @@ export default function EntrateUscite() {
 
                   <div style={{ display: "grid", justifyItems: "end", gap: 8 }}>
                     <div className="rowAmount" style={amountBoxStyle}>
-                      <Euro v={m.importo} />
+                      {/* Avanzi: importo (iva normalmente 0) */}
+                      <Euro v={num(m.importo)} />
                     </div>
 
                     <IconButton
@@ -745,10 +754,7 @@ export default function EntrateUscite() {
                         ) : null}
                       </div>
 
-                      <div
-                        className="rowTitle"
-                        style={{ whiteSpace: "normal" }}
-                      >
+                      <div className="rowTitle" style={{ whiteSpace: "normal" }}>
                         {codificata}
                       </div>
 
@@ -762,11 +768,10 @@ export default function EntrateUscite() {
                     </div>
 
                     {/* IMPORTO + AZIONI */}
-                    <div
-                      style={{ display: "grid", justifyItems: "end", gap: 8 }}
-                    >
+                    <div style={{ display: "grid", justifyItems: "end", gap: 8 }}>
                       <div className="rowAmount" style={amountBoxStyle}>
-                        <Euro v={m.importo} />
+                        {/* ✅ Importo mostrato = importo + iva */}
+                        <Euro v={totaleMov(m)} />
                       </div>
 
                       <IconButton
@@ -947,9 +952,7 @@ export default function EntrateUscite() {
               type="button"
               onClick={downloadExcel}
               disabled={!list.length}
-              title={
-                !list.length ? "Nessun dato da esportare" : "Scarica Excel"
-              }
+              title={!list.length ? "Nessun dato da esportare" : "Scarica Excel"}
             >
               Scarica Excel
             </button>
