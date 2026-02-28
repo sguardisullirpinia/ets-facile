@@ -74,6 +74,12 @@ function isValidMoney(v: string) {
   return Number.isFinite(n) && n > 0;
 }
 
+// ✅ IVA può essere 0 o positiva (non obbligatoria, ma se presente deve essere valida)
+function isValidIva(v: string) {
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0;
+}
+
 export default function MovimentoEditor() {
   const annualitaId = localStorage.getItem("annualita_id");
   const editId = localStorage.getItem("movimento_edit_id");
@@ -94,7 +100,10 @@ export default function MovimentoEditor() {
   const [descrizioneLabel, setDescrizioneLabel] = useState("");
   const [importo, setImporto] = useState("");
 
-  // ✅ obbligatoria per ENTRATA/USCITA
+  // ✅ nuovo: IVA (6️⃣)
+  const [iva, setIva] = useState("0");
+
+  // ✅ obbligatoria per ENTRATA/USCITA (7️⃣)
   const [descrOperazione, setDescrOperazione] = useState("");
 
   /* =========================
@@ -142,6 +151,7 @@ export default function MovimentoEditor() {
       setDescrizioneCode(row.descrizione_code);
       setDescrizioneLabel(row.descrizione_label || "");
       setImporto(String(row.importo ?? ""));
+      setIva(String(row.iva ?? 0));
       setDescrOperazione((row.descrizione_operazione ?? "").toString());
 
       setLoading(false);
@@ -161,6 +171,7 @@ export default function MovimentoEditor() {
     setDescrizioneCode(null);
     setDescrizioneLabel("");
     setImporto("");
+    setIva("0");
     setDescrOperazione("");
   }, [tipologia, editId]);
 
@@ -208,6 +219,12 @@ export default function MovimentoEditor() {
     // ✅ Obbligatoria per ENTRATA/USCITA
     if (isEntrataOrUscita && !descrOperazione.trim()) {
       setError("Inserisci la descrizione dell’operazione (obbligatoria)");
+      return;
+    }
+
+    // ✅ IVA valida (>= 0) per ENTRATA/USCITA
+    if (isEntrataOrUscita && !isValidIva(iva)) {
+      setError("IVA non valida");
       return;
     }
 
@@ -275,9 +292,10 @@ export default function MovimentoEditor() {
 
       importo: Number(importo),
 
-      descrizione_operazione: descrOperazioneFinale,
+      // ✅ nuovo: IVA
+      iva: isEntrataOrUscita ? Number(iva || 0) : 0,
 
-      iva: 0,
+      descrizione_operazione: descrOperazioneFinale,
 
       // ✅ IMPORTANTISSIMO: niente allocazione per COSTI_GENERALI (master)
       // (qui non valorizziamo allocated_to_type/id, quindi rimangono null)
@@ -459,16 +477,37 @@ export default function MovimentoEditor() {
               onChange={(e) => setImporto(e.target.value)}
               className="input"
               placeholder="0,00"
+              step="0.01"
+              min={0}
             />
           </Card>
 
+          {/* ✅ 6️⃣ IVA */}
           {isEntrataOrUscita && (
-            <Card title="6️⃣ Descrizione operazione (obbligatoria)">
+            <Card title="6️⃣ IVA">
+              <input
+                type="number"
+                value={iva}
+                onChange={(e) => setIva(e.target.value)}
+                className="input"
+                placeholder="0,00"
+                step="0.01"
+                min={0}
+              />
+              <div className="rowSub" style={{ marginTop: 8 }}>
+                Inserisci <b>0</b> se l’operazione non prevede IVA.
+              </div>
+            </Card>
+          )}
+
+          {/* ✅ 7️⃣ Descrizione operazione (obbligatoria) */}
+          {isEntrataOrUscita && (
+            <Card title="7️⃣ Descrizione operazione (obbligatoria)">
               <input
                 value={descrOperazione}
                 onChange={(e) => setDescrOperazione(e.target.value)}
                 className="input"
-                placeholder="Es. Bollette • Assicurazione • Canone software • 'Costi generali'…"
+                placeholder="Es. Fattura n. X • Cancelleria • Bolletta • ecc."
               />
             </Card>
           )}
