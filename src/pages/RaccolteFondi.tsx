@@ -854,7 +854,7 @@ export default function RaccolteFondi() {
         >
           <div
             className="sheet"
-            style={fullModalSheet}
+            style={{ ...fullModalSheet, maxWidth: "none", margin: 0 }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header sticky */}
