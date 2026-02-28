@@ -341,7 +341,7 @@ export default function Aig() {
 
           <div className="rowMeta" style={{ marginTop: 0, marginBottom: 8 }}>
             <Badge tone={tone as any}>{isEntrata ? "Entrata" : "Uscita"}</Badge>
-            <Badge tone="neutral">{macroLabelTxt}</Badge>
+            <Badge tone="blue">{macroLabelTxt}</Badge>
           </div>
 
           <div className="rowTitle" style={noEllipsis}>
@@ -434,7 +434,7 @@ export default function Aig() {
 
           <div className="rowMeta" style={{ marginTop: 0, marginBottom: 8 }}>
             <Badge tone={tone as any}>{isEntrata ? "Entrata" : "Uscita"}</Badge>
-            <Badge tone="neutral">{macroLabelTxt}</Badge>
+            <Badge tone="blue">{macroLabelTxt}</Badge>
           </div>
 
           <div className="rowTitle" style={noEllipsis}>
@@ -929,7 +929,7 @@ export default function Aig() {
                   ? "red"
                   : esitoTxt === "NON COMMERCIALE"
                     ? "green"
-                    : "neutral";
+                    : "blue";
 
               return (
                 <div key={a.id}>
