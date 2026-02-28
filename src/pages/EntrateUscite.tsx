@@ -748,7 +748,19 @@ export default function EntrateUscite() {
                         <Badge tone={tone}>
                           {isEntrata ? "Entrata" : "Uscita"}
                         </Badge>
-                        <Badge tone="neutral">{macroLabel(me)}</Badge>
+                        <Badge
+                          tone={
+                            me === "AIG"
+                              ? "blue"
+                              : me === "RACCOLTE_FONDI"
+                                ? "yellow"
+                                : me === "ATTIVITA_DIVERSE"
+                                  ? "amber"
+                                  : "neutral"
+                          }
+                        >
+                          {macroLabel(me)}
+                        </Badge>
                         {m.conto ? (
                           <Badge tone="neutral">{contoLabel(m.conto)}</Badge>
                         ) : null}
