@@ -754,7 +754,10 @@ export default function EntrateUscite() {
                         ) : null}
                       </div>
 
-                      <div className="rowTitle" style={{ whiteSpace: "normal" }}>
+                      <div
+                        className="rowTitle"
+                        style={{ whiteSpace: "normal" }}
+                      >
                         {codificata}
                       </div>
 
@@ -768,7 +771,9 @@ export default function EntrateUscite() {
                     </div>
 
                     {/* IMPORTO + AZIONI */}
-                    <div style={{ display: "grid", justifyItems: "end", gap: 8 }}>
+                    <div
+                      style={{ display: "grid", justifyItems: "end", gap: 8 }}
+                    >
                       <div className="rowAmount" style={amountBoxStyle}>
                         {/* ✅ Importo mostrato = importo + iva */}
                         <Euro v={totaleMov(m)} />
@@ -952,7 +957,9 @@ export default function EntrateUscite() {
               type="button"
               onClick={downloadExcel}
               disabled={!list.length}
-              title={!list.length ? "Nessun dato da esportare" : "Scarica Excel"}
+              title={
+                !list.length ? "Nessun dato da esportare" : "Scarica Excel"
+              }
             >
               Scarica Excel
             </button>
