@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import BottomBar from "./BottomBar";
-import { LogOut, ChevronRight, User } from "lucide-react";
+import { LogOut, ChevronRight, User, Menu } from "lucide-react";
 
 function pageLabel(pathname: string) {
   if (pathname.startsWith("/entrate-uscite")) return "Entrate/Uscite";
@@ -24,6 +24,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const annoLS = localStorage.getItem("annualita_anno");
 
   const [anno, setAnno] = useState<string | null>(annoLS);
+  const [openMenu, setOpenMenu] = useState(false);
 
   useEffect(() => {
     // 🔒 controllo login
@@ -56,6 +57,16 @@ export default function Layout({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Chiudi menu con ESC
+  useEffect(() => {
+    if (!openMenu) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpenMenu(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [openMenu]);
+
   const logout = async () => {
     await supabase.auth.signOut();
     localStorage.clear();
@@ -66,49 +77,66 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="appShell">
-      {/* HEADER */}
+      {/* ================= HEADER ================= */}
       <header className="appHeader">
         <div className="container appHeader__inner">
-          {/* BRAND (in futuro: sostituire con logo immagine) */}
-          <div
-            className="brand"
-            onClick={() => nav("/annualita")}
-            title="Torna alle annualità"
-            style={{ cursor: "pointer" }}
-          >
-            ETS
-            <span aria-hidden="true" style={{ color: "var(--primary)" }}>
-              ·
-            </span>
-            FACILE
+          {/* LEFT: HAMBURGER + BRAND */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <button
+              className="btn btn--ghost"
+              type="button"
+              title="Menu"
+              aria-label="Apri menu"
+              onClick={() => setOpenMenu(true)}
+            >
+              <Menu size={20} />
+            </button>
+
+            <div
+              className="brand"
+              onClick={() => nav("/annualita")}
+              title="Torna alle annualità"
+              style={{ cursor: "pointer" }}
+            >
+              ETS
+              <span aria-hidden="true" style={{ color: "var(--primary)" }}>
+                ·
+              </span>
+              FACILE
+            </div>
           </div>
 
-          {/* ACTIONS */}
+          {/* RIGHT: AZIONI */}
           <div className="headerActions">
-            {/* ✅ PROFILO (al posto di Help) */}
             <button
               className="btn btn--ghost"
               onClick={() => nav("/profilo")}
               title="Profilo"
+              type="button"
             >
               <User size={16} />
               <span className="hide-mobile">Profilo</span>
             </button>
 
-            <button className="btn" onClick={logout} title="Esci">
+            <button className="btn" onClick={logout} title="Esci" type="button">
               <LogOut size={16} />
               <span className="hide-mobile">Esci</span>
             </button>
           </div>
         </div>
 
-        {/* BREADCRUMB */}
+        {/* ================= BREADCRUMB ================= */}
         <div className="appCrumbBar">
           <div className="container appCrumbInner">
             <span
               className="crumbLink"
               onClick={() => nav("/annualita")}
               title="Torna alle annualità"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") nav("/annualita");
+              }}
             >
               {anno ? `Annualità ${anno}` : "Annualità"}
             </span>
@@ -120,13 +148,79 @@ export default function Layout({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      {/* CONTENUTO */}
+      {/* ================= CONTENUTO ================= */}
       <main className="appMain">
         <div className="appContent">{children}</div>
       </main>
 
-      {/* BOTTOM BAR */}
+      {/* ================= BOTTOM BAR ================= */}
       <BottomBar />
+
+      {/* ================= DRAWER MENU (SOLO TEST) ================= */}
+      {openMenu && (
+        <div
+          onClick={() => setOpenMenu(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.4)",
+            zIndex: 9999,
+            display: "flex",
+          }}
+          aria-hidden="true"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: 280,
+              maxWidth: "85vw",
+              height: "100%",
+              background: "#fff",
+              padding: 16,
+              boxShadow: "2px 0 16px rgba(0,0,0,0.15)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menu"
+          >
+            <div
+              style={{
+                fontWeight: 900,
+                marginBottom: 8,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 10,
+              }}
+            >
+              <span>Menu</span>
+              <button
+                className="btn btn--ghost"
+                type="button"
+                onClick={() => setOpenMenu(false)}
+                aria-label="Chiudi menu"
+                title="Chiudi"
+              >
+                ✕
+              </button>
+            </div>
+
+            <button
+              className="btn btn--block"
+              type="button"
+              onClick={() => {
+                nav("/test");
+                setOpenMenu(false);
+              }}
+            >
+              Test
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
