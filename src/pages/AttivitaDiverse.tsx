@@ -769,7 +769,7 @@ export default function AttivitaDiverse() {
         >
           <div
             className="sheet"
-            style={fullModalSheet}
+            style={{ ...fullModalSheet, maxWidth: "none", margin: 0 }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header sticky */}
