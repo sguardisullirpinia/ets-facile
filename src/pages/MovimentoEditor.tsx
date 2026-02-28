@@ -407,7 +407,7 @@ export default function MovimentoEditor() {
           </Card>
 
           {/* ✅ BANCA/CASSA */}
-          <Card title="3️⃣B Banca / Cassa">
+          <Card title="3️⃣ Banca / Cassa">
             <select
               value={conto}
               onChange={(e) => setConto(e.target.value as Conto)}
