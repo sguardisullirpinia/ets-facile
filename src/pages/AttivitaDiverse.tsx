@@ -899,7 +899,7 @@ export default function AttivitaDiverse() {
                                       style={{ marginTop: 0, marginBottom: 8 }}
                                     >
                                       <Badge tone="green">Entrata</Badge>
-                                      <Badge tone="neutral">
+                                      <Badge tone="amber">
                                         {macroLabel(m.macro)}
                                       </Badge>
                                     </div>
@@ -999,7 +999,7 @@ export default function AttivitaDiverse() {
                                       style={{ marginTop: 0, marginBottom: 8 }}
                                     >
                                       <Badge tone="red">Uscita</Badge>
-                                      <Badge tone="neutral">
+                                      <Badge tone="amber">
                                         {macroLabel(m.macro)}
                                       </Badge>
                                     </div>
