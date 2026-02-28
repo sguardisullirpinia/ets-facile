@@ -88,7 +88,7 @@ export function Card({ title, right, children, style, className }: CardProps) {
 ========================= */
 
 type BadgeProps = {
-  tone?: "neutral" | "green" | "red" | "blue" | "amber";
+  tone?: "neutral" | "green" | "red" | "blue" | "amber" | "yellow";
   children: React.ReactNode;
 };
 
