@@ -20,25 +20,44 @@ type Movimento = {
   descrizione_operazione?: string | null;
   descrizione_libera?: string | null;
 
-  importo: number;
-  iva: number;
+  importo: any; // ⚠️ può arrivare number o string
+  iva: any; // ⚠️ può arrivare number o string
 
   allocated_to_id?: string | null;
 };
 
 type EsitoAig = {
-  TE: number;
-  TU: number; // TU reale (uscite assegnate)
-  CG: number; // costi generali imputati
+  TE: number; // totale entrate (lordo = importo+iva)
+  TU: number; // totale uscite (lordo = importo+iva)
+  CG: number; // costi generali imputati (già lordo)
   TU_EFF: number; // TU + CG
-  TER: number;
+  TER: number; // entrate rilevanti (lordo)
   soglia: number;
   esito: "COMMERCIALE" | "NON COMMERCIALE";
 };
 
+/** ✅ Converte in numero gestendo formati IT (1.234,56) e EN (1234.56) */
 function num(v: any) {
-  const n = Number(v);
+  if (v === null || v === undefined) return 0;
+  if (typeof v === "number") return Number.isFinite(v) ? v : 0;
+
+  let s = String(v).trim();
+  if (!s) return 0;
+
+  // se contiene sia "." che ",": assume IT (punti migliaia, virgola decimali)
+  if (s.includes(",") && s.includes(".")) {
+    s = s.replace(/\./g, "").replace(",", ".");
+  } else if (s.includes(",")) {
+    s = s.replace(",", ".");
+  }
+
+  const n = Number(s);
   return Number.isFinite(n) ? n : 0;
+}
+
+/** ✅ totale lordo movimento */
+function totaleMov(m: Movimento) {
+  return num(m.importo) + num(m.iva);
 }
 
 function fmtDate(d: string | null) {
@@ -61,18 +80,20 @@ function calcEsitoForMovimenti(
   uscite: Movimento[],
   costiGeneraliImputati: number,
 ) {
-  const TE = entrate.reduce((s, m) => s + num(m.importo), 0);
-  const TU = uscite.reduce((s, m) => s + num(m.importo), 0);
+  // ✅ TE / TU: SOMMA LORDO (importo + iva)
+  const TE = entrate.reduce((s, m) => s + totaleMov(m), 0);
+  const TU = uscite.reduce((s, m) => s + totaleMov(m), 0);
 
   const CG = num(costiGeneraliImputati);
   const TU_EFF = TU + CG;
 
+  // ✅ TER: se APS escludo codici 1-2, sempre LORDO
   const TER =
     tipoEnte !== "APS"
       ? TE
       : entrate
           .filter((m) => ![1, 2].includes(Number(m.descrizione_code ?? -1)))
-          .reduce((s, m) => s + num(m.importo), 0);
+          .reduce((s, m) => s + totaleMov(m), 0);
 
   const soglia = TU_EFF * 1.06;
   const esito: "COMMERCIALE" | "NON COMMERCIALE" =
@@ -336,7 +357,8 @@ export default function Aig() {
             className="rowAmount"
             style={{ justifySelf: "end", textAlign: "right", fontWeight: 950 }}
           >
-            <EuroFmt v={num(m.importo)} />
+            {/* ✅ importo mostrato = importo + iva */}
+            <EuroFmt v={totaleMov(m)} />
           </div>
 
           <button
@@ -432,7 +454,8 @@ export default function Aig() {
             paddingTop: 22,
           }}
         >
-          <EuroFmt v={num(m.importo)} />
+          {/* ✅ importo mostrato = importo + iva */}
+          <EuroFmt v={totaleMov(m)} />
         </div>
       </label>
     );
@@ -509,7 +532,7 @@ export default function Aig() {
 
     const { data, error } = await supabase
       .from("movimenti")
-      .select("id, tipologia, importo, descrizione_code, allocated_to_id")
+      .select("id, tipologia, importo, iva, descrizione_code, allocated_to_id")
       .eq("annualita_id", annualitaId)
       .eq("allocated_to_type", "AIG")
       .not("allocated_to_id", "is", null);
@@ -528,6 +551,7 @@ export default function Aig() {
 
       if (!byAig[aigId]) byAig[aigId] = { entrate: [], uscite: [] };
 
+      // ✅ qui ci servono importo+iva
       const movItem: Movimento = {
         id: r.id,
         tipologia: r.tipologia,
@@ -535,8 +559,8 @@ export default function Aig() {
         macro: "AIG",
         descrizione_code: r.descrizione_code ?? null,
         descrizione_label: null,
-        importo: Number(r.importo) || 0,
-        iva: 0,
+        importo: r.importo ?? 0,
+        iva: r.iva ?? 0,
         allocated_to_id: r.allocated_to_id ?? null,
       };
 
@@ -755,15 +779,15 @@ export default function Aig() {
   };
 
   // =========================
-  // CALCOLI TEST AIG (DETTAGLIO)
+  // ✅ CALCOLI TEST AIG (DETTAGLIO) — SEMPRE LORDO (importo+iva)
   // =========================
   const TE = useMemo(
-    () => assEntrate.reduce((s, m) => s + num(m.importo), 0),
+    () => assEntrate.reduce((s, m) => s + totaleMov(m), 0),
     [assEntrate],
   );
 
   const TU = useMemo(
-    () => assUscite.reduce((s, m) => s + num(m.importo), 0),
+    () => assUscite.reduce((s, m) => s + totaleMov(m), 0),
     [assUscite],
   );
 
@@ -778,7 +802,7 @@ export default function Aig() {
     if (tipoEnte !== "APS") return TE;
     return assEntrate
       .filter((m) => ![1, 2].includes(Number(m.descrizione_code ?? -1)))
-      .reduce((s, m) => s + num(m.importo), 0);
+      .reduce((s, m) => s + totaleMov(m), 0);
   }, [TE, assEntrate, tipoEnte]);
 
   const soglia = useMemo(() => TU_EFF * 1.06, [TU_EFF]);
@@ -890,9 +914,6 @@ export default function Aig() {
 
       <div className="mt-3" />
 
-      {/* ✅ ELENCO AIG (NO "CARD DENTRO CARD"):
-          - tolgo listBox (che spesso ha un bordo/padding tipo card)
-          - uso un semplice contenitore + separatore orizzontale tra righe */}
       <Card title="Elenco AIG">
         {aigs.length === 0 ? (
           <div className="muted" style={{ fontWeight: 800 }}>
@@ -1016,7 +1037,6 @@ export default function Aig() {
 
               <div className="mt-3" />
 
-              {/* CARD A FILO SCHERMO */}
               <div style={fullBleed}>
                 <Card title="Movimenti disponibili (non assegnati)">
                   <div className="splitGrid">
@@ -1037,10 +1057,7 @@ export default function Aig() {
                               macroLabelTxt="AIG"
                               checked={!!selEntrate[m.id]}
                               onToggle={(v) =>
-                                setSelEntrate((p) => ({
-                                  ...p,
-                                  [m.id]: v,
-                                }))
+                                setSelEntrate((p) => ({ ...p, [m.id]: v }))
                               }
                             />
                           ))}
@@ -1074,10 +1091,7 @@ export default function Aig() {
                               macroLabelTxt="AIG"
                               checked={!!selUscite[m.id]}
                               onToggle={(v) =>
-                                setSelUscite((p) => ({
-                                  ...p,
-                                  [m.id]: v,
-                                }))
+                                setSelUscite((p) => ({ ...p, [m.id]: v }))
                               }
                             />
                           ))}
