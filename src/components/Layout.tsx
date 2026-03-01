@@ -242,15 +242,26 @@ export default function Layout({ children }: { children: ReactNode }) {
             </div>
 
             <button
-              className="btn btn--block"
-              type="button"
-              onClick={() => {
-                nav("/test");
-                setOpenMenu(false);
-              }}
-            >
-              Test
-            </button>
+  className="btn btn--block"
+  type="button"
+  onClick={() => {
+    nav("/test");
+    setOpenMenu(false);
+  }}
+>
+  Test
+</button>
+
+<button
+  className="btn btn--block"
+  type="button"
+  onClick={() => {
+    nav("/ires");
+    setOpenMenu(false);
+  }}
+>
+  IRES
+</button>
           </div>
         </div>
       )}
