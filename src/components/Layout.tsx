@@ -11,6 +11,7 @@ function pageLabel(pathname: string) {
   if (pathname.startsWith("/attivita-diverse")) return "Attività Diverse";
   if (pathname.startsWith("/raccolte-fondi")) return "Raccolte Fondi";
   if (pathname.startsWith("/test")) return "Test";
+  if (pathname.startsWith("/Iva")) return "Iva";
   if (pathname.startsWith("/ires")) return "IRES";
   if (pathname.startsWith("/annualita")) return "Annualità";
   return "Prima Nota";
