@@ -57,7 +57,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Chiudi menu con ESC
+  // chiudi menu con ESC
   useEffect(() => {
     if (!openMenu) return;
     const onKey = (e: KeyboardEvent) => {
@@ -77,17 +77,37 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="appShell">
-      {/* ================= HEADER ================= */}
+      {/* HEADER */}
       <header className="appHeader">
-        <div className="container appHeader__inner">
-          {/* LEFT: HAMBURGER + BRAND */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        {/* ✅ TOP ROW FULL-WIDTH (robusta, non dipende dal CSS esterno) */}
+        <div
+          style={{
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "10px 12px",
+            boxSizing: "border-box",
+            gap: 12,
+          }}
+        >
+          {/* SINISTRA */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              minWidth: 0,
+              flex: "1 1 auto",
+            }}
+          >
             <button
               className="btn btn--ghost"
               type="button"
               title="Menu"
               aria-label="Apri menu"
               onClick={() => setOpenMenu(true)}
+              style={{ flexShrink: 0 }}
             >
               <Menu size={20} />
             </button>
@@ -96,7 +116,13 @@ export default function Layout({ children }: { children: ReactNode }) {
               className="brand"
               onClick={() => nav("/annualita")}
               title="Torna alle annualità"
-              style={{ cursor: "pointer" }}
+              style={{
+                cursor: "pointer",
+                minWidth: 0,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
             >
               ETS
               <span aria-hidden="true" style={{ color: "var(--primary)" }}>
@@ -106,8 +132,17 @@ export default function Layout({ children }: { children: ReactNode }) {
             </div>
           </div>
 
-          {/* RIGHT: AZIONI */}
-          <div className="headerActions">
+          {/* DESTRA */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              justifyContent: "flex-end",
+              flex: "0 0 auto",
+              flexShrink: 0,
+            }}
+          >
             <button
               className="btn btn--ghost"
               onClick={() => nav("/profilo")}
@@ -125,7 +160,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           </div>
         </div>
 
-        {/* ================= BREADCRUMB ================= */}
+        {/* BREADCRUMB */}
         <div className="appCrumbBar">
           <div className="container appCrumbInner">
             <span
@@ -142,21 +177,20 @@ export default function Layout({ children }: { children: ReactNode }) {
             </span>
 
             <ChevronRight size={16} />
-
             <span className="crumbCurrent">{crumbCurrent}</span>
           </div>
         </div>
       </header>
 
-      {/* ================= CONTENUTO ================= */}
+      {/* CONTENUTO */}
       <main className="appMain">
         <div className="appContent">{children}</div>
       </main>
 
-      {/* ================= BOTTOM BAR ================= */}
+      {/* BOTTOM BAR */}
       <BottomBar />
 
-      {/* ================= DRAWER MENU (SOLO TEST) ================= */}
+      {/* DRAWER MENU (SOLO TEST) */}
       {openMenu && (
         <div
           onClick={() => setOpenMenu(false)}
@@ -167,7 +201,6 @@ export default function Layout({ children }: { children: ReactNode }) {
             zIndex: 9999,
             display: "flex",
           }}
-          aria-hidden="true"
         >
           <div
             onClick={(e) => e.stopPropagation()}
