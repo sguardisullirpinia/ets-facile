@@ -794,7 +794,7 @@ export default function RaccolteFondi() {
 
       {/* ELENCO */}
       <div className="section">
-        <div className="sectionTitle">Elenco Raccolte Fondi</div>
+        <div className="sectionTitle">ELENCO RACCOLTE FONDI</div>
 
         <div className="listBox">
           {items.length === 0 ? (
