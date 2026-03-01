@@ -260,7 +260,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     setOpenMenu(false);
   }}
 >
-  IRES
+  Ires
 </button>
           </div>
         </div>
