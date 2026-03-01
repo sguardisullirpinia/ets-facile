@@ -704,7 +704,7 @@ export default function AttivitaDiverse() {
 
       {/* ELENCO */}
       <div className="section">
-        <div className="sectionTitle">Elenco Attività Diverse</div>
+        <div className="sectionTitle">ELENCO ATTIVITA' DIVERSE</div>
 
         <div className="listBox">
           {items.length === 0 ? (
