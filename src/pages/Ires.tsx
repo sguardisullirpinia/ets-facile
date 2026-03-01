@@ -329,7 +329,7 @@ export default function Ires() {
   return (
   <Layout>
       <div className="pageTopbar" style={{ marginBottom: 14, paddingTop: 15 }}>
-        <h2 className="pageTitle">Ires</h2>
+        <h2 className="pageTitle">IRES</h2>
         <Badge tone={enteNatura === "COMMERCIALE" ? "red" : "green"}>
           {enteNatura}
         </Badge>
