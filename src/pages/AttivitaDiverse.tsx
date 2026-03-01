@@ -738,7 +738,7 @@ export default function AttivitaDiverse() {
                   </div>
 
                   <div className="rowMeta" style={{ marginTop: 10 }}>
-                    <Badge tone={it.occasionale ? "amber" : "neutral"}>
+                    <Badge tone={it.occasionale ? "green" : "amber"}>
                       OCCASIONALE: {it.occasionale ? "SI" : "NO"}
                     </Badge>
                   </div>
@@ -809,7 +809,7 @@ export default function AttivitaDiverse() {
               )}
 
               <div style={{ marginTop: 10 }}>
-                <Badge tone={active.occasionale ? "amber" : "neutral"}>
+                <Badge tone={active.occasionale ? "green" : "amber"}>
                   Occasionale: {active.occasionale ? "Sì" : "No"}
                 </Badge>
               </div>
