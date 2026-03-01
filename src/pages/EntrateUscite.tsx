@@ -533,9 +533,9 @@ export default function EntrateUscite() {
   return (
     <Layout>
       {/* HEADER */}
-      <div className="pageHeader" style={{ paddingTop: 10 }}>
+      <div className="pageHeader" style={{ paddingTop: 15 }}>
         <div>
-          <h2 className="pageTitle">Prima Nota</h2>
+          <h2 className="pageTitle">PRIMA NOTA</h2>
           <div className="pageHelp" style={{ whiteSpace: "pre-line" }}>
             {HELP_FULL}
           </div>
@@ -561,7 +561,7 @@ export default function EntrateUscite() {
 
       {/* AVANZI */}
       <div className="section">
-        <div className="sectionTitle">Avanzi da esercizio precedente (t-1)</div>
+        <div className="sectionTitle">AVANZI DA ESERCIZIO PRECEDENTE (T-1)</div>
 
         <div className="listBox">
           {avanzi.length === 0 ? (
