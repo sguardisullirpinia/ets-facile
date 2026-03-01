@@ -819,7 +819,7 @@ export default function Aig() {
   // =========================
   return (
    <Layout>
-      <div className="pageHeader" style={{ paddingTop: 10 }}>
+      <div className="pageHeader" style={{ paddingTop: 15 }}>
         <div>
           <h2 className="pageTitle">AIG</h2>
           <div className="pageHelp">
