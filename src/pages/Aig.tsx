@@ -818,20 +818,22 @@ export default function Aig() {
   // UI
   // =========================
   return (
-    <Layout>
-      <div className="pageTopbar">
-        <h2 className="pageTitle">AIG</h2>
-        <div className="pageHelp">
-          Crea le attività di interesse generale svolte dall'Ente, ed assegna ad
-          ogni AIG creata le entrate e uscite sostenute per la realizzazione di
-          quella specifica attività. <br />
-          <br />
-          <u>
-            N.B. Gli Enti con entrate non superiori a € 300.000,00 possono
-            considerare le diverse attività di interesse generale (AIG) svolte
-            come se fossero un'unica attività ai fini della verifica del test di
-            non commercialità.
-          </u>
+   <Layout>
+      <div className="pageHeader" style={{ paddingTop: 10 }}>
+        <div>
+          <h2 className="pageTitle">AIG</h2>
+          <div className="pageHelp">
+            Crea le attività di interesse generale svolte dall'Ente, ed assegna
+            ad ogni AIG creata le entrate e uscite sostenute per la
+            realizzazione di quella specifica attività. <br />
+            <br />
+            <u>
+              N.B. Gli Enti con entrate non superiori a € 300.000,00 possono
+              considerare le diverse attività di interesse generale (AIG) svolte
+              come se fossero un'unica attività ai fini della verifica del test
+              di non commercialità.
+            </u>
+          </div>
         </div>
       </div>
 
