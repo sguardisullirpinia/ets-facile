@@ -408,7 +408,7 @@ export default function Test() {
   // -------------------------
   return (
     <Layout>
-      <div className="pageTopbar">
+      <div className="pageTopbar" style={{ marginBottom: 14, paddingTop: 15 }}>
         <h2 className="pageTitle">Test</h2>
         <div className="pageHelp">
           In questa sezione si verifica la natura Commerciale o Non Commericiale
