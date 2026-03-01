@@ -325,8 +325,7 @@
 
 .sectionTitle {
   font-size: 13px;
-  font-weight: 900;
-  color: var(--muted);
+  font-weight: bold;
   letter-spacing: 0.02em;
   margin-bottom: var(--s2);
 }
