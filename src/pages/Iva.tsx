@@ -339,13 +339,13 @@ export default function Iva() {
 
   return (
     <Layout>
-      <div className="pageHeader" style={{ paddingTop: 10 }}>
+      <div className="pageHeader" style={{ paddingTop: 15 }}>
         <div>
-          <h2 className="pageTitle">IVA</h2>
+          <h2 className="pageTitle">LIQUIDAZIONE IVA</h2>
           <div className="pageHelp">
-            Movimenti con IVA dell’annualità selezionata.
+            Movimenti IVA.
             <br />
-            <b>IVA a debito</b> = IVA sulle entrate • <b>IVA a credito</b> = IVA sulle uscite.
+            <b>IVA a debito</b> = IVA sulle entrate<br /> <b>IVA a credito</b> = IVA sulle uscite.
             {annualitaAnno ? (
               <>
                 <br />
