@@ -812,7 +812,7 @@ export default function AttivitaDiverse() {
       {active && (
         <div
           className="sheetOverlay"
-          style={{ ...fullModalOverlay, width: "100vw", height: "100vh" }}
+          tyle={fullModalOverlay}
           onClick={() => setActive(null)}
           role="dialog"
           aria-modal="true"
