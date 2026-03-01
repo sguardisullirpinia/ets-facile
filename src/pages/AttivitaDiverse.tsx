@@ -817,7 +817,7 @@ export default function AttivitaDiverse() {
           role="dialog"
           aria-modal="true"
         >
-          <div className="sheet" style={fullModalSheet} onClick={(e) => e.stopPropagation()}>
+          <div className="sheet" style={{ ...fullModalSheet, maxWidth: "none", margin: 0 }} onClick={(e) => e.stopPropagation()}>
             {/* Header sticky */}
             <div
               className="sheetHeader"
