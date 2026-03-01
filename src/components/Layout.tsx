@@ -263,6 +263,16 @@ export default function Layout({ children }: { children: ReactNode }) {
 >
   Ires
 </button>
+<button
+  className="btn btn--block"
+  type="button"
+  onClick={() => {
+    nav("/Iva");
+    setOpenMenu(false);
+  }}
+>
+  Liquidazione Iva
+</button>
           </div>
         </div>
       )}
