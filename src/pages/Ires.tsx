@@ -327,15 +327,12 @@ export default function Ires() {
   // UI
   // =========================
   return (
-    <div className="pageHeader" style={{ paddingTop: 15 }}>
-        <div>
-          <h2 className="pageTitle">Ires</h2>
-          <div className="pageHelp">
-            <Badge tone={enteNatura === "COMMERCIALE" ? "red" : "green"}>
-              {enteNatura}
-            </Badge>
-          </div>
-        </div>
+  <Layout>
+      <div className="pageTopbar" style={{ marginBottom: 14 }}>
+        <h2 className="pageTitle">IRES</h2>
+        <Badge tone={enteNatura === "COMMERCIALE" ? "red" : "green"}>
+          {enteNatura}
+        </Badge>
       </div>
 
       {error && (
