@@ -953,7 +953,7 @@ export default function EntrateUscite() {
 
       {/* ✅ EXPORT EXCEL */}
       <div className="section" style={{ paddingBottom: 90 }}>
-        <div className="sectionTitle">Esporta</div>
+        <div className="sectionTitle">ESPORTA</div>
         <div className="listBox">
           <div className="listRow">
             <div className="rowMain">
