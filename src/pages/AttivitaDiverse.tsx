@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Layout from "../components/Layout";
 import { supabase } from "../lib/supabase";
-import { Badge, Euro } from "../components/ui";
+import { Badge, Euro, Card, PrimaryButton } from "../components/ui";
 
 type AttDivRow = {
   id: string;
@@ -53,10 +53,6 @@ function fmtDate(d: string | null) {
   const [y, m, day] = (d || "").split("-");
   if (!y || !m || !day) return d || "—";
   return `${day}/${m}/${y}`;
-}
-
-function ymdKey(d: string | null) {
-  return d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : "—";
 }
 
 function macroLabel(m: string | null) {
@@ -187,46 +183,6 @@ export default function AttivitaDiverse() {
     minWidth: 0,
   };
 
-  // =========================
-  // ✅ Riga “wrap-safe”: se label è lunga, importo va a capo ma resta a destra
-  // =========================
-  const wrapRowBox: React.CSSProperties = {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 10,
-    alignItems: "flex-start",
-    padding: "12px 14px",
-  };
-
-  const wrapRowLabel: React.CSSProperties = {
-    flex: "1 1 240px",
-    minWidth: 0,
-    whiteSpace: "normal",
-    overflowWrap: "anywhere",
-    lineHeight: 1.25,
-  };
-
-  const wrapRowValue: React.CSSProperties = {
-    flex: "0 0 auto",
-    marginLeft: "auto",
-    textAlign: "right",
-    whiteSpace: "nowrap",
-    fontWeight: 900,
-  };
-
-  const WrapRowValue = ({
-    label,
-    value,
-  }: {
-    label: React.ReactNode;
-    value: React.ReactNode;
-  }) => (
-    <div className="listRow" style={wrapRowBox}>
-      <div style={wrapRowLabel}>{label}</div>
-      <div style={wrapRowValue}>{value}</div>
-    </div>
-  );
-
   // Layout helper
   const row2Cols: React.CSSProperties = {
     display: "grid",
@@ -235,15 +191,8 @@ export default function AttivitaDiverse() {
     columnGap: 12,
   };
 
-  const row3Cols: React.CSSProperties = {
-    display: "grid",
-    gridTemplateColumns: "auto 1fr auto",
-    alignItems: "start",
-    columnGap: 12,
-  };
-
   // =========================
-  // ✅ MODALE FULLSCREEN STYLES (come AIG)
+  // ✅ MODALE FULLSCREEN STYLES (come Raccolte Fondi)
   // =========================
   const fullModalOverlay: React.CSSProperties = {
     position: "fixed",
@@ -251,22 +200,19 @@ export default function AttivitaDiverse() {
     background: "rgba(0,0,0,0.45)",
     zIndex: 9999,
     display: "flex",
-    overflow: "hidden",
   };
 
   const fullModalSheet: React.CSSProperties = {
     background: "#fff",
     width: "100%",
     height: "100%",
-    borderRadius: 0, // Forza la rimozione di angoli arrotondati
-    margin: 0, // Rimuove eventuali margini residui
-    padding: 0, // L'header deve toccare il bordo, quindi il padding va gestito internamente
-    overflowY: "auto",
+    borderRadius: 0,
+    overflow: "auto",
     WebkitOverflowScrolling: "touch",
     paddingBottom: 120,
   };
 
-  // ✅ helper per far andare le listBox/righe a filo schermo nel modale
+  // ✅ helper per far andare le Card a filo schermo nel modale
   const fullBleed: React.CSSProperties = {
     marginLeft: -14,
     marginRight: -14,
@@ -281,6 +227,175 @@ export default function AttivitaDiverse() {
     };
   }, [active]);
 
+  // =========================
+  // ✅ COMPONENTI “STILE RACCOLTE FONDI”
+  // =========================
+  const AvailableMoveCard = ({
+    m,
+    tone,
+    macroLabelTxt,
+    checked,
+    onToggle,
+  }: {
+    m: Movimento;
+    tone: "green" | "red";
+    macroLabelTxt: string;
+    checked: boolean;
+    onToggle: (v: boolean) => void;
+  }) => {
+    const isEntrata = m.tipologia === "ENTRATA";
+    const title = (m.descrizione_label || "").trim() || getDescrPair(m).cod;
+    const sub =
+      (m.descrizione_operazione || "").trim() ||
+      (m.descrizione_libera || "").trim() ||
+      "—";
+
+    return (
+      <label
+        className="listRow"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "auto 1fr auto",
+          alignItems: "start",
+          columnGap: 12,
+          cursor: "pointer",
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onToggle(e.target.checked)}
+          style={{
+            width: 18,
+            height: 18,
+            marginTop: 6,
+            cursor: "pointer",
+            flex: "0 0 auto",
+          }}
+        />
+
+        <div className="rowMain" style={{ minWidth: 0 }}>
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 850,
+              opacity: 0.7,
+              marginBottom: 8,
+              ...noEllipsis,
+            }}
+          >
+            {fmtDate(m.data)}
+          </div>
+
+          <div className="rowMeta" style={{ marginTop: 0, marginBottom: 8 }}>
+            <Badge tone={tone as any}>{isEntrata ? "Entrata" : "Uscita"}</Badge>
+            <Badge tone="neutral">{macroLabelTxt}</Badge>
+          </div>
+
+          <div className="rowTitle" style={noEllipsis}>
+            {title}
+          </div>
+          <div className="rowSub" style={noEllipsis}>
+            {sub}
+          </div>
+        </div>
+
+        <div
+          className="rowAmount"
+          style={{
+            justifySelf: "end",
+            textAlign: "right",
+            fontWeight: 950,
+            paddingTop: 22,
+          }}
+        >
+          {/* ✅ LORDO = importo + iva */}
+          <Euro v={totaleMov(m)} />
+        </div>
+      </label>
+    );
+  };
+
+  const AssignedMoveCard = ({
+    m,
+    tone,
+    macroLabelTxt,
+    onUnassign,
+  }: {
+    m: Movimento;
+    tone: "green" | "red";
+    macroLabelTxt: string;
+    onUnassign: (id: string) => void;
+  }) => {
+    const isEntrata = m.tipologia === "ENTRATA";
+    const title = (m.descrizione_label || "").trim() || getDescrPair(m).cod;
+    const sub =
+      (m.descrizione_operazione || "").trim() ||
+      (m.descrizione_libera || "").trim() ||
+      "—";
+
+    return (
+      <div
+        className="listRow"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr auto",
+          alignItems: "start",
+          columnGap: 12,
+        }}
+      >
+        <div className="rowMain" style={{ minWidth: 0 }}>
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 850,
+              opacity: 0.7,
+              marginBottom: 8,
+              ...noEllipsis,
+            }}
+          >
+            {fmtDate(m.data)}
+          </div>
+
+          <div className="rowMeta" style={{ marginTop: 0, marginBottom: 8 }}>
+            <Badge tone={tone as any}>{isEntrata ? "Entrata" : "Uscita"}</Badge>
+            <Badge tone="yellow">{macroLabelTxt}</Badge>
+          </div>
+
+          <div className="rowTitle" style={noEllipsis}>
+            {title}
+          </div>
+          <div className="rowSub" style={noEllipsis}>
+            {sub}
+          </div>
+        </div>
+
+        <div style={{ display: "grid", justifyItems: "end", gap: 8 }}>
+          <div
+            className="rowAmount"
+            style={{ justifySelf: "end", textAlign: "right", fontWeight: 950 }}
+          >
+            {/* ✅ LORDO = importo + iva */}
+            <Euro v={totaleMov(m)} />
+          </div>
+
+          <button
+            className="iconBtn"
+            type="button"
+            title="Rimuovi assegnazione (torna tra disponibili)"
+            onClick={() => onUnassign(m.id)}
+            aria-label="Rimuovi assegnazione"
+          >
+            <TrashIcon />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // =========================
+  // LOAD LISTA
+  // =========================
   const loadItems = async () => {
     setError(null);
     if (!annualitaId) return;
@@ -385,23 +500,17 @@ export default function AttivitaDiverse() {
     );
     if (!ok) return;
 
-    const { error: unErr } = await supabase.rpc(
-      "unassign_movimenti_for_activity",
-      {
-        p_type: "ATTIVITA_DIVERSE",
-        p_id: id,
-      },
-    );
+    const { error: unErr } = await supabase.rpc("unassign_movimenti_for_activity", {
+      p_type: "ATTIVITA_DIVERSE",
+      p_id: id,
+    });
 
     if (unErr) {
       alert("Errore sblocco movimenti: " + unErr.message);
       return;
     }
 
-    const { error } = await supabase
-      .from("attivita_diverse")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabase.from("attivita_diverse").delete().eq("id", id);
 
     if (error) {
       alert(error.message);
@@ -506,9 +615,7 @@ export default function AttivitaDiverse() {
   const assignSelected = async (kind: "ENTRATA" | "USCITA") => {
     if (!active) return;
 
-    const selectedIds = Object.entries(
-      kind === "ENTRATA" ? selEntrate : selUscite,
-    )
+    const selectedIds = Object.entries(kind === "ENTRATA" ? selEntrate : selUscite)
       .filter(([, v]) => v)
       .map(([id]) => id);
 
@@ -549,62 +656,23 @@ export default function AttivitaDiverse() {
     return num(cgMap[active.id] ?? 0);
   }, [active, cgMap]);
 
-  const totUsciteEff = useMemo(
-    () => totUscite + cgImputati,
-    [totUscite, cgImputati],
-  );
-
-  function groupByDate(list: Movimento[]) {
-    const sorted = list.slice().sort((a, b) => {
-      const ak = ymdKey(a.data);
-      const bk = ymdKey(b.data);
-      if (ak === "—" && bk === "—") return 0;
-      if (ak === "—") return 1;
-      if (bk === "—") return -1;
-      return bk.localeCompare(ak);
-    });
-
-    const map = new Map<string, Movimento[]>();
-    for (const m of sorted) {
-      const k = ymdKey(m.data);
-      const arr = map.get(k) ?? [];
-      arr.push(m);
-      map.set(k, arr);
-    }
-    return Array.from(map.entries());
-  }
-
-  const availEntrateGrouped = useMemo(
-    () => groupByDate(availEntrate),
-    [availEntrate],
-  );
-  const availUsciteGrouped = useMemo(
-    () => groupByDate(availUscite),
-    [availUscite],
-  );
-  const assEntrateGrouped = useMemo(
-    () => groupByDate(assEntrate),
-    [assEntrate],
-  );
-  const assUsciteGrouped = useMemo(() => groupByDate(assUscite), [assUscite]);
+  const totUsciteEff = useMemo(() => totUscite + cgImputati, [totUscite, cgImputati]);
 
   return (
     <Layout>
-      <div className="pageHeader" style={{ paddingTop: 15 }}>
+      <div className="pageHeader" style={{ paddingTop: 10 }}>
         <div>
           <h2 className="pageTitle">Attività Diverse</h2>
           <div className="pageHelp">
-            Crea le Attività Diverse di cui all'art. 6 del CTS e assegna a
-            ciascuna attività le entrate e le uscite sostenute per la sua
-            realizzazione.<br></br>
-            <br></br>
+            Crea le Attività Diverse di cui all'art. 6 del CTS e assegna a ciascuna
+            attività le entrate e le uscite sostenute per la sua realizzazione.
+            <br />
+            <br />
             <u>
-              {" "}
-              Le attività diverse sono iniziative di natura commerciale (es.
-              gestione di un punto ristoro/bar durante l'evento o affitto della
-              propria sede a privati per feste di compleanno) che devono restare
-              secondarie e strumentali rispetto alle attività di interesse
-              generale i movimenti.
+              Le attività diverse sono iniziative di natura commerciale (es. gestione
+              di un punto ristoro/bar durante l'evento o affitto della propria sede a
+              privati per feste di compleanno) che devono restare secondarie e
+              strumentali rispetto alle attività di interesse generale.
             </u>
           </div>
         </div>
@@ -634,20 +702,14 @@ export default function AttivitaDiverse() {
 
             <div className="sheetHeader">
               <div className="sheetTitle">Crea Attività Diversa</div>
-              <button
-                className="btn"
-                onClick={() => setOpenSheet(false)}
-                type="button"
-              >
+              <button className="btn" onClick={() => setOpenSheet(false)} type="button">
                 Chiudi
               </button>
             </div>
 
             <div className="sheetGrid" style={{ gap: 12 }}>
               <div>
-                <div style={{ fontWeight: 900, marginBottom: 6 }}>
-                  Nome (obbligatorio)
-                </div>
+                <div style={{ fontWeight: 900, marginBottom: 6 }}>Nome (obbligatorio)</div>
                 <input
                   value={newNome}
                   onChange={(e) => setNewNome(e.target.value)}
@@ -657,9 +719,7 @@ export default function AttivitaDiverse() {
               </div>
 
               <div>
-                <div style={{ fontWeight: 900, marginBottom: 6 }}>
-                  Descrizione (opzionale)
-                </div>
+                <div style={{ fontWeight: 900, marginBottom: 6 }}>Descrizione (opzionale)</div>
                 <input
                   value={newDescr}
                   onChange={(e) => setNewDescr(e.target.value)}
@@ -668,17 +728,11 @@ export default function AttivitaDiverse() {
                 />
               </div>
 
-              <div
-                className="listRow"
-                style={{ ...row2Cols, padding: "12px 14px" }}
-              >
+              <div className="listRow" style={{ ...row2Cols, padding: "12px 14px" }}>
                 <div className="rowMain">
-                  <div className="rowTitle">
-                    Attività svolta occasionalmente
-                  </div>
+                  <div className="rowTitle">Attività svolta occasionalmente</div>
                   <div className="rowSub">
-                    Se spuntata: i ricavi NON si considerano nel test di
-                    commercialità dell’Ente.
+                    Se spuntata: i ricavi NON si considerano nel test di commercialità dell’Ente.
                   </div>
                 </div>
 
@@ -690,11 +744,7 @@ export default function AttivitaDiverse() {
                 />
               </div>
 
-              <button
-                className="btn btn--primary btn--block"
-                onClick={createItem}
-                type="button"
-              >
+              <button className="btn btn--primary btn--block" onClick={createItem} type="button">
                 Salva
               </button>
             </div>
@@ -704,7 +754,7 @@ export default function AttivitaDiverse() {
 
       {/* ELENCO */}
       <div className="section">
-        <div className="sectionTitle">ELENCO ATTIVITA' DIVERSE</div>
+        <div className="sectionTitle">Elenco Attività Diverse</div>
 
         <div className="listBox">
           {items.length === 0 ? (
@@ -730,15 +780,12 @@ export default function AttivitaDiverse() {
                   <div className="rowTitle" style={noEllipsis}>
                     {it.nome}
                   </div>
-                  <div
-                    className="rowSub"
-                    style={{ ...noEllipsis, marginTop: 6 }}
-                  >
+                  <div className="rowSub" style={{ ...noEllipsis, marginTop: 6 }}>
                     {it.descrizione || "—"}
                   </div>
 
                   <div className="rowMeta" style={{ marginTop: 10 }}>
-                    <Badge tone={it.occasionale ? "green" : "amber"}>
+                    <Badge tone={it.occasionale ? "amber" : "green"}>
                       OCCASIONALE: {it.occasionale ? "SI" : "NO"}
                     </Badge>
                   </div>
@@ -765,16 +812,12 @@ export default function AttivitaDiverse() {
       {active && (
         <div
           className="sheetOverlay"
-          style={{ ...fullModalOverlay, width: "100vw", height: "100vh" }}
+          style={fullModalOverlay}
           onClick={() => setActive(null)}
           role="dialog"
           aria-modal="true"
         >
-          <div
-            className="sheet"
-            style={{ ...fullModalSheet, maxWidth: "none", margin: 0 }}
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="sheet" style={fullModalSheet} onClick={(e) => e.stopPropagation()}>
             {/* Header sticky */}
             <div
               className="sheetHeader"
@@ -782,34 +825,24 @@ export default function AttivitaDiverse() {
                 position: "sticky",
                 top: 0,
                 zIndex: 2,
-                background: "rgba(246, 245, 241)",
+                background: "#fff",
                 borderBottom: "1px solid rgba(0,0,0,0.08)",
-                display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "16px",
               }}
             >
               <div className="sheetTitle" style={{ fontWeight: 950 }}>
                 {active.nome}
               </div>
 
-              <button
-                className="btn"
-                onClick={() => setActive(null)}
-                type="button"
-              >
+              <button className="btn" onClick={() => setActive(null)} type="button">
                 Chiudi
               </button>
             </div>
 
             <div style={{ padding: 14 }}>
-              {active.descrizione && (
-                <div style={{ ...noEllipsis }}>{active.descrizione}</div>
-              )}
+              {active.descrizione && <div style={{ ...noEllipsis }}>{active.descrizione}</div>}
 
               <div style={{ marginTop: 10 }}>
-                <Badge tone={active.occasionale ? "green" : "amber"}>
+                <Badge tone={active.occasionale ? "amber" : "green"}>
                   Occasionale: {active.occasionale ? "Sì" : "No"}
                 </Badge>
               </div>
@@ -821,22 +854,18 @@ export default function AttivitaDiverse() {
                 <div className="listBox">
                   <div className="listRow" style={row2Cols}>
                     <div className="rowMain">
-                      <div className="rowTitle">
-                        Attività Diversa “Occasionale”
-                      </div>
+                      <div className="rowTitle">Attività Diversa “Occasionale”</div>
                       <div className="rowSub">
-                        Spuntare se l'attività è svolta in modo occasionale. In
-                        questo caso i ricavi di questa attività <b>non</b>{" "}
-                        saranno considerati nel test di commercialità dell’Ente.
+                        Spuntare se l'attività è svolta in modo occasionale. In questo caso i
+                        ricavi di questa attività <b>non</b> saranno considerati nel test di
+                        commercialità dell’Ente.
                       </div>
                     </div>
 
                     <input
                       type="checkbox"
                       checked={active.occasionale}
-                      onChange={(e) =>
-                        updateOccasionale(active.id, e.target.checked)
-                      }
+                      onChange={(e) => updateOccasionale(active.id, e.target.checked)}
                       className="checkBox"
                     />
                   </div>
@@ -845,457 +874,215 @@ export default function AttivitaDiverse() {
 
               <div className="mt-3" />
 
-              {/* MOVIMENTI DISPONIBILI */}
+              {/* ✅ MOVIMENTI DISPONIBILI — STILE COME RACCOLTE FONDI */}
               <div style={fullBleed}>
-                <div className="section">
-                  <div className="sectionTitle" style={{ padding: "0 14px" }}>
-                    MOVIMENTI NON ASSEGNATI
-                  </div>
+                <Card title="Movimenti disponibili (non assegnati)">
+                  <div className="splitGrid">
+                    <div className="panel">
+                      <div className="panelTitle">Entrate disponibili</div>
 
-                  {/* ENTRATE */}
-                  <div className="section">
-                    <div className="sectionTitle" style={{ padding: "0 14px" }}>
-                      Entrate disponibili
-                    </div>
-
-                    <div className="listBox">
                       {availEntrate.length === 0 ? (
-                        <div className="listRow">
-                          <div className="rowMain">
-                            <div className="rowSub">Nessuna</div>
-                          </div>
+                        <div className="muted" style={{ fontWeight: 800 }}>
+                          Nessuna
                         </div>
                       ) : (
-                        availEntrateGrouped.map(([dateKey, rows]) => (
-                          <div key={dateKey}>
-                            <div
-                              className="sectionTitle"
-                              style={{ padding: "12px 14px" }}
-                            >
-                              {dateKey === "—"
-                                ? "Senza data"
-                                : fmtDate(dateKey)}
-                            </div>
-
-                            {rows.map((m) => {
-                              const { cod, oper } = getDescrPair(m);
-                              return (
-                                <label
-                                  key={m.id}
-                                  className="listRow"
-                                  style={{ ...row3Cols, cursor: "pointer" }}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={!!selEntrate[m.id]}
-                                    onChange={(e) =>
-                                      setSelEntrate((p) => ({
-                                        ...p,
-                                        [m.id]: e.target.checked,
-                                      }))
-                                    }
-                                    style={{ marginTop: 2 }}
-                                  />
-
-                                  <div
-                                    className="rowMain"
-                                    style={{ minWidth: 0 }}
-                                  >
-                                    <div
-                                      className="rowMeta"
-                                      style={{ marginTop: 0, marginBottom: 8 }}
-                                    >
-                                      <Badge tone="green">Entrata</Badge>
-                                      <Badge tone="amber">
-                                        {macroLabel(m.macro)}
-                                      </Badge>
-                                    </div>
-
-                                    <div
-                                      className="rowTitle"
-                                      style={noEllipsis}
-                                    >
-                                      {cod}
-                                    </div>
-                                    <div className="rowSub" style={noEllipsis}>
-                                      {oper}
-                                    </div>
-                                  </div>
-
-                                  <div
-                                    className="rowAmount"
-                                    style={{
-                                      justifySelf: "end",
-                                      textAlign: "right",
-                                    }}
-                                  >
-                                    {/* ✅ importo mostrato = importo + iva */}
-                                    <Euro v={totaleMov(m)} />
-                                  </div>
-                                </label>
-                              );
-                            })}
-                          </div>
-                        ))
+                        <div className="movList listBox">
+                          {availEntrate.map((m) => (
+                            <AvailableMoveCard
+                              key={m.id}
+                              m={m}
+                              tone="green"
+                              macroLabelTxt={macroLabel(m.macro)}
+                              checked={!!selEntrate[m.id]}
+                              onToggle={(v) =>
+                                setSelEntrate((p) => ({
+                                  ...p,
+                                  [m.id]: v,
+                                }))
+                              }
+                            />
+                          ))}
+                        </div>
                       )}
+
+                      <div className="panelActions">
+                        <PrimaryButton
+                          onClick={() => assignSelected("ENTRATA")}
+                          className="btn--block"
+                        >
+                          Assegna Entrate selezionate
+                        </PrimaryButton>
+                      </div>
                     </div>
 
-                    <div className="mt-3" />
-                    <div style={{ padding: "0 14px" }}>
-                      <button
-                        className="btn btn--primary btn--block"
-                        onClick={() => assignSelected("ENTRATA")}
-                        type="button"
-                      >
-                        Assegna Entrate selezionate
-                      </button>
-                    </div>
-                  </div>
+                    <div className="panel">
+                      <div className="panelTitle">Uscite disponibili</div>
 
-                  {/* USCITE */}
-                  <div className="section">
-                    <div className="sectionTitle" style={{ padding: "0 14px" }}>
-                      Uscite disponibili
-                    </div>
-
-                    <div className="listBox">
                       {availUscite.length === 0 ? (
-                        <div className="listRow">
-                          <div className="rowMain">
-                            <div className="rowSub">Nessuna</div>
-                          </div>
+                        <div className="muted" style={{ fontWeight: 800 }}>
+                          Nessuna
                         </div>
                       ) : (
-                        availUsciteGrouped.map(([dateKey, rows]) => (
-                          <div key={dateKey}>
-                            <div
-                              className="sectionTitle"
-                              style={{ padding: "12px 14px" }}
-                            >
-                              {dateKey === "—"
-                                ? "Senza data"
-                                : fmtDate(dateKey)}
-                            </div>
-
-                            {rows.map((m) => {
-                              const { cod, oper } = getDescrPair(m);
-                              return (
-                                <label
-                                  key={m.id}
-                                  className="listRow"
-                                  style={{ ...row3Cols, cursor: "pointer" }}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={!!selUscite[m.id]}
-                                    onChange={(e) =>
-                                      setSelUscite((p) => ({
-                                        ...p,
-                                        [m.id]: e.target.checked,
-                                      }))
-                                    }
-                                    style={{ marginTop: 2 }}
-                                  />
-
-                                  <div
-                                    className="rowMain"
-                                    style={{ minWidth: 0 }}
-                                  >
-                                    <div
-                                      className="rowMeta"
-                                      style={{ marginTop: 0, marginBottom: 8 }}
-                                    >
-                                      <Badge tone="red">Uscita</Badge>
-                                      <Badge tone="amber">
-                                        {macroLabel(m.macro)}
-                                      </Badge>
-                                    </div>
-
-                                    <div
-                                      className="rowTitle"
-                                      style={noEllipsis}
-                                    >
-                                      {cod}
-                                    </div>
-                                    <div className="rowSub" style={noEllipsis}>
-                                      {oper}
-                                    </div>
-                                  </div>
-
-                                  <div
-                                    className="rowAmount"
-                                    style={{
-                                      justifySelf: "end",
-                                      textAlign: "right",
-                                    }}
-                                  >
-                                    {/* ✅ importo mostrato = importo + iva */}
-                                    <Euro v={totaleMov(m)} />
-                                  </div>
-                                </label>
-                              );
-                            })}
-                          </div>
-                        ))
+                        <div className="movList listBox">
+                          {availUscite.map((m) => (
+                            <AvailableMoveCard
+                              key={m.id}
+                              m={m}
+                              tone="red"
+                              macroLabelTxt={macroLabel(m.macro)}
+                              checked={!!selUscite[m.id]}
+                              onToggle={(v) =>
+                                setSelUscite((p) => ({
+                                  ...p,
+                                  [m.id]: v,
+                                }))
+                              }
+                            />
+                          ))}
+                        </div>
                       )}
-                    </div>
 
-                    <div className="mt-3" />
-                    <div style={{ padding: "0 14px" }}>
-                      <button
-                        className="btn btn--primary btn--block"
-                        onClick={() => assignSelected("USCITA")}
-                        type="button"
-                      >
-                        Assegna Uscite selezionate
-                      </button>
+                      <div className="panelActions">
+                        <PrimaryButton
+                          onClick={() => assignSelected("USCITA")}
+                          className="btn--block"
+                        >
+                          Assegna Uscite selezionate
+                        </PrimaryButton>
+                      </div>
                     </div>
                   </div>
-                </div>
+                </Card>
               </div>
 
-              {/* MOVIMENTI ASSEGNATI */}
               <div className="mt-3" />
+
+              {/* ✅ MOVIMENTI ASSEGNATI — STILE COME RACCOLTE FONDI */}
               <div style={fullBleed}>
-                <div className="section">
-                  <div className="sectionTitle" style={{ padding: "0 14px" }}>
-                    MOVIMENTI ASSEGNATI
-                  </div>
+                <Card title="Movimenti assegnati">
+                  <div className="splitGrid">
+                    <div className="panel">
+                      <div className="panelTitle">Entrate assegnate</div>
 
-                  {/* ENTRATE ASSEGNATE */}
-                  <div className="section">
-                    <div className="sectionTitle" style={{ padding: "0 14px" }}>
-                      Entrate assegnate
-                    </div>
-
-                    <div className="listBox">
                       {assEntrate.length === 0 ? (
-                        <div className="listRow">
-                          <div className="rowMain">
-                            <div className="rowSub">Nessuna</div>
-                          </div>
+                        <div className="muted" style={{ fontWeight: 800 }}>
+                          Nessuna
                         </div>
                       ) : (
-                        assEntrateGrouped.map(([dateKey, rows]) => (
-                          <div key={dateKey}>
-                            <div
-                              className="sectionTitle"
-                              style={{ padding: "12px 14px" }}
-                            >
-                              {dateKey === "—"
-                                ? "Senza data"
-                                : fmtDate(dateKey)}
-                            </div>
-
-                            {rows.map((m) => {
-                              const { cod, oper } = getDescrPair(m);
-                              return (
-                                <div
-                                  key={m.id}
-                                  className="listRow"
-                                  style={{
-                                    ...row3Cols,
-                                    gridTemplateColumns: "auto 1fr auto auto",
-                                  }}
-                                >
-                                  <div />
-
-                                  <div
-                                    className="rowMain"
-                                    style={{ minWidth: 0 }}
-                                  >
-                                    <div
-                                      className="rowMeta"
-                                      style={{ marginTop: 0, marginBottom: 8 }}
-                                    >
-                                      <Badge tone="green">Entrata</Badge>
-                                      <Badge tone="neutral">
-                                        {macroLabel(m.macro)}
-                                      </Badge>
-                                    </div>
-
-                                    <div style={noEllipsis}>
-                                      <WrapRowValue
-                                        label={
-                                          <div>
-                                            <div
-                                              className="rowTitle"
-                                              style={noEllipsis}
-                                            >
-                                              {cod}
-                                            </div>
-                                            <div
-                                              className="rowSub"
-                                              style={noEllipsis}
-                                            >
-                                              {oper}
-                                            </div>
-                                          </div>
-                                        }
-                                        value={
-                                          /* ✅ importo mostrato = importo + iva */
-                                          <Euro v={totaleMov(m)} />
-                                        }
-                                      />
-                                    </div>
-                                  </div>
-
-                                  <IconButton
-                                    title="Rimuovi assegnazione (torna tra disponibili)"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      unassignMovimento(m.id);
-                                    }}
-                                  >
-                                    <TrashIcon />
-                                  </IconButton>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ))
+                        <div className="listBox movList">
+                          {assEntrate.map((m) => (
+                            <AssignedMoveCard
+                              key={m.id}
+                              m={m}
+                              tone="green"
+                              macroLabelTxt={macroLabel(m.macro)}
+                              onUnassign={unassignMovimento}
+                            />
+                          ))}
+                        </div>
                       )}
                     </div>
-                  </div>
 
-                  {/* USCITE ASSEGNATE */}
-                  <div className="section">
-                    <div className="sectionTitle" style={{ padding: "0 14px" }}>
-                      Uscite assegnate
-                    </div>
+                    <div className="panel">
+                      <div className="panelTitle">Uscite assegnate</div>
 
-                    <div className="listBox">
                       {assUscite.length === 0 ? (
-                        <div className="listRow">
-                          <div className="rowMain">
-                            <div className="rowSub">Nessuna</div>
-                          </div>
+                        <div className="muted" style={{ fontWeight: 800 }}>
+                          Nessuna
                         </div>
                       ) : (
-                        assUsciteGrouped.map(([dateKey, rows]) => (
-                          <div key={dateKey}>
-                            <div
-                              className="sectionTitle"
-                              style={{ padding: "12px 14px" }}
-                            >
-                              {dateKey === "—"
-                                ? "Senza data"
-                                : fmtDate(dateKey)}
-                            </div>
-
-                            {rows.map((m) => {
-                              const { cod, oper } = getDescrPair(m);
-                              return (
-                                <div
-                                  key={m.id}
-                                  className="listRow"
-                                  style={{
-                                    ...row3Cols,
-                                    gridTemplateColumns: "auto 1fr auto auto",
-                                  }}
-                                >
-                                  <div />
-
-                                  <div
-                                    className="rowMain"
-                                    style={{ minWidth: 0 }}
-                                  >
-                                    <div
-                                      className="rowMeta"
-                                      style={{ marginTop: 0, marginBottom: 8 }}
-                                    >
-                                      <Badge tone="red">Uscita</Badge>
-                                      <Badge tone="neutral">
-                                        {macroLabel(m.macro)}
-                                      </Badge>
-                                    </div>
-
-                                    <div style={noEllipsis}>
-                                      <WrapRowValue
-                                        label={
-                                          <div>
-                                            <div
-                                              className="rowTitle"
-                                              style={noEllipsis}
-                                            >
-                                              {cod}
-                                            </div>
-                                            <div
-                                              className="rowSub"
-                                              style={noEllipsis}
-                                            >
-                                              {oper}
-                                            </div>
-                                          </div>
-                                        }
-                                        value={
-                                          /* ✅ importo mostrato = importo + iva */
-                                          <Euro v={totaleMov(m)} />
-                                        }
-                                      />
-                                    </div>
-                                  </div>
-
-                                  <IconButton
-                                    title="Rimuovi assegnazione (torna tra disponibili)"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      unassignMovimento(m.id);
-                                    }}
-                                  >
-                                    <TrashIcon />
-                                  </IconButton>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ))
+                        <div className="listBox movList">
+                          {assUscite.map((m) => (
+                            <AssignedMoveCard
+                              key={m.id}
+                              m={m}
+                              tone="red"
+                              macroLabelTxt={macroLabel(m.macro)}
+                              onUnassign={unassignMovimento}
+                            />
+                          ))}
+                        </div>
                       )}
                     </div>
                   </div>
-                </div>
+                </Card>
               </div>
 
-              {/* TOTALI */}
               <div className="mt-3" />
+
+              {/* TOTALI — puoi lasciarli come erano (qui li lascio a “box” semplice) */}
               <div style={fullBleed}>
-                <div className="section">
-                  <div className="sectionTitle" style={{ padding: "0 14px" }}>
-                    Totali attività diversa
+                <Card title="Totali attività diversa">
+                  <div
+                    className="listRow"
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr auto",
+                      gap: 12,
+                      padding: "10px 0",
+                    }}
+                  >
+                    <div className="rowMain">
+                      <div className="rowTitle">Totale entrate assegnate</div>
+                    </div>
+                    <div className="rowAmount" style={{ justifySelf: "end", textAlign: "right" }}>
+                      <Euro v={totEntrate} />
+                    </div>
                   </div>
 
-                  <div className="listBox">
-                    <WrapRowValue
-                      label={
-                        <span style={noEllipsis}>TOTALE ENTRATE ASSEGNATE</span>
-                      }
-                      value={<Euro v={totEntrate} />}
-                    />
-
-                    <WrapRowValue
-                      label={
-                        <span style={noEllipsis}>TOTALE USCITE ASSEGNATE</span>
-                      }
-                      value={<Euro v={totUscite} />}
-                    />
-
-                    <WrapRowValue
-                      label={
-                        <span style={noEllipsis}>COSTI GENERALI IMPUTATI</span>
-                      }
-                      value={<Euro v={cgImputati} />}
-                    />
-
-                    <WrapRowValue
-                      label={
-                        <span style={noEllipsis}>
-                          TOTALE USCITE EFFETTIVE (incl. costi generali)
-                        </span>
-                      }
-                      value={<Euro v={totUsciteEff} />}
-                    />
+                  <div
+                    className="listRow"
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr auto",
+                      gap: 12,
+                      padding: "10px 0",
+                    }}
+                  >
+                    <div className="rowMain">
+                      <div className="rowTitle">Totale uscite assegnate</div>
+                    </div>
+                    <div className="rowAmount" style={{ justifySelf: "end", textAlign: "right" }}>
+                      <Euro v={totUscite} />
+                    </div>
                   </div>
-                </div>
+
+                  <div
+                    className="listRow"
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr auto",
+                      gap: 12,
+                      padding: "10px 0",
+                    }}
+                  >
+                    <div className="rowMain">
+                      <div className="rowTitle">Costi generali imputati</div>
+                    </div>
+                    <div className="rowAmount" style={{ justifySelf: "end", textAlign: "right" }}>
+                      <Euro v={cgImputati} />
+                    </div>
+                  </div>
+
+                  <div
+                    className="listRow"
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr auto",
+                      gap: 12,
+                      padding: "10px 0",
+                    }}
+                  >
+                    <div className="rowMain">
+                      <div className="rowTitle">
+                        Totale uscite effettive (incl. costi generali)
+                      </div>
+                    </div>
+                    <div className="rowAmount" style={{ justifySelf: "end", textAlign: "right" }}>
+                      <Euro v={totUsciteEff} />
+                    </div>
+                  </div>
+                </Card>
               </div>
 
               <div className="mt-3" />
