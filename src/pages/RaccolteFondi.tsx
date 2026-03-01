@@ -697,7 +697,7 @@ export default function RaccolteFondi() {
       {/* HEADER + FAB */}
       <div className="pageHeader" style={{ paddingTop: 15 }}>
         <div>
-          <h2 className="pageTitle">Raccolte Fondi</h2>
+          <h2 className="pageTitle">RACCOLTE FONDI</h2>
           <div className="pageHelp">
             Crea le Raccolte Fondi occasionali che l'Ente ha organizzato e
             gestito nell'annualità di riferimento. Sono iniziative organizzate
