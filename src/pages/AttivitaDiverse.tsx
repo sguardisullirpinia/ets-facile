@@ -849,7 +849,7 @@ export default function AttivitaDiverse() {
               <div style={fullBleed}>
                 <div className="section">
                   <div className="sectionTitle" style={{ padding: "0 14px" }}>
-                    Movimenti disponibili (non assegnati)
+                    MOVIMENTI NON ASSEGNATI
                   </div>
 
                   {/* ENTRATE */}
@@ -1059,7 +1059,7 @@ export default function AttivitaDiverse() {
               <div style={fullBleed}>
                 <div className="section">
                   <div className="sectionTitle" style={{ padding: "0 14px" }}>
-                    Movimenti assegnati
+                    MOVIMENTI ASSEGNATI
                   </div>
 
                   {/* ENTRATE ASSEGNATE */}
