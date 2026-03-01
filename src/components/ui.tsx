@@ -94,13 +94,17 @@ type BadgeProps = {
 
 export function Badge({ tone = "neutral", children }: BadgeProps) {
   const map: Record<string, { bg: string; fg: string; bd: string }> = {
-    neutral: { bg: "#f3f4f6", fg: "#111827", bd: "#e5e7eb" },
+     neutral: { bg: "#f3f4f6", fg: "#111827", bd: "#e5e7eb" },
     green: { bg: "#ecfdf5", fg: "#065f46", bd: "#a7f3d0" },
     red: { bg: "#fef2f2", fg: "#991b1b", bd: "#fecaca" },
-    blue: { bg: "#dce3ec", fg: "#1d4ed8", bd: "#1d4ed8" },
-    amber: { bg: "#fffbeb", fg: "#92400e", bd: "#92400e" },
+    blue: { bg: "#e1e4ee", fg: "#1d4ed8", bd: "#1d4ed8" },
+    amber: { bg: "#f1dacb", fg: "#92400e", bd: "#92400e" },
     violet: { bg: "#f5f3ff", fg: "#5b21b6", bd: "#ddd6fe" },
-    yellow: { bg: "#fefce8", fg: "#fcd202", bd: "#fcd202", },
+    yellow: {
+      bg: "#faf8ec", // giallo chiaro
+      fg: "#fcd202", // testo giallo scuro (leggibile)
+      bd: "#fcd202", // bordo giallo
+    },
   };
 
   const c = map[tone] || map.neutral;
