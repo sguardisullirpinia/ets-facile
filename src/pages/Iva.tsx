@@ -17,7 +17,6 @@ type Movimento = {
   importo: any;
   iva: any;
 
-  // opzionale
   is_costo_generale?: boolean;
 };
 
@@ -29,7 +28,6 @@ function num(v: any) {
   if (!s) return 0;
 
   s = s.replace(/[^\d,.\-]/g, "");
-
   if (s.includes(",") && s.includes(".")) {
     s = s.replace(/\./g, "").replace(",", ".");
   } else if (s.includes(",")) {
@@ -83,14 +81,33 @@ function bestDescr(m: Movimento) {
   return a || b || c || "—";
 }
 
+function dateChipParts(d: string | null) {
+  if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return { day: "—", mon: "" };
+  const [, m, day] = d.split("-");
+  const months = [
+    "GEN",
+    "FEB",
+    "MAR",
+    "APR",
+    "MAG",
+    "GIU",
+    "LUG",
+    "AGO",
+    "SET",
+    "OTT",
+    "NOV",
+    "DIC",
+  ];
+  const mi = Math.max(1, Math.min(12, Number(m))) - 1;
+  return { day, mon: months[mi] };
+}
+
 export default function Iva() {
   const annualitaId = localStorage.getItem("annualita_id");
   const annualitaAnno = localStorage.getItem("annualita_anno") || "";
 
   const [error, setError] = useState<string | null>(null);
   const [rows, setRows] = useState<Movimento[]>([]);
-
-  // filtri base (facoltativi ma utili)
   const [search, setSearch] = useState("");
 
   const load = async () => {
@@ -111,11 +128,9 @@ export default function Iva() {
       return;
     }
 
-    // tengo solo quelli con IVA valorizzata
     const cleaned = ((data || []) as Movimento[]).filter(
       (m) => num(m.iva) !== 0,
     );
-
     setRows(cleaned);
   };
 
@@ -124,7 +139,6 @@ export default function Iva() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // separo debito/credito
   const ivaDebitoAll = useMemo(
     () => rows.filter((m) => m.tipologia === "ENTRATA" && num(m.iva) !== 0),
     [rows],
@@ -135,25 +149,19 @@ export default function Iva() {
     [rows],
   );
 
-  // filtro testo
   const applySearch = (list: Movimento[]) => {
     const q = search.trim().toLowerCase();
     if (!q) return list;
 
     return list.filter((m) => {
-      const a = (
-        macroLabel(m.is_costo_generale ? "COSTI_GENERALI" : m.macro) || ""
-      ).toLowerCase();
+      const me = m.is_costo_generale ? "COSTI_GENERALI" : m.macro;
+      const a = (macroLabel(me) || "").toLowerCase();
       const b = (m.descrizione_label || "").toLowerCase();
       const c = (m.descrizione_operazione || "").toLowerCase();
       const d = (m.descrizione_libera || "").toLowerCase();
       const e = (fmtDate(m.data) || "").toLowerCase();
       return (
-        a.includes(q) ||
-        b.includes(q) ||
-        c.includes(q) ||
-        d.includes(q) ||
-        e.includes(q)
+        a.includes(q) || b.includes(q) || c.includes(q) || d.includes(q) || e.includes(q)
       );
     });
   };
@@ -162,6 +170,7 @@ export default function Iva() {
     () => applySearch(ivaDebitoAll),
     [ivaDebitoAll, search],
   );
+
   const ivaCredito = useMemo(
     () => applySearch(ivaCreditoAll),
     [ivaCreditoAll, search],
@@ -179,13 +188,11 @@ export default function Iva() {
 
   const saldo = useMemo(() => totDebito - totCredito, [totDebito, totCredito]);
 
-  // apertura movimento in edit
   const openEdit = (id: string) => {
     localStorage.setItem("movimento_edit_id", id);
     window.location.href = "/movimento";
   };
 
-  // piccoli stili coerenti con il resto app
   const filterBar: React.CSSProperties = {
     display: "grid",
     gridTemplateColumns: "1fr",
@@ -221,32 +228,11 @@ export default function Iva() {
     borderRadius: 14,
     display: "grid",
     placeItems: "center",
-    border: "1px solid rgba(0,0,0,0.10)",
+    border: "1px solid rgba(0,0,0,0.1)",
     background: "rgba(0,0,0,0.02)",
     lineHeight: 1,
     marginTop: 2,
   };
-
-  function dateChipParts(d: string | null) {
-    if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return { day: "—", mon: "" };
-    const [, m, day] = d.split("-");
-    const months = [
-      "GEN",
-      "FEB",
-      "MAR",
-      "APR",
-      "MAG",
-      "GIU",
-      "LUG",
-      "AGO",
-      "SET",
-      "OTT",
-      "NOV",
-      "DIC",
-    ];
-    const mi = Math.max(1, Math.min(12, Number(m))) - 1;
-    return { day, mon: months[mi] };
-  }
 
   const SectionList = ({
     title,
@@ -300,53 +286,35 @@ export default function Iva() {
                       if (e.key === "Enter" || e.key === " ") openEdit(m.id);
                     }}
                   >
-                    <div
-                      style={chipStyle}
-                      aria-label={`Data: ${fmtDate(m.data)}`}
-                    >
+                    <div style={chipStyle} aria-label={`Data: ${fmtDate(m.data)}`}>
                       <div style={{ fontSize: 16, fontWeight: 800 }}>{day}</div>
-                      <div
-                        style={{ fontSize: 10, fontWeight: 800, opacity: 0.75 }}
-                      >
+                      <div style={{ fontSize: 10, fontWeight: 800, opacity: 0.75 }}>
                         {mon}
                       </div>
                     </div>
 
                     <div className="rowMain" style={{ minWidth: 0 }}>
-                      <div
-                        className="rowMeta"
-                        style={{ marginTop: 0, marginBottom: 8 }}
-                      >
+                      <div className="rowMeta" style={{ marginTop: 0, marginBottom: 8 }}>
                         <Badge tone={tone as any}>
                           {m.tipologia === "ENTRATA" ? "Entrata" : "Uscita"}
                         </Badge>
                         <Badge tone="neutral">{macroLabel(me)}</Badge>
                       </div>
 
-                      <div
-                        className="rowTitle"
-                        style={{ whiteSpace: "normal" }}
-                      >
+                      <div className="rowTitle" style={{ whiteSpace: "normal" }}>
                         {descr}
                       </div>
 
-                      <div
-                        style={{ fontSize: 12, opacity: 0.65, marginTop: 6 }}
-                      >
+                      <div style={{ fontSize: 12, opacity: 0.65, marginTop: 6 }}>
                         {fmtDate(m.data)}
                       </div>
                     </div>
 
-                    <div
-                      className="rowAmount"
-                      style={{ justifySelf: "end", textAlign: "right" }}
-                    >
+                    <div className="rowAmount" style={{ justifySelf: "end", textAlign: "right" }}>
                       <div style={{ fontWeight: 950 }}>
                         <Euro v={num(m.iva)} />
                       </div>
-                      <div
-                        style={{ fontSize: 11, opacity: 0.65, marginTop: 4 }}
-                      >
+                      <div style={{ fontSize: 11, opacity: 0.65, marginTop: 4 }}>
                         IVA
                       </div>
                     </div>
@@ -375,10 +343,9 @@ export default function Iva() {
         <div>
           <h2 className="pageTitle">IVA</h2>
           <div className="pageHelp">
-            Qui trovi l’IVA dei movimenti inseriti nell’annualità selezionata.
+            Movimenti con IVA dell’annualità selezionata.
             <br />
-            <b>IVA a debito</b> = IVA sulle entrate • <b>IVA a credito</b> = IVA
-            sulle uscite.
+            <b>IVA a debito</b> = IVA sulle entrate • <b>IVA a credito</b> = IVA sulle uscite.
             {annualitaAnno ? (
               <>
                 <br />
@@ -410,88 +377,7 @@ export default function Iva() {
         </div>
       </div>
 
-      <Card
-        title="Riepilogo IVA"
-        right={
-          <Badge tone={saldo >= 0 ? "red" : "green"}>
-            Saldo:{" "}
-            <b>
-              <Euro v={saldo} />
-            </b>
-          </Badge>
-        }
-      >
-        <div className="listBox">
-          <div
-            className="listRow"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr auto",
-              gap: 12,
-            }}
-          >
-            <div className="rowMain">
-              <div className="rowTitle">Totale IVA a debito</div>
-              <div className="rowSub">Somma IVA di tutte le entrate</div>
-            </div>
-            <div
-              className="rowAmount"
-              style={{ justifySelf: "end", textAlign: "right" }}
-            >
-              <Euro v={totDebito} />
-            </div>
-          </div>
-
-          <div
-            className="listRow"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr auto",
-              gap: 12,
-            }}
-          >
-            <div className="rowMain">
-              <div className="rowTitle">Totale IVA a credito</div>
-              <div className="rowSub">Somma IVA di tutte le uscite</div>
-            </div>
-            <div
-              className="rowAmount"
-              style={{ justifySelf: "end", textAlign: "right" }}
-            >
-              <Euro v={totCredito} />
-            </div>
-          </div>
-
-          <div
-            className="listRow"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr auto",
-              gap: 12,
-            }}
-          >
-            <div className="rowMain">
-              <div className="rowTitle">Saldo (debito − credito)</div>
-              <div className="rowSub">
-                Se positivo: IVA da versare • se negativo: credito IVA
-              </div>
-            </div>
-            <div
-              className="rowAmount"
-              style={{
-                justifySelf: "end",
-                textAlign: "right",
-                fontWeight: 950,
-              }}
-            >
-              <Euro v={saldo} />
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      <div className="mt-3" />
-
+      {/* ✅ PRIMA LE SEZIONI */}
       <SectionList
         title="IVA a debito"
         tone="red"
@@ -509,6 +395,67 @@ export default function Iva() {
         total={totCredito}
         emptyText="Nessuna IVA a credito trovata (uscite con IVA)."
       />
+
+      <div className="mt-3" />
+
+      {/* ✅ POI IL RIEPILOGO */}
+      <Card
+        title="Riepilogo IVA"
+        right={
+          <Badge tone={saldo >= 0 ? "red" : "green"}>
+            Saldo:{" "}
+            <b>
+              <Euro v={saldo} />
+            </b>
+          </Badge>
+        }
+      >
+        <div className="listBox">
+          <div
+            className="listRow"
+            style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 12 }}
+          >
+            <div className="rowMain">
+              <div className="rowTitle">Totale IVA a debito</div>
+              <div className="rowSub">Somma IVA di tutte le entrate</div>
+            </div>
+            <div className="rowAmount" style={{ justifySelf: "end", textAlign: "right" }}>
+              <Euro v={totDebito} />
+            </div>
+          </div>
+
+          <div
+            className="listRow"
+            style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 12 }}
+          >
+            <div className="rowMain">
+              <div className="rowTitle">Totale IVA a credito</div>
+              <div className="rowSub">Somma IVA di tutte le uscite</div>
+            </div>
+            <div className="rowAmount" style={{ justifySelf: "end", textAlign: "right" }}>
+              <Euro v={totCredito} />
+            </div>
+          </div>
+
+          <div
+            className="listRow"
+            style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 12 }}
+          >
+            <div className="rowMain">
+              <div className="rowTitle">Saldo (debito − credito)</div>
+              <div className="rowSub">
+                Se positivo: IVA da versare • se negativo: credito IVA
+              </div>
+            </div>
+            <div
+              className="rowAmount"
+              style={{ justifySelf: "end", textAlign: "right", fontWeight: 950 }}
+            >
+              <Euro v={saldo} />
+            </div>
+          </div>
+        </div>
+      </Card>
 
       <div style={{ height: 90 }} />
     </Layout>
