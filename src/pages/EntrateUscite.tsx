@@ -632,7 +632,7 @@ export default function EntrateUscite() {
 
       {/* MOVIMENTI */}
       <div className="section">
-        <div className="sectionTitle">Movimenti dell’annualità</div>
+        <div className="sectionTitle">MOVIMENTI DELL'ANNUALITA'</div>
 
         <div style={filterBar}>
           <input
@@ -815,7 +815,7 @@ export default function EntrateUscite() {
 
       {/* ✅ RIEPILOGO */}
       <div className="section">
-        <div className="sectionTitle">Riepilogo</div>
+        <div className="sectionTitle">RIEPILOGO</div>
 
         <div className="listBox">
           {/* ENTRATE */}
