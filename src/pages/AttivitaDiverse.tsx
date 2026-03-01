@@ -781,6 +781,10 @@ export default function AttivitaDiverse() {
                 zIndex: 2,
                 background: "#fff",
                 borderBottom: "1px solid rgba(0,0,0,0.08)",
+                display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "16px",
               }}
             >
               <div className="sheetTitle" style={{ fontWeight: 950 }}>
