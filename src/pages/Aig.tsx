@@ -248,14 +248,17 @@ export default function Aig() {
     background: "rgba(0,0,0,0.45)",
     zIndex: 9999,
     display: "flex",
+    overflow: "hidden",
   };
 
   const fullModalSheet: React.CSSProperties = {
     background: "#fff",
     width: "100%",
     height: "100%",
-    borderRadius: 0,
-    overflow: "auto",
+    borderRadius: 0, // Forza la rimozione di angoli arrotondati
+    margin: 0, // Rimuove eventuali margini residui
+    padding: 0, // L'header deve toccare il bordo, quindi il padding va gestito internamente
+    overflowY: "auto",
     WebkitOverflowScrolling: "touch",
     paddingBottom: 120,
   };
