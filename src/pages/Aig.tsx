@@ -1013,8 +1013,12 @@ export default function Aig() {
                 position: "sticky",
                 top: 0,
                 zIndex: 2,
-                background: "#fff",
+                background: "rgba(246, 245, 241)",
                 borderBottom: "1px solid rgba(0,0,0,0.08)",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "16px",
               }}
             >
               <div className="sheetTitle" style={{ fontWeight: 950 }}>
