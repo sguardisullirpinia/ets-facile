@@ -1034,7 +1034,7 @@ export default function RaccolteFondi() {
               <div className="mt-3" />
 
               <div style={fullBleed}>
-                <Card title="Totali raccolta fondi">
+                <Card title="TOTALE RACCOLTA FONDI">
                   <div
                     className="listRow"
                     style={{
