@@ -1019,7 +1019,7 @@ export default function AttivitaDiverse() {
 
               {/* TOTALI — puoi lasciarli come erano (qui li lascio a “box” semplice) */}
               <div style={fullBleed}>
-                <Card title="Totali attività diversa">
+                <Card title="TOTALE ATTIVITA' DIVERSA">
                   <div
                     className="listRow"
                     style={{
