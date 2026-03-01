@@ -692,7 +692,7 @@ export default function RaccolteFondi() {
   return (
     <Layout>
       {/* HEADER + FAB */}
-      <div className="pageHeader" style={{ paddingTop: 10 }}>
+      <div className="pageHeader" style={{ paddingTop: 15 }}>
         <div>
           <h2 className="pageTitle">Raccolte Fondi</h2>
           <div className="pageHelp">
