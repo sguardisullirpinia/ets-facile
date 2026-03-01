@@ -900,7 +900,7 @@ export default function RaccolteFondi() {
               <div className="mt-3" />
 
               <div style={fullBleed}>
-                <Card title="Movimenti disponibili (non assegnati)">
+                <Card title="MOVIMENTI NON ASSEGNATI">
                   <div className="splitGrid">
                     <div className="panel">
                       <div className="panelTitle">Entrate disponibili</div>
@@ -982,7 +982,7 @@ export default function RaccolteFondi() {
               <div className="mt-3" />
 
               <div style={fullBleed}>
-                <Card title="Movimenti assegnati">
+                <Card title="MOVIMENTI ASSEGNATI">
                   <div className="splitGrid">
                     <div className="panel">
                       <div className="panelTitle">Entrate assegnate</div>
