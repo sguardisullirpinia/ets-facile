@@ -665,7 +665,7 @@ export default function AttivitaDiverse() {
     <Layout>
       <div className="pageHeader" style={{ paddingTop: 10 }}>
         <div>
-          <h2 className="pageTitle">Attività Diverse</h2>
+          <h2 className="pageTitle">ATTIVITA' DIVERSE</h2>
           <div className="pageHelp">
             Crea le Attività Diverse di cui all'art. 6 del CTS e assegna a ciascuna
             attività le entrate e le uscite sostenute per la sua realizzazione.
