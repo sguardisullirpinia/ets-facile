@@ -5,6 +5,8 @@ import { supabase } from "../lib/supabase";
 import BottomBar from "./BottomBar";
 import { LogOut, ChevronRight, User, Menu } from "lucide-react";
 
+type Regime = "FORFETTARIO" | "ORDINARIO";
+
 function pageLabel(pathname: string) {
   if (pathname.startsWith("/entrate-uscite")) return "Entrate/Uscite";
   if (pathname.startsWith("/aig")) return "AIG";
@@ -23,8 +25,15 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   const annualitaId = localStorage.getItem("annualita_id");
   const annoLS = localStorage.getItem("annualita_anno");
+  const regimeLS = localStorage.getItem("annualita_regime");
 
   const [anno, setAnno] = useState<string | null>(annoLS);
+  const [regime, setRegime] = useState<Regime>(
+    regimeLS === "FORFETTARIO" || regimeLS === "ORDINARIO"
+      ? (regimeLS as Regime)
+      : "ORDINARIO",
+  );
+
   const [openMenu, setOpenMenu] = useState(false);
 
   useEffect(() => {
@@ -36,26 +45,47 @@ export default function Layout({ children }: { children: ReactNode }) {
     // 🔒 controllo annualità selezionata
     if (!annualitaId) nav("/annualita");
 
-    // prova a caricare anno se manca
-    const loadAnno = async () => {
-      if (anno) return;
+    // prova a caricare anno/regime se mancano
+    const loadAnnualitaInfo = async () => {
       if (!annualitaId) return;
+
+      // se ho già entrambi, non serve query
+      if (anno && (regime === "FORFETTARIO" || regime === "ORDINARIO")) return;
 
       const { data, error } = await supabase
         .from("annualita")
-        .select("anno")
+        .select("anno, regime")
         .eq("id", annualitaId)
         .single();
 
-      if (!error && data?.anno) {
+      if (error) return;
+
+      if (data?.anno) {
         const v = String(data.anno);
         setAnno(v);
         localStorage.setItem("annualita_anno", v);
       }
+
+      if (data?.regime === "FORFETTARIO" || data?.regime === "ORDINARIO") {
+        setRegime(data.regime);
+        localStorage.setItem("annualita_regime", data.regime);
+      }
     };
 
-    loadAnno();
+    loadAnnualitaInfo();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ✅ se cambi annualità senza refresh (o aggiorni localStorage), riallineo il regime
+  useEffect(() => {
+    const onStorage = () => {
+      const r = localStorage.getItem("annualita_regime");
+      if (r === "FORFETTARIO" || r === "ORDINARIO") setRegime(r);
+      const a = localStorage.getItem("annualita_anno");
+      if (a) setAnno(a);
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
   // chiudi menu con ESC
@@ -76,11 +106,13 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   const crumbCurrent = useMemo(() => pageLabel(loc.pathname), [loc.pathname]);
 
+  const isRegimeOrdinario = regime === "ORDINARIO";
+
   return (
     <div className="appShell">
       {/* HEADER */}
       <header className="appHeader">
-        {/* ✅ TOP ROW FULL-WIDTH (robusta, non dipende dal CSS esterno) */}
+        {/* ✅ TOP ROW FULL-WIDTH */}
         <div
           style={{
             width: "100%",
@@ -191,7 +223,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       {/* BOTTOM BAR */}
       <BottomBar />
 
-      {/* DRAWER MENU (SOLO TEST) */}
+      {/* DRAWER MENU */}
       {openMenu && (
         <div
           onClick={() => setOpenMenu(false)}
@@ -243,36 +275,47 @@ export default function Layout({ children }: { children: ReactNode }) {
             </div>
 
             <button
-  className="btn btn--block"
-  type="button"
-  onClick={() => {
-    nav("/test");
-    setOpenMenu(false);
-  }}
->
-  Test
-</button>
+              className="btn btn--block"
+              type="button"
+              onClick={() => {
+                nav("/test");
+                setOpenMenu(false);
+              }}
+            >
+              Test
+            </button>
 
-<button
-  className="btn btn--block"
-  type="button"
-  onClick={() => {
-    nav("/ires");
-    setOpenMenu(false);
-  }}
->
-  Ires
-</button>
-<button
-  className="btn btn--block"
-  type="button"
-  onClick={() => {
-    nav("/Iva");
-    setOpenMenu(false);
-  }}
->
-  Liquidazione Iva
-</button>
+            <button
+              className="btn btn--block"
+              type="button"
+              onClick={() => {
+                nav("/ires");
+                setOpenMenu(false);
+              }}
+            >
+              Ires
+            </button>
+
+            {/* ✅ Liquidazione IVA solo se regime ordinario */}
+            {isRegimeOrdinario && (
+              <button
+                className="btn btn--block"
+                type="button"
+                onClick={() => {
+                  nav("/Iva");
+                  setOpenMenu(false);
+                }}
+              >
+                Liquidazione Iva
+              </button>
+            )}
+
+            {/* opzionale: micro-nota in forfettario */}
+            {!isRegimeOrdinario && (
+              <div
+                style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}
+              ></div>
+            )}
           </div>
         </div>
       )}
