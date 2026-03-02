@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import Layout from "../components/Layout";
 import { supabase } from "../lib/supabase";
 import { Badge, Euro, Card, PrimaryButton } from "../components/ui";
@@ -95,7 +96,7 @@ function IconButton({
 }: {
   title: string;
   onClick: (e: React.MouseEvent) => void;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <button title={title} onClick={onClick} className="iconBtn" type="button">
@@ -192,6 +193,51 @@ export default function AttivitaDiverse() {
   };
 
   // =========================
+  // ✅ Row wrapper: stile come AIG (label maiuscola NON bold, valore a destra bold)
+  // =========================
+  const wrapRowBox: React.CSSProperties = {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 10,
+    alignItems: "flex-start",
+    padding: "10px 0",
+    borderBottom: "1px solid rgba(0,0,0,0.08)",
+  };
+
+  const wrapRowLabel: React.CSSProperties = {
+    flex: "1 1 240px",
+    minWidth: 0,
+    whiteSpace: "normal",
+    overflowWrap: "anywhere",
+    lineHeight: 1.25,
+
+    // ✅ richiesto: maiuscolo e NON grassetto
+    textTransform: "uppercase",
+    fontWeight: 400,
+  };
+
+  const wrapRowValue: React.CSSProperties = {
+    flex: "0 0 auto",
+    marginLeft: "auto",
+    textAlign: "right",
+    whiteSpace: "nowrap",
+    fontWeight: 950,
+  };
+
+  const WrapRowValue = ({
+    label,
+    value,
+  }: {
+    label: ReactNode;
+    value: ReactNode;
+  }) => (
+    <div style={wrapRowBox}>
+      <div style={wrapRowLabel}>{label}</div>
+      <div style={wrapRowValue}>{value}</div>
+    </div>
+  );
+
+  // =========================
   // ✅ MODALE FULLSCREEN STYLES (come Raccolte Fondi)
   // =========================
   const fullModalOverlay: React.CSSProperties = {
@@ -207,9 +253,9 @@ export default function AttivitaDiverse() {
     background: "#fff",
     width: "100%",
     height: "100%",
-    borderRadius: 0, // Forza la rimozione di angoli arrotondati
-    margin: 0, // Rimuove eventuali margini residui
-    padding: 0, // L'header deve toccare il bordo, quindi il padding va gestito internamente
+    borderRadius: 0,
+    margin: 0,
+    padding: 0,
     overflowY: "auto",
     WebkitOverflowScrolling: "touch",
     paddingBottom: 120,
@@ -503,17 +549,23 @@ export default function AttivitaDiverse() {
     );
     if (!ok) return;
 
-    const { error: unErr } = await supabase.rpc("unassign_movimenti_for_activity", {
-      p_type: "ATTIVITA_DIVERSE",
-      p_id: id,
-    });
+    const { error: unErr } = await supabase.rpc(
+      "unassign_movimenti_for_activity",
+      {
+        p_type: "ATTIVITA_DIVERSE",
+        p_id: id,
+      },
+    );
 
     if (unErr) {
       alert("Errore sblocco movimenti: " + unErr.message);
       return;
     }
 
-    const { error } = await supabase.from("attivita_diverse").delete().eq("id", id);
+    const { error } = await supabase
+      .from("attivita_diverse")
+      .delete()
+      .eq("id", id);
 
     if (error) {
       alert(error.message);
@@ -618,7 +670,9 @@ export default function AttivitaDiverse() {
   const assignSelected = async (kind: "ENTRATA" | "USCITA") => {
     if (!active) return;
 
-    const selectedIds = Object.entries(kind === "ENTRATA" ? selEntrate : selUscite)
+    const selectedIds = Object.entries(
+      kind === "ENTRATA" ? selEntrate : selUscite,
+    )
       .filter(([, v]) => v)
       .map(([id]) => id);
 
@@ -659,7 +713,10 @@ export default function AttivitaDiverse() {
     return num(cgMap[active.id] ?? 0);
   }, [active, cgMap]);
 
-  const totUsciteEff = useMemo(() => totUscite + cgImputati, [totUscite, cgImputati]);
+  const totUsciteEff = useMemo(
+    () => totUscite + cgImputati,
+    [totUscite, cgImputati],
+  );
 
   return (
     <Layout>
@@ -667,15 +724,17 @@ export default function AttivitaDiverse() {
         <div>
           <h2 className="pageTitle">ATTIVITA' DIVERSE</h2>
           <div className="pageHelp">
-            Crea le Attività Diverse di cui all'art. 6 del CTS e assegna a ciascuna
-            attività le entrate e le uscite sostenute per la sua realizzazione.
+            Crea le Attività Diverse di cui all&apos;art. 6 del CTS e assegna a
+            ciascuna attività le entrate e le uscite sostenute per la sua
+            realizzazione.
             <br />
             <br />
             <u>
-              Le attività diverse sono iniziative di natura commerciale (es. gestione
-              di un punto ristoro/bar durante l'evento o affitto della propria sede a
-              privati per feste di compleanno) che devono restare secondarie e
-              strumentali rispetto alle attività di interesse generale.
+              Le attività diverse sono iniziative di natura commerciale (es.
+              gestione di un punto ristoro/bar durante l&apos;evento o affitto
+              della propria sede a privati per feste di compleanno) che devono
+              restare secondarie e strumentali rispetto alle attività di
+              interesse generale.
             </u>
           </div>
         </div>
@@ -705,14 +764,20 @@ export default function AttivitaDiverse() {
 
             <div className="sheetHeader">
               <div className="sheetTitle">Crea Attività Diversa</div>
-              <button className="btn" onClick={() => setOpenSheet(false)} type="button">
+              <button
+                className="btn"
+                onClick={() => setOpenSheet(false)}
+                type="button"
+              >
                 Chiudi
               </button>
             </div>
 
             <div className="sheetGrid" style={{ gap: 12 }}>
               <div>
-                <div style={{ fontWeight: 900, marginBottom: 6 }}>Nome (obbligatorio)</div>
+                <div style={{ fontWeight: 900, marginBottom: 6 }}>
+                  Nome (obbligatorio)
+                </div>
                 <input
                   value={newNome}
                   onChange={(e) => setNewNome(e.target.value)}
@@ -722,7 +787,9 @@ export default function AttivitaDiverse() {
               </div>
 
               <div>
-                <div style={{ fontWeight: 900, marginBottom: 6 }}>Descrizione (opzionale)</div>
+                <div style={{ fontWeight: 900, marginBottom: 6 }}>
+                  Descrizione (opzionale)
+                </div>
                 <input
                   value={newDescr}
                   onChange={(e) => setNewDescr(e.target.value)}
@@ -731,11 +798,17 @@ export default function AttivitaDiverse() {
                 />
               </div>
 
-              <div className="listRow" style={{ ...row2Cols, padding: "12px 14px" }}>
+              <div
+                className="listRow"
+                style={{ ...row2Cols, padding: "12px 14px" }}
+              >
                 <div className="rowMain">
-                  <div className="rowTitle">Attività svolta occasionalmente</div>
+                  <div className="rowTitle">
+                    Attività svolta occasionalmente
+                  </div>
                   <div className="rowSub">
-                    Se spuntata: i ricavi NON si considerano nel test di commercialità dell’Ente.
+                    Se spuntata: i ricavi NON si considerano nel test di
+                    commercialità dell’Ente.
                   </div>
                 </div>
 
@@ -747,7 +820,11 @@ export default function AttivitaDiverse() {
                 />
               </div>
 
-              <button className="btn btn--primary btn--block" onClick={createItem} type="button">
+              <button
+                className="btn btn--primary btn--block"
+                onClick={createItem}
+                type="button"
+              >
                 Salva
               </button>
             </div>
@@ -783,7 +860,10 @@ export default function AttivitaDiverse() {
                   <div className="rowTitle" style={noEllipsis}>
                     {it.nome}
                   </div>
-                  <div className="rowSub" style={{ ...noEllipsis, marginTop: 6 }}>
+                  <div
+                    className="rowSub"
+                    style={{ ...noEllipsis, marginTop: 6 }}
+                  >
                     {it.descrizione || "—"}
                   </div>
 
@@ -820,7 +900,11 @@ export default function AttivitaDiverse() {
           role="dialog"
           aria-modal="true"
         >
-          <div className="sheet" style={{ ...fullModalSheet, maxWidth: "none", margin: 0 }} onClick={(e) => e.stopPropagation()}>
+          <div
+            className="sheet"
+            style={{ ...fullModalSheet, maxWidth: "none", margin: 0 }}
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Header sticky */}
             <div
               className="sheetHeader"
@@ -840,13 +924,19 @@ export default function AttivitaDiverse() {
                 {active.nome}
               </div>
 
-              <button className="btn" onClick={() => setActive(null)} type="button">
+              <button
+                className="btn"
+                onClick={() => setActive(null)}
+                type="button"
+              >
                 Chiudi
               </button>
             </div>
 
             <div style={{ padding: 14 }}>
-              {active.descrizione && <div style={{ ...noEllipsis }}>{active.descrizione}</div>}
+              {active.descrizione && (
+                <div style={{ ...noEllipsis }}>{active.descrizione}</div>
+              )}
 
               <div style={{ marginTop: 10 }}>
                 <Badge tone={active.occasionale ? "amber" : "green"}>
@@ -861,18 +951,23 @@ export default function AttivitaDiverse() {
                 <div className="listBox">
                   <div className="listRow" style={row2Cols}>
                     <div className="rowMain">
-                      <div className="rowTitle">Attività Diversa “Occasionale”</div>
+                      <div className="rowTitle">
+                        Attività Diversa “Occasionale”
+                      </div>
                       <div className="rowSub">
-                        Spuntare se l'attività è svolta in modo occasionale. In questo caso i
-                        ricavi di questa attività <b>non</b> saranno considerati nel test di
-                        commercialità dell’Ente.
+                        Spuntare se l&apos;attività è svolta in modo
+                        occasionale. In questo caso i ricavi di questa attività{" "}
+                        <b>non</b> saranno considerati nel test di commercialità
+                        dell’Ente.
                       </div>
                     </div>
 
                     <input
                       type="checkbox"
                       checked={active.occasionale}
-                      onChange={(e) => updateOccasionale(active.id, e.target.checked)}
+                      onChange={(e) =>
+                        updateOccasionale(active.id, e.target.checked)
+                      }
                       className="checkBox"
                     />
                   </div>
@@ -881,7 +976,7 @@ export default function AttivitaDiverse() {
 
               <div className="mt-3" />
 
-              {/* ✅ MOVIMENTI DISPONIBILI — STILE COME RACCOLTE FONDI */}
+              {/* ✅ MOVIMENTI DISPONIBILI */}
               <div style={fullBleed}>
                 <Card title="Movimenti disponibili (non assegnati)">
                   <div className="splitGrid">
@@ -964,7 +1059,7 @@ export default function AttivitaDiverse() {
 
               <div className="mt-3" />
 
-              {/* ✅ MOVIMENTI ASSEGNATI — STILE COME RACCOLTE FONDI */}
+              {/* ✅ MOVIMENTI ASSEGNATI */}
               <div style={fullBleed}>
                 <Card title="Movimenti assegnati">
                   <div className="splitGrid">
@@ -1017,77 +1112,39 @@ export default function AttivitaDiverse() {
 
               <div className="mt-3" />
 
-              {/* TOTALI — puoi lasciarli come erano (qui li lascio a “box” semplice) */}
+              {/* ✅ TOTALE ATTIVITA' DIVERSA — STILE COME AIG */}
               <div style={fullBleed}>
                 <Card title="TOTALE ATTIVITA' DIVERSA">
-                  <div
-                    className="listRow"
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr auto",
-                      gap: 12,
-                      padding: "10px 0",
-                    }}
-                  >
-                    <div className="rowMain">
-                      <div className="rowTitle">Totale entrate assegnate</div>
-                    </div>
-                    <div className="rowAmount" style={{ justifySelf: "end", textAlign: "right" }}>
-                      <Euro v={totEntrate} />
-                    </div>
-                  </div>
+                  <div style={noEllipsis}>
+                    <WrapRowValue
+                      label={
+                        <span style={noEllipsis}>Totale entrate assegnate</span>
+                      }
+                      value={<Euro v={totEntrate} />}
+                    />
 
-                  <div
-                    className="listRow"
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr auto",
-                      gap: 12,
-                      padding: "10px 0",
-                    }}
-                  >
-                    <div className="rowMain">
-                      <div className="rowTitle">Totale uscite assegnate</div>
-                    </div>
-                    <div className="rowAmount" style={{ justifySelf: "end", textAlign: "right" }}>
-                      <Euro v={totUscite} />
-                    </div>
-                  </div>
+                    <WrapRowValue
+                      label={
+                        <span style={noEllipsis}>Totale uscite assegnate</span>
+                      }
+                      value={<Euro v={totUscite} />}
+                    />
 
-                  <div
-                    className="listRow"
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr auto",
-                      gap: 12,
-                      padding: "10px 0",
-                    }}
-                  >
-                    <div className="rowMain">
-                      <div className="rowTitle">Costi generali imputati</div>
-                    </div>
-                    <div className="rowAmount" style={{ justifySelf: "end", textAlign: "right" }}>
-                      <Euro v={cgImputati} />
-                    </div>
-                  </div>
+                    <WrapRowValue
+                      label={
+                        <span style={noEllipsis}>Costi generali imputati</span>
+                      }
+                      value={<Euro v={cgImputati} />}
+                    />
 
-                  <div
-                    className="listRow"
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr auto",
-                      gap: 12,
-                      padding: "10px 0",
-                    }}
-                  >
-                    <div className="rowMain">
-                      <div className="rowTitle">
-                        Totale uscite effettive (incl. costi generali)
-                      </div>
-                    </div>
-                    <div className="rowAmount" style={{ justifySelf: "end", textAlign: "right" }}>
-                      <Euro v={totUsciteEff} />
-                    </div>
+                    <WrapRowValue
+                      label={
+                        <span style={noEllipsis}>
+                          Totale uscite effettive (incl. costi generali)
+                        </span>
+                      }
+                      value={<Euro v={totUsciteEff} />}
+                    />
                   </div>
                 </Card>
               </div>
