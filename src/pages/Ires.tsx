@@ -539,7 +539,7 @@ export default function Ires() {
         </div>
 
         <div style={{ marginTop: 10 }}>
-          <Badge tone="gray">{casoLabel}</Badge>
+          <Badge tone="blue">{casoLabel}</Badge>
         </div>
 
         {/* opzionale: mostro ricavi prec (solo informativo) */}
