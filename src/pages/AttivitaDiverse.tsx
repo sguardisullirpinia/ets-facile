@@ -993,7 +993,7 @@ export default function AttivitaDiverse() {
                             <AvailableMoveCard
                               key={m.id}
                               m={m}
-                              tone="green"
+                              tone="amber"
                               macroLabelTxt={macroLabel(m.macro)}
                               checked={!!selEntrate[m.id]}
                               onToggle={(v) =>
