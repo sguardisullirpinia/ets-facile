@@ -380,12 +380,11 @@ export default function MovimentoEditor() {
         </div>
       </div>
 
-      {error && (
-        <div className="mt-3">
-          <Badge tone="red">Errore</Badge>
-          <div className="errorText">{error}</div>
-        </div>
-      )}
+      {/* ✅ (opzionale) puoi anche togliere del tutto questo error in alto.
+          Io lo lascio solo se NON siamo in errore di validazione, ma per semplicità:
+          lo mostro solo quando è loading=false e l'utente non è in fondo?
+          -> Qui lo rimuovo per evitare duplicati: l'errore lo mostriamo vicino ai pulsanti.
+      */}
 
       <Card title="1️⃣ Tipologia">
         <select
@@ -550,6 +549,14 @@ export default function MovimentoEditor() {
             </Card>
           )}
         </>
+      )}
+
+      {/* ✅ ERRORE SPOSTATO QUI (SOPRA I PULSANTI) */}
+      {error && (
+        <div style={{ marginTop: 14, marginBottom: 10 }}>
+          <Badge tone="red">Errore</Badge>
+          <div className="errorText">{error}</div>
+        </div>
       )}
 
       <div className="formActions">
