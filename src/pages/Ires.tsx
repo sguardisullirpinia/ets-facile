@@ -6,12 +6,12 @@ import { Badge, Card, Euro } from "../components/ui";
 type AigRow = { id: string };
 type AttDivRow = { id: string; occasionale: boolean };
 
-type Regime = "FORFETARIO" | "ORDINARIO";
+type Regime = "FORFETTARIO" | "ORDINARIO";
 
 type AnnualitaRow = {
   id: string;
   ricavi_annualita_precedente: number | null;
-  regime: Regime | null;
+  regime: string | null; // ⚠️ lo normalizziamo (potrebbe arrivare "Forfettario", "FORFETARIO ", ecc.)
 };
 
 type Movimento = {
@@ -87,10 +87,10 @@ export default function Ires() {
   const [aigEsiti, setAigEsiti] = useState<
     {
       aig_id: string;
-      TE: number;
-      TU: number;
-      TER: number;
-      esito: "COMMERCIALE" | "NON COMMERCIALE";
+      TE: number; // Totale Entrate assegnate all'AIG
+      TU: number; // Totale Uscite assegnate all'AIG
+      TER: number; // Entrate rilevanti (APS: escludi code 1 e 2)
+      esito: "COMMERCIALE" | "NON COMMERCIALE"; // test 6%
     }[]
   >([]);
 
@@ -123,13 +123,13 @@ export default function Ires() {
     if (error) return setError(error.message);
 
     const row = data as AnnualitaRow;
+
     setRicaviPrec(num(row.ricavi_annualita_precedente));
 
-    if (row.regime === "FORFETARIO" || row.regime === "ORDINARIO") {
-      setRegimeAnnualita(row.regime);
-    } else {
-      setRegimeAnnualita("ORDINARIO");
-    }
+    // ✅ NORMALIZZAZIONE ROBUSTA DEL REGIME
+    const regimeDb = (row.regime ?? "").toString().trim().toUpperCase();
+    if (regimeDb === "FORFETTARIO") setRegimeAnnualita("FORFETTARIO");
+    else setRegimeAnnualita("ORDINARIO");
   };
 
   const loadIds = async () => {
@@ -226,11 +226,10 @@ export default function Ires() {
   }, [tipoEnte, aigIds, mov]);
 
   // =========================
-  // TEST NATURA ENTE (per badge + per regole IRES)
+  // TEST NATURA ENTE (A+B > C+D)
   // =========================
-
-  // ✅ A e C: su TE (come tua regola recente)
-  const A = useMemo(
+  // ✅ A e C: su TE
+  const A_test = useMemo(
     () =>
       aigEsiti
         .filter((x) => x.esito === "COMMERCIALE")
@@ -238,7 +237,7 @@ export default function Ires() {
     [aigEsiti],
   );
 
-  const C = useMemo(
+  const C_test = useMemo(
     () =>
       aigEsiti
         .filter((x) => x.esito === "NON COMMERCIALE")
@@ -247,7 +246,7 @@ export default function Ires() {
   );
 
   // ✅ B: Entrate AD rilevanti (assegnate, no spons code=6, no AD occasionale)
-  const B = useMemo(() => {
+  const B_test = useMemo(() => {
     return mov
       .filter(
         (m) =>
@@ -266,8 +265,8 @@ export default function Ires() {
       .reduce((s, m) => s + num(m.importo), 0);
   }, [mov, adOccasionaleIds]);
 
-  // ✅ D: Altre entrate NC
-  const D = useMemo(() => {
+  // ✅ D: altre entrate non commerciali
+  const D_test = useMemo(() => {
     const macros = [
       "QUOTE_ASSOCIATIVE",
       "EROGAZIONI_LIBERALI",
@@ -283,7 +282,7 @@ export default function Ires() {
   }, [mov]);
 
   const enteNatura: "COMMERCIALE" | "NON COMMERCIALE" =
-    A + B > C + D ? "COMMERCIALE" : "NON COMMERCIALE";
+    A_test + B_test > C_test + D_test ? "COMMERCIALE" : "NON COMMERCIALE";
 
   // =========================
   // TOTALI PER LE 4 CASISTICHE IRES
@@ -325,7 +324,7 @@ export default function Ires() {
   const TotEntrateAigTutte = TotEntrateAigComm + TotEntrateAigNonComm;
   const TotUsciteAigTutte = TotUsciteAigComm + TotUsciteAigNonComm;
 
-  // --- Attività Diverse: tot entrate / uscite (tutte)
+  // --- Attività Diverse (tutte): entrate / uscite
   const TotEntrateAD = useMemo(
     () =>
       mov
@@ -346,7 +345,7 @@ export default function Ires() {
     [mov],
   );
 
-  // --- Raccolte Fondi: tot entrate / uscite (tutte)
+  // --- Raccolte Fondi: entrate / uscite
   const TotEntrateRF = useMemo(
     () =>
       mov
@@ -367,7 +366,7 @@ export default function Ires() {
     [mov],
   );
 
-  // --- Altre entrate NC specifiche (quelle che hai elencato)
+  // --- “pacchetto” entrate NC specifiche (quote + liberalità + 5x1000 + contributi PA)
   const TotQuote = useMemo(
     () =>
       mov
@@ -411,23 +410,22 @@ export default function Ires() {
     [mov],
   );
 
-  const TotAltreNC_Pacchetto = TotQuote + TotLiberalita + Tot5x1000 + TotContributiPA;
+  const TotAltreNC_Pacchetto =
+    TotQuote + TotLiberalita + Tot5x1000 + TotContributiPA;
 
   // =========================
-  // CALCOLO IRES: 4 CASI
+  // CALCOLO IRES: 4 CASI (come tua specifica)
   // =========================
-
   const regimeDaAnnualita: Regime = regimeAnnualita;
 
-  // se forfetario ma ente commerciale -> si applica ordinario (tuo vincolo)
+  // ✅ se forfetario ma ente commerciale -> applico ordinario
   const regimeEffettivo: Regime =
-    regimeDaAnnualita === "FORFETARIO" && enteNatura === "COMMERCIALE"
+    regimeDaAnnualita === "FORFETTARIO" && enteNatura === "COMMERCIALE"
       ? "ORDINARIO"
       : regimeDaAnnualita;
 
-  // utile (base imponibile) secondo le tue formule
   const utile = useMemo(() => {
-    // 1) Ordinario + ente NON commerciale
+    // 1) ORDINARIO + ENTE NON COMMERCIALE
     if (regimeEffettivo === "ORDINARIO" && enteNatura === "NON COMMERCIALE") {
       return (
         TotEntrateAigComm +
@@ -437,7 +435,7 @@ export default function Ires() {
       );
     }
 
-    // 2) Ordinario + ente COMMERCIALE
+    // 2) ORDINARIO + ENTE COMMERCIALE
     if (regimeEffettivo === "ORDINARIO" && enteNatura === "COMMERCIALE") {
       return (
         TotEntrateAigTutte +
@@ -450,8 +448,8 @@ export default function Ires() {
       );
     }
 
-    // 3) Forfetario + ente NON commerciale
-    if (regimeEffettivo === "FORFETARIO" && enteNatura === "NON COMMERCIALE") {
+    // 3) FORFETTARIO + ENTE NON COMMERCIALE
+    if (regimeEffettivo === "FORFETTARIO" && enteNatura === "NON COMMERCIALE") {
       return (
         TotEntrateAigComm +
         TotEntrateAD -
@@ -460,7 +458,7 @@ export default function Ires() {
       );
     }
 
-    // 4) Forfetario + ente commerciale -> già forzato a ordinario sopra
+    // 4) FORFETTARIO + ENTE COMMERCIALE -> già forzato a ORDINARIO sopra
     return 0;
   }, [
     regimeEffettivo,
@@ -481,7 +479,7 @@ export default function Ires() {
     if (regimeEffettivo === "ORDINARIO") return 0.24;
 
     // Forfetario ammesso solo se ente NON commerciale
-    if (regimeEffettivo === "FORFETARIO" && enteNatura === "NON COMMERCIALE") {
+    if (regimeEffettivo === "FORFETTARIO" && enteNatura === "NON COMMERCIALE") {
       if (tipoEnte === "APS") return 0.0072;
       if (tipoEnte === "ODV") return 0.0024;
       // come tua specifica: ETS -> 24%
@@ -492,15 +490,14 @@ export default function Ires() {
   }, [regimeEffettivo, enteNatura, tipoEnte]);
 
   const ires = useMemo(() => {
-    // come prima: se utile negativo -> IRES 0
     const base = Math.max(0, utile);
     return base * aliquota;
   }, [utile, aliquota]);
 
   // label descrittiva del caso applicato
   const casoLabel = useMemo(() => {
-    if (regimeDaAnnualita === "FORFETARIO" && enteNatura === "COMMERCIALE") {
-      return "FORFETARIO selezionato in Annualità, ma Ente COMMERCIALE: applicato ORDINARIO";
+    if (regimeDaAnnualita === "FORFETTARIO" && enteNatura === "COMMERCIALE") {
+      return "FORFETTARIO (da Annualità) ma Ente COMMERCIALE: applicato ORDINARIO";
     }
     return `${regimeEffettivo} – Ente ${enteNatura}`;
   }, [regimeDaAnnualita, regimeEffettivo, enteNatura]);
@@ -524,7 +521,7 @@ export default function Ires() {
         </div>
       )}
 
-      {/* REGIME: solo quello scelto in Annualità + postilla */}
+      {/* REGIME: mostra quello scelto in Annualità + postilla */}
       <Card title="Regime applicabile">
         <WrapRow
           label="Regime (da Annualità)"
@@ -535,14 +532,14 @@ export default function Ires() {
           className="muted"
           style={{ marginTop: 10, fontSize: 12, lineHeight: 1.4 }}
         >
-          Nota: per modificare il regime, intervenire dalla pagina <b>Annualità</b>.
+          Nota: per modificare il regime, intervenire dalla pagina{" "}
+          <b>Annualità</b>.
         </div>
 
         <div style={{ marginTop: 10 }}>
           <Badge tone="blue">{casoLabel}</Badge>
         </div>
 
-        {/* opzionale: mostro ricavi prec (solo informativo) */}
         <div style={{ marginTop: 8 }}>
           <WrapRow
             label="Ricavi annualità precedente (valore inserito in Annualità)"
@@ -552,7 +549,7 @@ export default function Ires() {
       </Card>
 
       <Card title="Calcolo IRES">
-        {/* riepilogo base calcolo secondo regole */}
+        {/* RIEPILOGO FORMULA */}
         {regimeEffettivo === "ORDINARIO" && enteNatura === "NON COMMERCIALE" && (
           <>
             <WrapRow
@@ -588,18 +585,19 @@ export default function Ires() {
           </>
         )}
 
-        {regimeEffettivo === "FORFETARIO" && enteNatura === "NON COMMERCIALE" && (
-          <>
-            <WrapRow
-              label="Entrate (AIG commerciali + Attività Diverse)"
-              value={<Euro v={TotEntrateAigComm + TotEntrateAD} />}
-            />
-            <WrapRow
-              label="Uscite (AIG commerciali + Attività Diverse)"
-              value={<Euro v={TotUsciteAigComm + TotUsciteAD} />}
-            />
-          </>
-        )}
+        {regimeEffettivo === "FORFETTARIO" &&
+          enteNatura === "NON COMMERCIALE" && (
+            <>
+              <WrapRow
+                label="Entrate (AIG commerciali + Attività Diverse)"
+                value={<Euro v={TotEntrateAigComm + TotEntrateAD} />}
+              />
+              <WrapRow
+                label="Uscite (AIG commerciali + Attività Diverse)"
+                value={<Euro v={TotUsciteAigComm + TotUsciteAD} />}
+              />
+            </>
+          )}
 
         <div style={{ height: 8 }} />
 
@@ -617,9 +615,9 @@ export default function Ires() {
         <WrapRow label="IRES" value={<Euro v={ires} />} />
 
         <div className="muted" style={{ marginTop: 12, lineHeight: 1.4 }}>
-          {regimeDaAnnualita === "FORFETARIO" && enteNatura === "COMMERCIALE" ? (
+          {regimeDaAnnualita === "FORFETTARIO" && enteNatura === "COMMERCIALE" ? (
             <>
-              Regola: se in Annualità è selezionato <b>FORFETARIO</b> ma l’ente
+              Regola: se in Annualità è selezionato <b>FORFETTARIO</b> ma l’ente
               risulta <b>COMMERCIALE</b> al test, si applica il calcolo{" "}
               <b>ORDINARIO</b> (24%).
             </>
