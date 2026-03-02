@@ -7,7 +7,8 @@ type RfRow = {
   id: string;
   nome: string;
   descrizione: string | null;
-  data: string | null; // ✅ NUOVO
+  // ✅ nuova colonna data (DATE)
+  data: string | null;
 };
 
 type Movimento = {
@@ -54,7 +55,7 @@ function totaleMov(m: Movimento) {
 function fmtDate(d: string | null) {
   if (!d) return "—";
   const [y, m, day] = d.split("-");
-  if (!y || !m || !day) return d;
+  if (!y || !m || !day) return d || "—";
   return `${day}/${m}/${y}`;
 }
 
@@ -144,7 +145,7 @@ export default function RaccolteFondi() {
 
   const [nome, setNome] = useState("");
   const [descr, setDescr] = useState("");
-  const [dataRf, setDataRf] = useState(""); // ✅ NUOVO (YYYY-MM-DD)
+  const [rfData, setRfData] = useState(""); // ✅ data raccolta fondi (YYYY-MM-DD)
 
   // dettaglio (MODALE FULLSCREEN)
   const [active, setActive] = useState<RfRow | null>(null);
@@ -383,9 +384,9 @@ export default function RaccolteFondi() {
 
     const { data, error } = await supabase
       .from("raccolte_fondi")
-      .select("id, nome, descrizione, data") // ✅ include data
+      .select("id, nome, descrizione, data")
       .eq("annualita_id", annualitaId)
-      .order("data", { ascending: false, nullsFirst: false }) // ✅ opzionale
+      .order("data", { ascending: false })
       .order("nome", { ascending: true });
 
     if (error) {
@@ -396,6 +397,7 @@ export default function RaccolteFondi() {
     setItems((data || []) as RfRow[]);
   };
 
+  // carica mappa costi generali imputati (per tutte le RF)
   const loadCostiGeneraliMap = async () => {
     if (!annualitaId) return;
 
@@ -434,11 +436,12 @@ export default function RaccolteFondi() {
   // MODAL CREA/MODIFICA
   // =========================
   const openCreate = () => {
+    setError(null);
     setEditMode(false);
     setEditingId(null);
     setNome("");
     setDescr("");
-    setDataRf(""); // ✅
+    setRfData(""); // ✅ reset data
     setOpenModal(true);
   };
 
@@ -446,15 +449,6 @@ export default function RaccolteFondi() {
     setOpenModal(false);
     setEditMode(false);
     setEditingId(null);
-  };
-
-  const openEdit = (it: RfRow) => {
-    setEditMode(true);
-    setEditingId(it.id);
-    setNome(it.nome);
-    setDescr(it.descrizione || "");
-    setDataRf(it.data || ""); // ✅
-    setOpenModal(true);
   };
 
   // =========================
@@ -467,8 +461,8 @@ export default function RaccolteFondi() {
     const n = nome.trim();
     if (!n) return alert("Nome obbligatorio");
 
-    // ✅ data obbligatoria (come richiesto)
-    if (!dataRf) return alert("Data obbligatoria");
+    // ✅ data obbligatoria
+    if (!rfData) return alert("Data obbligatoria");
 
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return alert("Utente non autenticato");
@@ -479,7 +473,7 @@ export default function RaccolteFondi() {
         annualita_id: annualitaId,
         nome: n,
         descrizione: descr.trim() || null,
-        data: dataRf, // ✅
+        data: rfData, // ✅ nuova
       });
 
       if (error) {
@@ -494,7 +488,7 @@ export default function RaccolteFondi() {
         .update({
           nome: n,
           descrizione: descr.trim() || null,
-          data: dataRf, // ✅
+          data: rfData, // ✅ nuova
         })
         .eq("id", editingId);
 
@@ -505,14 +499,14 @@ export default function RaccolteFondi() {
 
       setActive((p) =>
         p && p.id === editingId
-          ? { ...p, nome: n, descrizione: descr.trim() || null, data: dataRf }
+          ? { ...p, nome: n, descrizione: descr.trim() || null, data: rfData }
           : p,
       );
     }
 
     closeModal();
-    loadItems();
-    loadCostiGeneraliMap();
+    await loadItems();
+    await loadCostiGeneraliMap();
   };
 
   // =========================
@@ -548,8 +542,8 @@ export default function RaccolteFondi() {
     }
 
     if (active?.id === id) setActive(null);
-    loadItems();
-    loadCostiGeneraliMap();
+    await loadItems();
+    await loadCostiGeneraliMap();
   };
 
   // =========================
@@ -616,12 +610,35 @@ export default function RaccolteFondi() {
     setSelUscite({});
   };
 
-  const openItem = async (it: RfRow) => {
+  /**
+   * ✅ OPEN ITEM (FIX CLICK)
+   * - NON async: apre subito il modale
+   * - poi carica i dati senza bloccare l’UI
+   * - chiude eventuale bottom sheet rimasto aperto
+   */
+  const openItem = (it: RfRow) => {
+    setError(null);
+
+    // sicurezza: chiudi sheet crea/modifica se per caso è aperto
+    setOpenModal(false);
+    setEditMode(false);
+    setEditingId(null);
+
+    // apri subito il dettaglio
     setActive(it);
-    await loadMovimentiForItem(it.id);
-    await loadCostiGeneraliMap();
+
+    // carica i dati dopo
+    void (async () => {
+      try {
+        await loadMovimentiForItem(it.id);
+        await loadCostiGeneraliMap();
+      } catch (e: any) {
+        setError(e?.message ? String(e.message) : "Errore caricamento dettaglio");
+      }
+    })();
   };
 
+  // rimuove assegnazione singolo movimento
   const unassignMovimento = async (movId: string) => {
     if (!active) return;
 
@@ -644,6 +661,9 @@ export default function RaccolteFondi() {
     await loadCostiGeneraliMap();
   };
 
+  // =========================
+  // ASSEGNA SELEZIONATI
+  // =========================
   const assignSelected = async (kind: "ENTRATA" | "USCITA") => {
     if (!active) return;
 
@@ -675,13 +695,12 @@ export default function RaccolteFondi() {
   };
 
   // =========================
-  // TOTALI
+  // TOTALI (✅ LORDO = importo + iva)
   // =========================
   const totEntrate = useMemo(
     () => assEntrate.reduce((s, m) => s + totaleMov(m), 0),
     [assEntrate],
   );
-
   const totUscite = useMemo(
     () => assUscite.reduce((s, m) => s + totaleMov(m), 0),
     [assUscite],
@@ -704,15 +723,74 @@ export default function RaccolteFondi() {
     columnGap: 12,
   };
 
+  // ✅ stile “come AIG” per righe riepilogo (maiuscolo + no bold)
+  const wrapRowBox: React.CSSProperties = {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 10,
+    alignItems: "flex-start",
+    padding: "10px 0",
+    borderBottom: "1px solid rgba(0,0,0,0.08)",
+  };
+
+  const wrapRowLabel: React.CSSProperties = {
+    flex: "1 1 240px",
+    minWidth: 0,
+    whiteSpace: "normal",
+    overflowWrap: "anywhere",
+    lineHeight: 1.25,
+    textTransform: "uppercase",
+    fontWeight: 400, // ✅ no bold
+  };
+
+  const wrapRowValue: React.CSSProperties = {
+    flex: "0 0 auto",
+    marginLeft: "auto",
+    textAlign: "right",
+    whiteSpace: "nowrap",
+    fontWeight: 950,
+  };
+
+  const WrapRowValue = ({
+    label,
+    value,
+  }: {
+    label: React.ReactNode;
+    value: React.ReactNode;
+  }) => (
+    <div style={wrapRowBox}>
+      <div style={wrapRowLabel}>{label}</div>
+      <div style={wrapRowValue}>{value}</div>
+    </div>
+  );
+
   return (
     <Layout>
+      {/* HEADER + FAB */}
       <div className="pageHeader" style={{ paddingTop: 15 }}>
         <div>
           <h2 className="pageTitle">RACCOLTE FONDI</h2>
           <div className="pageHelp">
-            {/* (testo invariato) */}
             Crea le Raccolte Fondi occasionali che l'Ente ha organizzato e
-            gestito...
+            gestito nell'annualità di riferimento. Sono iniziative organizzate
+            in occasione di celebrazioni, ricorrenze o campagne di
+            sensibilizzazione (ad esempio, la vendita di uova di Pasqua in
+            piazza o una cena di beneficenza una volta l'anno). Assegna a
+            ciascuna Raccolta Fondi occasionale le entrate e le uscite sostenute
+            per realizzarla.
+            <br />
+            <br />
+            Qualora l’ETS acquisisca la qualifica di ente non commerciale,
+            laddove le raccolte fondi non prevedano la vendita di beni o servizi
+            (es. sollecitazione donazioni, lasciti testamentari, ecc.) e,
+            dunque, non vi sia sotteso alcun rapporto sinallagmatico, esse
+            devono considerarsi non commerciali,{" "}
+            <u>
+              indipendentemente dalla frequenza (quindi dall’occasionalità o
+              meno) e dalle modalità (anche se non in concomitanza con
+              celebrazioni, ricorrenze o campagne di sensibilizzazione) con cui
+              sono realizzate.
+            </u>
           </div>
         </div>
       </div>
@@ -762,17 +840,20 @@ export default function RaccolteFondi() {
                 />
               </div>
 
-              {/* ✅ DATA */}
+              {/* ✅ DATA RACCOLTA FONDI */}
               <div>
                 <div style={{ fontWeight: 950, marginBottom: 6 }}>
                   Data (obbligatoria)
                 </div>
                 <input
                   type="date"
-                  value={dataRf}
-                  onChange={(e) => setDataRf(e.target.value)}
+                  value={rfData}
+                  onChange={(e) => setRfData(e.target.value)}
                   className="input"
                 />
+                <div className="rowSub" style={{ marginTop: 6 }}>
+                  Verrà mostrata nell’elenco generale.
+                </div>
               </div>
 
               <div>
@@ -817,44 +898,32 @@ export default function RaccolteFondi() {
                 role="button"
                 tabIndex={0}
                 className="listRow"
-                style={row2Cols}
+                style={{ ...row2Cols, cursor: "pointer" }}
                 onClick={() => openItem(it)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") openItem(it);
                 }}
               >
                 <div className="rowMain" style={{ minWidth: 0 }}>
+                  {/* ✅ DATA visibile in elenco */}
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 850,
+                      opacity: 0.7,
+                      marginBottom: 8,
+                      ...noEllipsis,
+                    }}
+                  >
+                    {fmtDate(it.data)}
+                  </div>
+
                   <div className="rowTitle" style={noEllipsis}>
                     {it.nome}
                   </div>
 
-                  {/* ✅ DATA visibile in elenco */}
-                  <div
-                    className="rowSub"
-                    style={{ marginTop: 6, ...noEllipsis }}
-                  >
-                    Data: <b>{fmtDate(it.data)}</b>
-                  </div>
-
-                  <div
-                    className="rowSub"
-                    style={{ marginTop: 6, ...noEllipsis }}
-                  >
+                  <div className="rowSub" style={{ marginTop: 6, ...noEllipsis }}>
                     {it.descrizione || "—"}
-                  </div>
-
-                  {/* ✅ tasto modifica opzionale: se vuoi anche modificare dal listato */}
-                  <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
-                    <button
-                      className="btn"
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openEdit(it);
-                      }}
-                    >
-                      Modifica
-                    </button>
                   </div>
                 </div>
 
@@ -875,8 +944,222 @@ export default function RaccolteFondi() {
         </div>
       </div>
 
-      {/* (tutto il resto della pagina: modale fullscreen e movimenti, invariato) */}
-      {/* ... */}
+      {/* DETTAGLIO (MODALE FULLSCREEN) */}
+      {active && (
+        <div
+          className="sheetOverlay"
+          style={{ ...fullModalOverlay, width: "100vw", height: "100vh" }}
+          onClick={() => setActive(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="sheet"
+            style={{ ...fullModalSheet, maxWidth: "none", margin: 0 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header sticky */}
+            <div
+              className="sheetHeader"
+              style={{
+                position: "sticky",
+                top: 0,
+                zIndex: 2,
+                background: "rgba(246, 245, 241)",
+                borderBottom: "1px solid rgba(0,0,0,0.08)",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "16px",
+              }}
+            >
+              <div className="sheetTitle" style={{ fontWeight: 950 }}>
+                {active.nome}
+              </div>
+
+              <div style={{ display: "flex", gap: 8 }}>
+                <button className="btn" type="button" onClick={() => setActive(null)}>
+                  Chiudi
+                </button>
+              </div>
+            </div>
+
+            <div style={{ padding: 14 }}>
+              {/* ✅ Data raccolta fondi nel dettaglio */}
+              <div style={{ marginTop: 6 }}>
+                <Badge tone="neutral">DATA: {fmtDate(active.data)}</Badge>
+              </div>
+
+              {active.descrizione && (
+                <div style={{ marginTop: 10, ...noEllipsis }}>{active.descrizione}</div>
+              )}
+
+              <div className="mt-3" />
+
+              <div style={fullBleed}>
+                <Card title="MOVIMENTI NON ASSEGNATI">
+                  <div className="splitGrid">
+                    <div className="panel">
+                      <div className="panelTitle">Entrate disponibili</div>
+
+                      {availEntrate.length === 0 ? (
+                        <div className="muted" style={{ fontWeight: 800 }}>
+                          Nessuna
+                        </div>
+                      ) : (
+                        <div className="movList listBox">
+                          {availEntrate.map((m) => (
+                            <AvailableMoveCard
+                              key={m.id}
+                              m={m}
+                              tone="green"
+                              macroLabelTxt="Raccolte Fondi"
+                              checked={!!selEntrate[m.id]}
+                              onToggle={(v) =>
+                                setSelEntrate((p) => ({ ...p, [m.id]: v }))
+                              }
+                            />
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="panelActions">
+                        <PrimaryButton
+                          onClick={() => assignSelected("ENTRATA")}
+                          className="btn--block"
+                        >
+                          Assegna Entrate selezionate
+                        </PrimaryButton>
+                      </div>
+                    </div>
+
+                    <div className="panel">
+                      <div className="panelTitle">Uscite disponibili</div>
+
+                      {availUscite.length === 0 ? (
+                        <div className="muted" style={{ fontWeight: 800 }}>
+                          Nessuna
+                        </div>
+                      ) : (
+                        <div className="movList listBox">
+                          {availUscite.map((m) => (
+                            <AvailableMoveCard
+                              key={m.id}
+                              m={m}
+                              tone="red"
+                              macroLabelTxt="Raccolte Fondi"
+                              checked={!!selUscite[m.id]}
+                              onToggle={(v) =>
+                                setSelUscite((p) => ({ ...p, [m.id]: v }))
+                              }
+                            />
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="panelActions">
+                        <PrimaryButton
+                          onClick={() => assignSelected("USCITA")}
+                          className="btn--block"
+                        >
+                          Assegna Uscite selezionate
+                        </PrimaryButton>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              <div className="mt-3" />
+
+              <div style={fullBleed}>
+                <Card title="MOVIMENTI ASSEGNATI">
+                  <div className="splitGrid">
+                    <div className="panel">
+                      <div className="panelTitle">Entrate assegnate</div>
+
+                      {assEntrate.length === 0 ? (
+                        <div className="muted" style={{ fontWeight: 800 }}>
+                          Nessuna
+                        </div>
+                      ) : (
+                        <div className="listBox movList">
+                          {assEntrate.map((m) => (
+                            <AssignedMoveCard
+                              key={m.id}
+                              m={m}
+                              tone="green"
+                              macroLabelTxt="Raccolte Fondi"
+                              onUnassign={unassignMovimento}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="panel">
+                      <div className="panelTitle">Uscite assegnate</div>
+
+                      {assUscite.length === 0 ? (
+                        <div className="muted" style={{ fontWeight: 800 }}>
+                          Nessuna
+                        </div>
+                      ) : (
+                        <div className="listBox movList">
+                          {assUscite.map((m) => (
+                            <AssignedMoveCard
+                              key={m.id}
+                              m={m}
+                              tone="red"
+                              macroLabelTxt="Raccolte Fondi"
+                              onUnassign={unassignMovimento}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              <div className="mt-3" />
+
+              {/* ✅ TOTALE “STILE AIG”: LABEL MAIUSCOLO, NO BOLD */}
+              <div style={fullBleed}>
+                <Card title="TOTALE RACCOLTA FONDI">
+                  <div style={noEllipsis}>
+                    <WrapRowValue
+                      label={<span style={noEllipsis}>TOTALE ENTRATE ASSEGNATE</span>}
+                      value={<EuroFmt v={totEntrate} />}
+                    />
+
+                    <WrapRowValue
+                      label={<span style={noEllipsis}>TOTALE USCITE ASSEGNATE</span>}
+                      value={<EuroFmt v={totUscite} />}
+                    />
+
+                    <WrapRowValue
+                      label={<span style={noEllipsis}>COSTI GENERALI IMPUTATI</span>}
+                      value={<EuroFmt v={cgImputati} />}
+                    />
+
+                    <WrapRowValue
+                      label={
+                        <span style={noEllipsis}>
+                          TOTALE USCITE EFFETTIVE (INCL. COSTI GENERALI)
+                        </span>
+                      }
+                      value={<EuroFmt v={totUsciteEff} />}
+                    />
+                  </div>
+                </Card>
+              </div>
+
+              <div className="mt-3" />
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }
