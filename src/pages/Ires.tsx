@@ -208,20 +208,21 @@ export default function Ires() {
   // NATURA ENTE
   // =========================
   const A = useMemo(
-    () =>
-      aigEsiti
-        .filter((x) => x.esito === "COMMERCIALE")
-        .reduce((s, x) => s + x.TER, 0),
-    [aigEsiti],
-  );
+  () =>
+    aigEsiti
+      .filter((x) => x.esito === "COMMERCIALE")
+      .reduce((s, x) => s + x.TE, 0),
+  [aigEsiti],
+);
 
-  const C = useMemo(
-    () =>
-      aigEsiti
-        .filter((x) => x.esito === "NON COMMERCIALE")
-        .reduce((s, x) => s + x.TER, 0),
-    [aigEsiti],
-  );
+// ✅ C: somma delle ENTRATE TOTALI assegnate alle AIG (TE) che risultano NON COMMERCIALI dal test 6%
+const C = useMemo(
+  () =>
+    aigEsiti
+      .filter((x) => x.esito === "NON COMMERCIALE")
+      .reduce((s, x) => s + x.TE, 0),
+  [aigEsiti],
+);
 
   const B = useMemo(() => {
     return mov
