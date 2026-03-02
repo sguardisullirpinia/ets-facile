@@ -7,6 +7,8 @@ type RfRow = {
   id: string;
   nome: string;
   descrizione: string | null;
+  // ✅ nuova colonna data (DATE)
+  data: string | null;
 };
 
 type Movimento = {
@@ -53,7 +55,7 @@ function totaleMov(m: Movimento) {
 function fmtDate(d: string | null) {
   if (!d) return "—";
   const [y, m, day] = d.split("-");
-  if (!y || !m || !day) return d;
+  if (!y || !m || !day) return d || "—";
   return `${day}/${m}/${y}`;
 }
 
@@ -143,6 +145,7 @@ export default function RaccolteFondi() {
 
   const [nome, setNome] = useState("");
   const [descr, setDescr] = useState("");
+  const [rfData, setRfData] = useState(""); // ✅ data raccolta fondi (YYYY-MM-DD)
 
   // dettaglio (MODALE FULLSCREEN)
   const [active, setActive] = useState<RfRow | null>(null);
@@ -188,9 +191,9 @@ export default function RaccolteFondi() {
     background: "#fff",
     width: "100%",
     height: "100%",
-    borderRadius: 0, // Forza la rimozione di angoli arrotondati
-    margin: 0, // Rimuove eventuali margini residui
-    padding: 0, // L'header deve toccare il bordo, quindi il padding va gestito internamente
+    borderRadius: 0,
+    margin: 0,
+    padding: 0,
     overflowY: "auto",
     WebkitOverflowScrolling: "touch",
     paddingBottom: 120,
@@ -290,7 +293,6 @@ export default function RaccolteFondi() {
             paddingTop: 22,
           }}
         >
-          {/* ✅ importo mostrato = importo + iva */}
           <EuroFmt v={totaleMov(m)} />
         </div>
       </label>
@@ -356,7 +358,6 @@ export default function RaccolteFondi() {
             className="rowAmount"
             style={{ justifySelf: "end", textAlign: "right", fontWeight: 950 }}
           >
-            {/* ✅ importo mostrato = importo + iva */}
             <EuroFmt v={totaleMov(m)} />
           </div>
 
@@ -383,8 +384,9 @@ export default function RaccolteFondi() {
 
     const { data, error } = await supabase
       .from("raccolte_fondi")
-      .select("id, nome, descrizione")
+      .select("id, nome, descrizione, data")
       .eq("annualita_id", annualitaId)
+      .order("data", { ascending: false })
       .order("nome", { ascending: true });
 
     if (error) {
@@ -434,10 +436,12 @@ export default function RaccolteFondi() {
   // MODAL CREA/MODIFICA
   // =========================
   const openCreate = () => {
+    setError(null);
     setEditMode(false);
     setEditingId(null);
     setNome("");
     setDescr("");
+    setRfData(""); // ✅ reset data
     setOpenModal(true);
   };
 
@@ -457,6 +461,9 @@ export default function RaccolteFondi() {
     const n = nome.trim();
     if (!n) return alert("Nome obbligatorio");
 
+    // ✅ data obbligatoria
+    if (!rfData) return alert("Data obbligatoria");
+
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return alert("Utente non autenticato");
 
@@ -466,6 +473,7 @@ export default function RaccolteFondi() {
         annualita_id: annualitaId,
         nome: n,
         descrizione: descr.trim() || null,
+        data: rfData, // ✅ nuova
       });
 
       if (error) {
@@ -480,6 +488,7 @@ export default function RaccolteFondi() {
         .update({
           nome: n,
           descrizione: descr.trim() || null,
+          data: rfData, // ✅ nuova
         })
         .eq("id", editingId);
 
@@ -490,14 +499,14 @@ export default function RaccolteFondi() {
 
       setActive((p) =>
         p && p.id === editingId
-          ? { ...p, nome: n, descrizione: descr.trim() || null }
+          ? { ...p, nome: n, descrizione: descr.trim() || null, data: rfData }
           : p,
       );
     }
 
     closeModal();
-    loadItems();
-    loadCostiGeneraliMap();
+    await loadItems();
+    await loadCostiGeneraliMap();
   };
 
   // =========================
@@ -533,8 +542,8 @@ export default function RaccolteFondi() {
     }
 
     if (active?.id === id) setActive(null);
-    loadItems();
-    loadCostiGeneraliMap();
+    await loadItems();
+    await loadCostiGeneraliMap();
   };
 
   // =========================
@@ -601,10 +610,32 @@ export default function RaccolteFondi() {
     setSelUscite({});
   };
 
-  const openItem = async (it: RfRow) => {
+  /**
+   * ✅ OPEN ITEM (FIX CLICK)
+   * - NON async: apre subito il modale
+   * - poi carica i dati senza bloccare l’UI
+   * - chiude eventuale bottom sheet rimasto aperto
+   */
+  const openItem = (it: RfRow) => {
+    setError(null);
+
+    // sicurezza: chiudi sheet crea/modifica se per caso è aperto
+    setOpenModal(false);
+    setEditMode(false);
+    setEditingId(null);
+
+    // apri subito il dettaglio
     setActive(it);
-    await loadMovimentiForItem(it.id);
-    await loadCostiGeneraliMap();
+
+    // carica i dati dopo
+    void (async () => {
+      try {
+        await loadMovimentiForItem(it.id);
+        await loadCostiGeneraliMap();
+      } catch (e: any) {
+        setError(e?.message ? String(e.message) : "Errore caricamento dettaglio");
+      }
+    })();
   };
 
   // rimuove assegnazione singolo movimento
@@ -692,6 +723,47 @@ export default function RaccolteFondi() {
     columnGap: 12,
   };
 
+  // ✅ stile “come AIG” per righe riepilogo (maiuscolo + no bold)
+  const wrapRowBox: React.CSSProperties = {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 10,
+    alignItems: "flex-start",
+    padding: "10px 0",
+    borderBottom: "1px solid rgba(0,0,0,0.08)",
+  };
+
+  const wrapRowLabel: React.CSSProperties = {
+    flex: "1 1 240px",
+    minWidth: 0,
+    whiteSpace: "normal",
+    overflowWrap: "anywhere",
+    lineHeight: 1.25,
+    textTransform: "uppercase",
+    fontWeight: 400, // ✅ no bold
+  };
+
+  const wrapRowValue: React.CSSProperties = {
+    flex: "0 0 auto",
+    marginLeft: "auto",
+    textAlign: "right",
+    whiteSpace: "nowrap",
+    fontWeight: 950,
+  };
+
+  const WrapRowValue = ({
+    label,
+    value,
+  }: {
+    label: React.ReactNode;
+    value: React.ReactNode;
+  }) => (
+    <div style={wrapRowBox}>
+      <div style={wrapRowLabel}>{label}</div>
+      <div style={wrapRowValue}>{value}</div>
+    </div>
+  );
+
   return (
     <Layout>
       {/* HEADER + FAB */}
@@ -768,6 +840,22 @@ export default function RaccolteFondi() {
                 />
               </div>
 
+              {/* ✅ DATA RACCOLTA FONDI */}
+              <div>
+                <div style={{ fontWeight: 950, marginBottom: 6 }}>
+                  Data (obbligatoria)
+                </div>
+                <input
+                  type="date"
+                  value={rfData}
+                  onChange={(e) => setRfData(e.target.value)}
+                  className="input"
+                />
+                <div className="rowSub" style={{ marginTop: 6 }}>
+                  Verrà mostrata nell’elenco generale.
+                </div>
+              </div>
+
               <div>
                 <div style={{ fontWeight: 950, marginBottom: 6 }}>
                   Descrizione
@@ -810,21 +898,31 @@ export default function RaccolteFondi() {
                 role="button"
                 tabIndex={0}
                 className="listRow"
-                style={row2Cols}
+                style={{ ...row2Cols, cursor: "pointer" }}
                 onClick={() => openItem(it)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") openItem(it);
                 }}
               >
                 <div className="rowMain" style={{ minWidth: 0 }}>
+                  {/* ✅ DATA visibile in elenco */}
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 850,
+                      opacity: 0.7,
+                      marginBottom: 8,
+                      ...noEllipsis,
+                    }}
+                  >
+                    {fmtDate(it.data)}
+                  </div>
+
                   <div className="rowTitle" style={noEllipsis}>
                     {it.nome}
                   </div>
 
-                  <div
-                    className="rowSub"
-                    style={{ marginTop: 6, ...noEllipsis }}
-                  >
+                  <div className="rowSub" style={{ marginTop: 6, ...noEllipsis }}>
                     {it.descrizione || "—"}
                   </div>
                 </div>
@@ -870,9 +968,9 @@ export default function RaccolteFondi() {
                 background: "rgba(246, 245, 241)",
                 borderBottom: "1px solid rgba(0,0,0,0.08)",
                 display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "16px",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "16px",
               }}
             >
               <div className="sheetTitle" style={{ fontWeight: 950 }}>
@@ -880,21 +978,20 @@ export default function RaccolteFondi() {
               </div>
 
               <div style={{ display: "flex", gap: 8 }}>
-                <button
-                  className="btn"
-                  type="button"
-                  onClick={() => setActive(null)}
-                >
+                <button className="btn" type="button" onClick={() => setActive(null)}>
                   Chiudi
                 </button>
               </div>
             </div>
 
             <div style={{ padding: 14 }}>
+              {/* ✅ Data raccolta fondi nel dettaglio */}
+              <div style={{ marginTop: 6 }}>
+                <Badge tone="neutral">DATA: {fmtDate(active.data)}</Badge>
+              </div>
+
               {active.descrizione && (
-                <div style={{ marginTop: 10, ...noEllipsis }}>
-                  {active.descrizione}
-                </div>
+                <div style={{ marginTop: 10, ...noEllipsis }}>{active.descrizione}</div>
               )}
 
               <div className="mt-3" />
@@ -919,10 +1016,7 @@ export default function RaccolteFondi() {
                               macroLabelTxt="Raccolte Fondi"
                               checked={!!selEntrate[m.id]}
                               onToggle={(v) =>
-                                setSelEntrate((p) => ({
-                                  ...p,
-                                  [m.id]: v,
-                                }))
+                                setSelEntrate((p) => ({ ...p, [m.id]: v }))
                               }
                             />
                           ))}
@@ -956,10 +1050,7 @@ export default function RaccolteFondi() {
                               macroLabelTxt="Raccolte Fondi"
                               checked={!!selUscite[m.id]}
                               onToggle={(v) =>
-                                setSelUscite((p) => ({
-                                  ...p,
-                                  [m.id]: v,
-                                }))
+                                setSelUscite((p) => ({ ...p, [m.id]: v }))
                               }
                             />
                           ))}
@@ -1033,88 +1124,33 @@ export default function RaccolteFondi() {
 
               <div className="mt-3" />
 
+              {/* ✅ TOTALE “STILE AIG”: LABEL MAIUSCOLO, NO BOLD */}
               <div style={fullBleed}>
                 <Card title="TOTALE RACCOLTA FONDI">
-                  <div
-                    className="listRow"
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr auto",
-                      gap: 12,
-                      padding: "10px 0",
-                    }}
-                  >
-                    <div className="rowMain">
-                      <div className="rowTitle">Totale entrate assegnate</div>
-                    </div>
-                    <div
-                      className="rowAmount"
-                      style={{ justifySelf: "end", textAlign: "right" }}
-                    >
-                      <Euro v={totEntrate} />
-                    </div>
-                  </div>
+                  <div style={noEllipsis}>
+                    <WrapRowValue
+                      label={<span style={noEllipsis}>TOTALE ENTRATE ASSEGNATE</span>}
+                      value={<EuroFmt v={totEntrate} />}
+                    />
 
-                  <div
-                    className="listRow"
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr auto",
-                      gap: 12,
-                      padding: "10px 0",
-                    }}
-                  >
-                    <div className="rowMain">
-                      <div className="rowTitle">Totale uscite assegnate</div>
-                    </div>
-                    <div
-                      className="rowAmount"
-                      style={{ justifySelf: "end", textAlign: "right" }}
-                    >
-                      <Euro v={totUscite} />
-                    </div>
-                  </div>
+                    <WrapRowValue
+                      label={<span style={noEllipsis}>TOTALE USCITE ASSEGNATE</span>}
+                      value={<EuroFmt v={totUscite} />}
+                    />
 
-                  <div
-                    className="listRow"
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr auto",
-                      gap: 12,
-                      padding: "10px 0",
-                    }}
-                  >
-                    <div className="rowMain">
-                      <div className="rowTitle">Costi generali imputati</div>
-                    </div>
-                    <div
-                      className="rowAmount"
-                      style={{ justifySelf: "end", textAlign: "right" }}
-                    >
-                      <Euro v={cgImputati} />
-                    </div>
-                  </div>
+                    <WrapRowValue
+                      label={<span style={noEllipsis}>COSTI GENERALI IMPUTATI</span>}
+                      value={<EuroFmt v={cgImputati} />}
+                    />
 
-                  <div
-                    className="listRow"
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr auto",
-                      gap: 12,
-                      padding: "10px 0",
-                    }}
-                  >
-                    <div className="rowMain">
-                      <div className="rowTitle">
-                        Totale uscite effettive (incl. costi generali)
-                      </div>
-                    </div>
-                    <div
-                      className="rowAmount"
-                      style={{ justifySelf: "end", textAlign: "right" }}
-                    >
-                      <Euro v={totUsciteEff} />
-                    </div>
+                    <WrapRowValue
+                      label={
+                        <span style={noEllipsis}>
+                          TOTALE USCITE EFFETTIVE (INCL. COSTI GENERALI)
+                        </span>
+                      }
+                      value={<EuroFmt v={totUsciteEff} />}
+                    />
                   </div>
                 </Card>
               </div>
@@ -1126,5 +1162,4 @@ export default function RaccolteFondi() {
       )}
     </Layout>
   );
-} 
- 
+}
