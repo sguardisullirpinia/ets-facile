@@ -14,10 +14,11 @@ type Macro =
   | "PROVENTI_5X1000"
   | "CONTRIBUTI_PA_SENZA_CORRISPETTIVO"
   | "ALTRI_PROVENTI_NON_COMMERCIALI"
-  // ✅ Step 1: costo generale master (solo in USCITA)
   | "COSTI_GENERALI";
 
 type Conto = "CASSA" | "BANCA";
+
+type Regime = "FORFETTARIO" | "ORDINARIO";
 
 /* =========================
    DESCRIZIONI CODIFICATE
@@ -74,7 +75,7 @@ function isValidMoney(v: string) {
   return Number.isFinite(n) && n > 0;
 }
 
-// ✅ IVA può essere 0 o positiva (non obbligatoria, ma se presente deve essere valida)
+// ✅ IVA può essere 0 o positiva (se presente deve essere valida)
 function isValidIva(v: string) {
   const n = Number(v);
   return Number.isFinite(n) && n >= 0;
@@ -100,11 +101,14 @@ export default function MovimentoEditor() {
   const [descrizioneLabel, setDescrizioneLabel] = useState("");
   const [importo, setImporto] = useState("");
 
-  // ✅ nuovo: IVA (6️⃣)
+  // ✅ IVA (mostrata solo in regime ordinario)
   const [iva, setIva] = useState("0");
 
-  // ✅ obbligatoria per ENTRATA/USCITA (7️⃣)
+  // ✅ obbligatoria per ENTRATA/USCITA
   const [descrOperazione, setDescrOperazione] = useState("");
+
+  // ✅ regime annualità
+  const [regime, setRegime] = useState<Regime>("ORDINARIO");
 
   /* =========================
      FLAGS
@@ -121,8 +125,52 @@ export default function MovimentoEditor() {
       macro === "CONTRIBUTI_PA_SENZA_CORRISPETTIVO" ||
       macro === "ALTRI_PROVENTI_NON_COMMERCIALI");
 
-  // ✅ STEP 1: riconosco il master
+  // ✅ master costi generali (solo USCITA)
   const isCostiGenerali = tipologia === "USCITA" && macro === "COSTI_GENERALI";
+
+  // ✅ IVA visibile solo se ORDINARIO
+  const isRegimeOrdinario = regime === "ORDINARIO";
+  const showIvaField = isEntrataOrUscita && isRegimeOrdinario;
+
+  /* =========================
+     LOAD REGIME ANNUALITA
+     ========================= */
+  useEffect(() => {
+    const loadRegime = async () => {
+      // 1) prova da localStorage
+      const ls = localStorage.getItem("annualita_regime") as Regime | null;
+      if (ls === "FORFETTARIO" || ls === "ORDINARIO") {
+        setRegime(ls);
+        return;
+      }
+
+      // 2) fallback: DB
+      if (!annualitaId) return;
+
+      const { data, error } = await supabase
+        .from("annualita")
+        .select("regime")
+        .eq("id", annualitaId)
+        .single();
+
+      if (
+        !error &&
+        (data?.regime === "FORFETTARIO" || data?.regime === "ORDINARIO")
+      ) {
+        setRegime(data.regime);
+        localStorage.setItem("annualita_regime", data.regime);
+      }
+    };
+
+    loadRegime();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [annualitaId]);
+
+  // ✅ se non ordinario, forzo IVA a 0
+  useEffect(() => {
+    if (!showIvaField) setIva("0");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showIvaField]);
 
   /* =========================
      LOAD MOVIMENTO (EDIT)
@@ -151,6 +199,7 @@ export default function MovimentoEditor() {
       setDescrizioneCode(row.descrizione_code);
       setDescrizioneLabel(row.descrizione_label || "");
       setImporto(String(row.importo ?? ""));
+      // IVA: se regime non ordinario, la forza a 0 più sotto
       setIva(String(row.iva ?? 0));
       setDescrOperazione((row.descrizione_operazione ?? "").toString());
 
@@ -178,7 +227,6 @@ export default function MovimentoEditor() {
   useEffect(() => {
     if (editId) return;
 
-    // se scelgo COSTI_GENERALI: azzero descrizione (non serve)
     if (tipologia === "USCITA" && macro === "COSTI_GENERALI") {
       setDescrizioneCode(null);
       setDescrizioneLabel("");
@@ -216,14 +264,14 @@ export default function MovimentoEditor() {
 
     if (!tipologia) return setError("Seleziona la tipologia");
 
-    // ✅ Obbligatoria per ENTRATA/USCITA
+    // ✅ obbligatoria per ENTRATA/USCITA
     if (isEntrataOrUscita && !descrOperazione.trim()) {
       setError("Inserisci la descrizione dell’operazione (obbligatoria)");
       return;
     }
 
-    // ✅ IVA valida (>= 0) per ENTRATA/USCITA
-    if (isEntrataOrUscita && !isValidIva(iva)) {
+    // ✅ IVA valida SOLO se regime ordinario
+    if (showIvaField && !isValidIva(iva)) {
       setError("IVA non valida");
       return;
     }
@@ -234,7 +282,6 @@ export default function MovimentoEditor() {
         return;
       }
 
-      // ✅ Se COSTI_GENERALI: nessuna descrizione codificata/libera richiesta
       if (!isCostiGenerali) {
         if (
           (macro === "AIG" || macro === "ATTIVITA_DIVERSE") &&
@@ -257,7 +304,6 @@ export default function MovimentoEditor() {
       }
     }
 
-    // ✅ DESCRIZIONE OPERAZIONE: mai null (DB NOT NULL)
     const descrOperazioneFinale = isAvanzo
       ? tipologia === "AVANZO_CASSA_T_1"
         ? "Avanzo cassa t-1"
@@ -271,7 +317,6 @@ export default function MovimentoEditor() {
       data: isAvanzo ? null : data || null,
       macro: isAvanzo ? null : macro || null,
 
-      // ✅ CONTO: sugli avanzi lo imposto automaticamente
       conto: isAvanzo
         ? tipologia === "AVANZO_CASSA_T_1"
           ? "CASSA"
@@ -280,7 +325,6 @@ export default function MovimentoEditor() {
           ? conto
           : null,
 
-      // ✅ COSTI_GENERALI: descrizioni nulle
       descrizione_code:
         isAvanzo || isSoloImportoEntrata || isCostiGenerali
           ? null
@@ -292,13 +336,10 @@ export default function MovimentoEditor() {
 
       importo: Number(importo),
 
-      // ✅ nuovo: IVA
-      iva: isEntrataOrUscita ? Number(iva || 0) : 0,
+      // ✅ IVA solo se ORDINARIO, altrimenti 0
+      iva: showIvaField ? Number(iva || 0) : 0,
 
       descrizione_operazione: descrOperazioneFinale,
-
-      // ✅ IMPORTANTISSIMO: niente allocazione per COSTI_GENERALI (master)
-      // (qui non valorizziamo allocated_to_type/id, quindi rimangono null)
     };
 
     const q = editId
@@ -383,7 +424,6 @@ export default function MovimentoEditor() {
               <option value="ATTIVITA_DIVERSE">Attività Diverse</option>
               <option value="RACCOLTE_FONDI">Raccolte Fondi</option>
 
-              {/* ✅ Step 1: costo generale master */}
               {tipologia === "USCITA" && (
                 <option value="COSTI_GENERALI">Costi generali</option>
               )}
@@ -406,7 +446,6 @@ export default function MovimentoEditor() {
             </select>
           </Card>
 
-          {/* ✅ BANCA/CASSA */}
           <Card title="3️⃣ Banca / Cassa">
             <select
               value={conto}
@@ -420,7 +459,6 @@ export default function MovimentoEditor() {
         </>
       )}
 
-      {/* ✅ Info box per COSTI_GENERALI */}
       {isCostiGenerali && (
         <Card title="ℹ️ Nota (Costi generali)">
           <div style={{ lineHeight: 1.45 }}>
@@ -482,9 +520,9 @@ export default function MovimentoEditor() {
             />
           </Card>
 
-          {/* ✅ 6️⃣ IVA */}
-          {isEntrataOrUscita && (
-            <Card title="6️⃣ IVA">
+          {/* ✅ 6️⃣ IVA: solo se ORDINARIO */}
+          {showIvaField && (
+            <Card title="6️⃣ IVA (solo regime ordinario)">
               <input
                 type="number"
                 value={iva}
