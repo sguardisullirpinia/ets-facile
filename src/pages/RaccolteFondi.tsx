@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Layout from "../components/Layout";
 import { supabase } from "../lib/supabase";
-import { Badge, Card, Euro, PrimaryButton } from "../components/ui";
+import { Badge, Card, PrimaryButton } from "../components/ui";
 
 type RfRow = {
   id: string;
