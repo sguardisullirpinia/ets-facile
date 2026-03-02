@@ -408,7 +408,7 @@ export default function AttivitaDiverse() {
 
           <div className="rowMeta" style={{ marginTop: 0, marginBottom: 8 }}>
             <Badge tone={tone as any}>{isEntrata ? "Entrata" : "Uscita"}</Badge>
-            <Badge tone="yellow">{macroLabelTxt}</Badge>
+            <Badge tone="amber">{macroLabelTxt}</Badge>
           </div>
 
           <div className="rowTitle" style={noEllipsis}>
