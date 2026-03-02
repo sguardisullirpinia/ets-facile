@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import Layout from "../components/Layout";
 import { supabase } from "../lib/supabase";
 import { Badge, Card, Euro, PrimaryButton } from "../components/ui";
@@ -7,8 +7,7 @@ type RfRow = {
   id: string;
   nome: string;
   descrizione: string | null;
-  // ✅ nuova colonna data (DATE)
-  data: string | null;
+  data: string | null; // ✅ nuova colonna data
 };
 
 type Movimento = {
@@ -22,8 +21,8 @@ type Movimento = {
   descrizione_operazione?: string | null;
   descrizione_libera?: string | null;
 
-  importo: any; // number o string
-  iva: any; // number o string
+  importo: any;
+  iva: any;
 };
 
 /** ✅ robusta: gestisce "1.234,56" e "1234.56" */
@@ -34,20 +33,14 @@ function num(v: any) {
   let s = String(v).trim();
   if (!s) return 0;
 
-  // rimuove eventuali simboli/lettere (es. "€ 10,00")
   s = s.replace(/[^\d,.\-]/g, "");
-
-  if (s.includes(",") && s.includes(".")) {
-    s = s.replace(/\./g, "").replace(",", ".");
-  } else if (s.includes(",")) {
-    s = s.replace(",", ".");
-  }
+  if (s.includes(",") && s.includes(".")) s = s.replace(/\./g, "").replace(",", ".");
+  else if (s.includes(",")) s = s.replace(",", ".");
 
   const n = Number(s);
   return Number.isFinite(n) ? n : 0;
 }
 
-/** ✅ totale LORDO movimento = importo + iva */
 function totaleMov(m: Movimento) {
   return num(m.importo) + num(m.iva);
 }
@@ -55,22 +48,20 @@ function totaleMov(m: Movimento) {
 function fmtDate(d: string | null) {
   if (!d) return "—";
   const [y, m, day] = d.split("-");
-  if (!y || !m || !day) return d || "—";
+  if (!y || !m || !day) return d;
   return `${day}/${m}/${y}`;
 }
 
 function bestDescr(m: Movimento) {
   const a = (m.descrizione_label || "").trim();
-  const b = ((m.descrizione_operazione as any) || "").trim();
-  const c = ((m.descrizione_libera as any) || "").trim();
+  const b = (m.descrizione_operazione || "").trim();
+  const c = (m.descrizione_libera || "").trim();
   return a || b || c || "—";
 }
 
 function EuroFmt({ v }: { v: number }) {
   const n = Number.isFinite(v) ? v : 0;
-  return (
-    <span style={{ fontVariantNumeric: "tabular-nums" }}>€ {n.toFixed(2)}</span>
-  );
+  return <span style={{ fontVariantNumeric: "tabular-nums" }}>€ {n.toFixed(2)}</span>;
 }
 
 function IconButton({
@@ -79,11 +70,11 @@ function IconButton({
   children,
 }: {
   title: string;
-  onClick: (e: React.MouseEvent) => void;
-  children: React.ReactNode;
+  onClick: (e: MouseEvent) => void;
+  children: ReactNode;
 }) {
   return (
-    <button title={title} onClick={onClick} className="iconBtn" type="button">
+    <button title={title} onClick={onClick as any} className="iconBtn" type="button">
       {children}
     </button>
   );
@@ -91,41 +82,11 @@ function IconButton({
 
 function TrashIcon() {
   return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M3 6h18"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M8 6V4h8v2"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M19 6l-1 14H6L5 6"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M10 11v6M14 11v6"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M3 6h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8 6V4h8v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M19 6l-1 14H6L5 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M10 11v6M14 11v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -145,7 +106,7 @@ export default function RaccolteFondi() {
 
   const [nome, setNome] = useState("");
   const [descr, setDescr] = useState("");
-  const [rfData, setRfData] = useState(""); // ✅ data raccolta fondi (YYYY-MM-DD)
+  const [rfData, setRfData] = useState(""); // ✅ data raccolta fondi
 
   // dettaglio (MODALE FULLSCREEN)
   const [active, setActive] = useState<RfRow | null>(null);
@@ -164,9 +125,9 @@ export default function RaccolteFondi() {
   const [cgMap, setCgMap] = useState<Record<string, number>>({});
 
   // =========================
-  // STILI NO-ELLIPSIS
+  // STILI
   // =========================
-  const noEllipsis: React.CSSProperties = {
+  const noEllipsis: CSSProperties = {
     whiteSpace: "normal",
     overflow: "visible",
     textOverflow: "clip",
@@ -175,10 +136,7 @@ export default function RaccolteFondi() {
     minWidth: 0,
   };
 
-  // =========================
-  // MODALE FULLSCREEN STYLES
-  // =========================
-  const fullModalOverlay: React.CSSProperties = {
+  const fullModalOverlay: CSSProperties = {
     position: "fixed",
     inset: 0,
     background: "rgba(0,0,0,0.45)",
@@ -187,7 +145,7 @@ export default function RaccolteFondi() {
     overflow: "hidden",
   };
 
-  const fullModalSheet: React.CSSProperties = {
+  const fullModalSheet: CSSProperties = {
     background: "#fff",
     width: "100%",
     height: "100%",
@@ -199,13 +157,11 @@ export default function RaccolteFondi() {
     paddingBottom: 120,
   };
 
-  // helper per far andare le Card a filo schermo nel modale
-  const fullBleed: React.CSSProperties = {
+  const fullBleed: CSSProperties = {
     marginLeft: -14,
     marginRight: -14,
   };
 
-  // blocca scroll body quando modale dettaglio aperto
   useEffect(() => {
     if (active) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "";
@@ -215,7 +171,7 @@ export default function RaccolteFondi() {
   }, [active]);
 
   // =========================
-  // CARD MOVIMENTO DISPONIBILE (checkbox)
+  // COMPONENTI MOVIMENTI
   // =========================
   const AvailableMoveCard = ({
     m,
@@ -249,25 +205,11 @@ export default function RaccolteFondi() {
           type="checkbox"
           checked={checked}
           onChange={(e) => onToggle(e.target.checked)}
-          style={{
-            width: 18,
-            height: 18,
-            marginTop: 6,
-            cursor: "pointer",
-            flex: "0 0 auto",
-          }}
+          style={{ width: 18, height: 18, marginTop: 6, cursor: "pointer", flex: "0 0 auto" }}
         />
 
         <div className="rowMain" style={{ minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 850,
-              opacity: 0.7,
-              marginBottom: 8,
-              ...noEllipsis,
-            }}
-          >
+          <div style={{ fontSize: 12, fontWeight: 850, opacity: 0.7, marginBottom: 8, ...noEllipsis }}>
             {fmtDate(m.data)}
           </div>
 
@@ -284,24 +226,13 @@ export default function RaccolteFondi() {
           </div>
         </div>
 
-        <div
-          className="rowAmount"
-          style={{
-            justifySelf: "end",
-            textAlign: "right",
-            fontWeight: 950,
-            paddingTop: 22,
-          }}
-        >
+        <div className="rowAmount" style={{ justifySelf: "end", textAlign: "right", fontWeight: 950, paddingTop: 22 }}>
           <EuroFmt v={totaleMov(m)} />
         </div>
       </label>
     );
   };
 
-  // =========================
-  // CARD MOVIMENTO ASSEGNATO
-  // =========================
   const AssignedMoveCard = ({
     m,
     tone,
@@ -318,25 +249,9 @@ export default function RaccolteFondi() {
     const sub = (m.descrizione_operazione || "").trim() || "—";
 
     return (
-      <div
-        className="listRow"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr auto",
-          alignItems: "start",
-          columnGap: 12,
-        }}
-      >
+      <div className="listRow" style={{ display: "grid", gridTemplateColumns: "1fr auto", alignItems: "start", columnGap: 12 }}>
         <div className="rowMain" style={{ minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 850,
-              opacity: 0.7,
-              marginBottom: 8,
-              ...noEllipsis,
-            }}
-          >
+          <div style={{ fontSize: 12, fontWeight: 850, opacity: 0.7, marginBottom: 8, ...noEllipsis }}>
             {fmtDate(m.data)}
           </div>
 
@@ -354,10 +269,7 @@ export default function RaccolteFondi() {
         </div>
 
         <div style={{ display: "grid", justifyItems: "end", gap: 8 }}>
-          <div
-            className="rowAmount"
-            style={{ justifySelf: "end", textAlign: "right", fontWeight: 950 }}
-          >
+          <div className="rowAmount" style={{ justifySelf: "end", textAlign: "right", fontWeight: 950 }}>
             <EuroFmt v={totaleMov(m)} />
           </div>
 
@@ -393,11 +305,9 @@ export default function RaccolteFondi() {
       setError(error.message);
       return;
     }
-
     setItems((data || []) as RfRow[]);
   };
 
-  // carica mappa costi generali imputati (per tutte le RF)
   const loadCostiGeneraliMap = async () => {
     if (!annualitaId) return;
 
@@ -441,7 +351,7 @@ export default function RaccolteFondi() {
     setEditingId(null);
     setNome("");
     setDescr("");
-    setRfData(""); // ✅ reset data
+    setRfData("");
     setOpenModal(true);
   };
 
@@ -451,17 +361,12 @@ export default function RaccolteFondi() {
     setEditingId(null);
   };
 
-  // =========================
-  // CREA / UPDATE
-  // =========================
   const saveItem = async () => {
     setError(null);
     if (!annualitaId) return;
 
     const n = nome.trim();
     if (!n) return alert("Nome obbligatorio");
-
-    // ✅ data obbligatoria
     if (!rfData) return alert("Data obbligatoria");
 
     const { data: userData } = await supabase.auth.getUser();
@@ -473,13 +378,10 @@ export default function RaccolteFondi() {
         annualita_id: annualitaId,
         nome: n,
         descrizione: descr.trim() || null,
-        data: rfData, // ✅ nuova
+        data: rfData,
       });
 
-      if (error) {
-        alert(error.message);
-        return;
-      }
+      if (error) return alert(error.message);
     } else {
       if (!editingId) return;
 
@@ -488,20 +390,13 @@ export default function RaccolteFondi() {
         .update({
           nome: n,
           descrizione: descr.trim() || null,
-          data: rfData, // ✅ nuova
+          data: rfData,
         })
         .eq("id", editingId);
 
-      if (error) {
-        alert(error.message);
-        return;
-      }
+      if (error) return alert(error.message);
 
-      setActive((p) =>
-        p && p.id === editingId
-          ? { ...p, nome: n, descrizione: descr.trim() || null, data: rfData }
-          : p,
-      );
+      setActive((p) => (p && p.id === editingId ? { ...p, nome: n, descrizione: descr.trim() || null, data: rfData } : p));
     }
 
     closeModal();
@@ -513,33 +408,18 @@ export default function RaccolteFondi() {
   // DELETE
   // =========================
   const deleteItem = async (id: string) => {
-    const ok = confirm(
-      "Vuoi eliminare questa Raccolta Fondi? I movimenti assegnati torneranno disponibili.",
-    );
+    const ok = confirm("Vuoi eliminare questa Raccolta Fondi? I movimenti assegnati torneranno disponibili.");
     if (!ok) return;
 
-    const { error: unErr } = await supabase.rpc(
-      "unassign_movimenti_for_activity",
-      {
-        p_type: "RACCOLTE_FONDI",
-        p_id: id,
-      },
-    );
+    const { error: unErr } = await supabase.rpc("unassign_movimenti_for_activity", {
+      p_type: "RACCOLTE_FONDI",
+      p_id: id,
+    });
 
-    if (unErr) {
-      alert("Errore sblocco movimenti: " + unErr.message);
-      return;
-    }
+    if (unErr) return alert("Errore sblocco movimenti: " + unErr.message);
 
-    const { error } = await supabase
-      .from("raccolte_fondi")
-      .delete()
-      .eq("id", id);
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
+    const { error } = await supabase.from("raccolte_fondi").delete().eq("id", id);
+    if (error) return alert(error.message);
 
     if (active?.id === id) setActive(null);
     await loadItems();
@@ -565,7 +445,6 @@ export default function RaccolteFondi() {
       .is("allocated_to_id", null)
       .neq("macro", "COSTI_GENERALI")
       .order("data", { ascending: true });
-
     if (aeErr) return setError(aeErr.message);
 
     const { data: au, error: auErr } = await supabase
@@ -577,7 +456,6 @@ export default function RaccolteFondi() {
       .is("allocated_to_id", null)
       .neq("macro", "COSTI_GENERALI")
       .order("data", { ascending: true });
-
     if (auErr) return setError(auErr.message);
 
     const { data: se, error: seErr } = await supabase
@@ -588,7 +466,6 @@ export default function RaccolteFondi() {
       .eq("allocated_to_id", rfId)
       .eq("tipologia", "ENTRATA")
       .order("data", { ascending: true });
-
     if (seErr) return setError(seErr.message);
 
     const { data: su, error: suErr } = await supabase
@@ -599,7 +476,6 @@ export default function RaccolteFondi() {
       .eq("allocated_to_id", rfId)
       .eq("tipologia", "USCITA")
       .order("data", { ascending: true });
-
     if (suErr) return setError(suErr.message);
 
     setAvailEntrate((ae || []) as Movimento[]);
@@ -610,66 +486,34 @@ export default function RaccolteFondi() {
     setSelUscite({});
   };
 
-  /**
-   * ✅ OPEN ITEM (FIX CLICK)
-   * - NON async: apre subito il modale
-   * - poi carica i dati senza bloccare l’UI
-   * - chiude eventuale bottom sheet rimasto aperto
-   */
+  // ✅ FIX: apre subito il modale e poi carica in background (così il click funziona sempre)
   const openItem = (it: RfRow) => {
     setError(null);
-
-    // sicurezza: chiudi sheet crea/modifica se per caso è aperto
-    setOpenModal(false);
-    setEditMode(false);
-    setEditingId(null);
-
-    // apri subito il dettaglio
     setActive(it);
 
-    // carica i dati dopo
     void (async () => {
-      try {
-        await loadMovimentiForItem(it.id);
-        await loadCostiGeneraliMap();
-      } catch (e: any) {
-        setError(e?.message ? String(e.message) : "Errore caricamento dettaglio");
-      }
+      await loadMovimentiForItem(it.id);
+      await loadCostiGeneraliMap();
     })();
   };
 
-  // rimuove assegnazione singolo movimento
   const unassignMovimento = async (movId: string) => {
     if (!active) return;
 
-    const ok = confirm(
-      "Vuoi rimuovere l’assegnazione di questo movimento?\n(Il movimento NON verrà eliminato e tornerà tra quelli disponibili.)",
-    );
+    const ok = confirm("Vuoi rimuovere l’assegnazione di questo movimento?\n(Il movimento NON verrà eliminato e tornerà tra quelli disponibili.)");
     if (!ok) return;
 
-    const { error } = await supabase
-      .from("movimenti")
-      .update({ allocated_to_type: null, allocated_to_id: null })
-      .eq("id", movId);
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
+    const { error } = await supabase.from("movimenti").update({ allocated_to_type: null, allocated_to_id: null }).eq("id", movId);
+    if (error) return alert(error.message);
 
     await loadMovimentiForItem(active.id);
     await loadCostiGeneraliMap();
   };
 
-  // =========================
-  // ASSEGNA SELEZIONATI
-  // =========================
   const assignSelected = async (kind: "ENTRATA" | "USCITA") => {
     if (!active) return;
 
-    const selectedIds = Object.entries(
-      kind === "ENTRATA" ? selEntrate : selUscite,
-    )
+    const selectedIds = Object.entries(kind === "ENTRATA" ? selEntrate : selUscite)
       .filter(([, v]) => v)
       .map(([id]) => id);
 
@@ -678,53 +522,30 @@ export default function RaccolteFondi() {
     for (const id of selectedIds) {
       const { error } = await supabase
         .from("movimenti")
-        .update({
-          allocated_to_type: "RACCOLTE_FONDI",
-          allocated_to_id: active.id,
-        })
+        .update({ allocated_to_type: "RACCOLTE_FONDI", allocated_to_id: active.id })
         .eq("id", id);
-
-      if (error) {
-        alert(error.message);
-        return;
-      }
+      if (error) return alert(error.message);
     }
 
     await loadMovimentiForItem(active.id);
     await loadCostiGeneraliMap();
   };
 
-  // =========================
-  // TOTALI (✅ LORDO = importo + iva)
-  // =========================
-  const totEntrate = useMemo(
-    () => assEntrate.reduce((s, m) => s + totaleMov(m), 0),
-    [assEntrate],
-  );
-  const totUscite = useMemo(
-    () => assUscite.reduce((s, m) => s + totaleMov(m), 0),
-    [assUscite],
-  );
+  const totEntrate = useMemo(() => assEntrate.reduce((s, m) => s + totaleMov(m), 0), [assEntrate]);
+  const totUscite = useMemo(() => assUscite.reduce((s, m) => s + totaleMov(m), 0), [assUscite]);
 
-  const cgImputati = useMemo(() => {
-    if (!active) return 0;
-    return num(cgMap[active.id] ?? 0);
-  }, [active, cgMap]);
+  const cgImputati = useMemo(() => (active ? num(cgMap[active.id] ?? 0) : 0), [active, cgMap]);
+  const totUsciteEff = useMemo(() => totUscite + cgImputati, [totUscite, cgImputati]);
 
-  const totUsciteEff = useMemo(
-    () => totUscite + cgImputati,
-    [totUscite, cgImputati],
-  );
-
-  const row2Cols: React.CSSProperties = {
+  const row2Cols: CSSProperties = {
     display: "grid",
     gridTemplateColumns: "1fr auto",
     alignItems: "start",
     columnGap: 12,
   };
 
-  // ✅ stile “come AIG” per righe riepilogo (maiuscolo + no bold)
-  const wrapRowBox: React.CSSProperties = {
+  // ✅ riepilogo: label MAIUSCOLO ma NON in grassetto
+  const wrapRowBox: CSSProperties = {
     display: "flex",
     flexWrap: "wrap",
     gap: 10,
@@ -732,18 +553,16 @@ export default function RaccolteFondi() {
     padding: "10px 0",
     borderBottom: "1px solid rgba(0,0,0,0.08)",
   };
-
-  const wrapRowLabel: React.CSSProperties = {
+  const wrapRowLabel: CSSProperties = {
     flex: "1 1 240px",
     minWidth: 0,
     whiteSpace: "normal",
     overflowWrap: "anywhere",
     lineHeight: 1.25,
     textTransform: "uppercase",
-    fontWeight: 400, // ✅ no bold
+    fontWeight: 400,
   };
-
-  const wrapRowValue: React.CSSProperties = {
+  const wrapRowValue: CSSProperties = {
     flex: "0 0 auto",
     marginLeft: "auto",
     textAlign: "right",
@@ -751,13 +570,7 @@ export default function RaccolteFondi() {
     fontWeight: 950,
   };
 
-  const WrapRowValue = ({
-    label,
-    value,
-  }: {
-    label: React.ReactNode;
-    value: React.ReactNode;
-  }) => (
+  const WrapRowValue = ({ label, value }: { label: ReactNode; value: ReactNode }) => (
     <div style={wrapRowBox}>
       <div style={wrapRowLabel}>{label}</div>
       <div style={wrapRowValue}>{value}</div>
@@ -766,31 +579,11 @@ export default function RaccolteFondi() {
 
   return (
     <Layout>
-      {/* HEADER + FAB */}
       <div className="pageHeader" style={{ paddingTop: 15 }}>
         <div>
           <h2 className="pageTitle">RACCOLTE FONDI</h2>
           <div className="pageHelp">
-            Crea le Raccolte Fondi occasionali che l'Ente ha organizzato e
-            gestito nell'annualità di riferimento. Sono iniziative organizzate
-            in occasione di celebrazioni, ricorrenze o campagne di
-            sensibilizzazione (ad esempio, la vendita di uova di Pasqua in
-            piazza o una cena di beneficenza una volta l'anno). Assegna a
-            ciascuna Raccolta Fondi occasionale le entrate e le uscite sostenute
-            per realizzarla.
-            <br />
-            <br />
-            Qualora l’ETS acquisisca la qualifica di ente non commerciale,
-            laddove le raccolte fondi non prevedano la vendita di beni o servizi
-            (es. sollecitazione donazioni, lasciti testamentari, ecc.) e,
-            dunque, non vi sia sotteso alcun rapporto sinallagmatico, esse
-            devono considerarsi non commerciali,{" "}
-            <u>
-              indipendentemente dalla frequenza (quindi dall’occasionalità o
-              meno) e dalle modalità (anche se non in concomitanza con
-              celebrazioni, ricorrenze o campagne di sensibilizzazione) con cui
-              sono realizzate.
-            </u>
+            Crea le Raccolte Fondi occasionali che l'Ente ha organizzato e gestito nell'annualità di riferimento e assegna entrate/uscite.
           </div>
         </div>
       </div>
@@ -802,26 +595,18 @@ export default function RaccolteFondi() {
         </div>
       )}
 
-      <button
-        className="fab"
-        onClick={openCreate}
-        type="button"
-        aria-label="Nuova raccolta fondi"
-      >
+      <button className="fab" onClick={openCreate} type="button" aria-label="Nuova raccolta fondi">
         +
       </button>
 
-      {/* MODAL crea/modifica (bottom sheet) */}
+      {/* MODAL crea/modifica */}
       {openModal && (
         <div className="sheetOverlay" onClick={closeModal}>
           <div className="sheet" onClick={(e) => e.stopPropagation()}>
             <div className="sheetHandle" />
 
             <div className="sheetHeader">
-              <div className="sheetTitle">
-                {editMode ? "Modifica Raccolta Fondi" : "Crea Raccolta Fondi"}
-              </div>
-
+              <div className="sheetTitle">{editMode ? "Modifica Raccolta Fondi" : "Crea Raccolta Fondi"}</div>
               <button className="btn" type="button" onClick={closeModal}>
                 Chiudi
               </button>
@@ -829,50 +614,21 @@ export default function RaccolteFondi() {
 
             <div className="sheetGrid" style={{ gap: 12 }}>
               <div>
-                <div style={{ fontWeight: 950, marginBottom: 6 }}>
-                  Nome (obbligatorio)
-                </div>
-                <input
-                  value={nome}
-                  onChange={(e) => setNome(e.target.value)}
-                  className="input"
-                  placeholder="Es. Lotteria, Cena solidale..."
-                />
-              </div>
-
-              {/* ✅ DATA RACCOLTA FONDI */}
-              <div>
-                <div style={{ fontWeight: 950, marginBottom: 6 }}>
-                  Data (obbligatoria)
-                </div>
-                <input
-                  type="date"
-                  value={rfData}
-                  onChange={(e) => setRfData(e.target.value)}
-                  className="input"
-                />
-                <div className="rowSub" style={{ marginTop: 6 }}>
-                  Verrà mostrata nell’elenco generale.
-                </div>
+                <div style={{ fontWeight: 950, marginBottom: 6 }}>Nome (obbligatorio)</div>
+                <input value={nome} onChange={(e) => setNome(e.target.value)} className="input" placeholder="Es. Lotteria, Cena solidale..." />
               </div>
 
               <div>
-                <div style={{ fontWeight: 950, marginBottom: 6 }}>
-                  Descrizione
-                </div>
-                <input
-                  value={descr}
-                  onChange={(e) => setDescr(e.target.value)}
-                  className="input"
-                  placeholder="Descrizione sintetica (opzionale)"
-                />
+                <div style={{ fontWeight: 950, marginBottom: 6 }}>Data (obbligatoria)</div>
+                <input type="date" value={rfData} onChange={(e) => setRfData(e.target.value)} className="input" />
               </div>
 
-              <button
-                className="btn btn--primary btn--block"
-                type="button"
-                onClick={saveItem}
-              >
+              <div>
+                <div style={{ fontWeight: 950, marginBottom: 6 }}>Descrizione</div>
+                <input value={descr} onChange={(e) => setDescr(e.target.value)} className="input" placeholder="Descrizione sintetica (opzionale)" />
+              </div>
+
+              <button className="btn btn--primary btn--block" type="button" onClick={saveItem}>
                 {editMode ? "Salva modifiche" : "Salva"}
               </button>
             </div>
@@ -905,23 +661,12 @@ export default function RaccolteFondi() {
                 }}
               >
                 <div className="rowMain" style={{ minWidth: 0 }}>
-                  {/* ✅ DATA visibile in elenco */}
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 850,
-                      opacity: 0.7,
-                      marginBottom: 8,
-                      ...noEllipsis,
-                    }}
-                  >
+                  <div style={{ fontSize: 12, fontWeight: 850, opacity: 0.7, marginBottom: 8, ...noEllipsis }}>
                     {fmtDate(it.data)}
                   </div>
-
                   <div className="rowTitle" style={noEllipsis}>
                     {it.nome}
                   </div>
-
                   <div className="rowSub" style={{ marginTop: 6, ...noEllipsis }}>
                     {it.descrizione || "—"}
                   </div>
@@ -944,7 +689,7 @@ export default function RaccolteFondi() {
         </div>
       </div>
 
-      {/* DETTAGLIO (MODALE FULLSCREEN) */}
+      {/* DETTAGLIO */}
       {active && (
         <div
           className="sheetOverlay"
@@ -953,12 +698,7 @@ export default function RaccolteFondi() {
           role="dialog"
           aria-modal="true"
         >
-          <div
-            className="sheet"
-            style={{ ...fullModalSheet, maxWidth: "none", margin: 0 }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header sticky */}
+          <div className="sheet" style={{ ...fullModalSheet, maxWidth: "none", margin: 0 }} onClick={(e) => e.stopPropagation()}>
             <div
               className="sheetHeader"
               style={{
@@ -976,23 +716,17 @@ export default function RaccolteFondi() {
               <div className="sheetTitle" style={{ fontWeight: 950 }}>
                 {active.nome}
               </div>
-
-              <div style={{ display: "flex", gap: 8 }}>
-                <button className="btn" type="button" onClick={() => setActive(null)}>
-                  Chiudi
-                </button>
-              </div>
+              <button className="btn" type="button" onClick={() => setActive(null)}>
+                Chiudi
+              </button>
             </div>
 
             <div style={{ padding: 14 }}>
-              {/* ✅ Data raccolta fondi nel dettaglio */}
               <div style={{ marginTop: 6 }}>
                 <Badge tone="neutral">DATA: {fmtDate(active.data)}</Badge>
               </div>
 
-              {active.descrizione && (
-                <div style={{ marginTop: 10, ...noEllipsis }}>{active.descrizione}</div>
-              )}
+              {active.descrizione && <div style={{ marginTop: 10, ...noEllipsis }}>{active.descrizione}</div>}
 
               <div className="mt-3" />
 
@@ -1015,19 +749,14 @@ export default function RaccolteFondi() {
                               tone="green"
                               macroLabelTxt="Raccolte Fondi"
                               checked={!!selEntrate[m.id]}
-                              onToggle={(v) =>
-                                setSelEntrate((p) => ({ ...p, [m.id]: v }))
-                              }
+                              onToggle={(v) => setSelEntrate((p) => ({ ...p, [m.id]: v }))}
                             />
                           ))}
                         </div>
                       )}
 
                       <div className="panelActions">
-                        <PrimaryButton
-                          onClick={() => assignSelected("ENTRATA")}
-                          className="btn--block"
-                        >
+                        <PrimaryButton onClick={() => assignSelected("ENTRATA")} className="btn--block">
                           Assegna Entrate selezionate
                         </PrimaryButton>
                       </div>
@@ -1049,19 +778,14 @@ export default function RaccolteFondi() {
                               tone="red"
                               macroLabelTxt="Raccolte Fondi"
                               checked={!!selUscite[m.id]}
-                              onToggle={(v) =>
-                                setSelUscite((p) => ({ ...p, [m.id]: v }))
-                              }
+                              onToggle={(v) => setSelUscite((p) => ({ ...p, [m.id]: v }))}
                             />
                           ))}
                         </div>
                       )}
 
                       <div className="panelActions">
-                        <PrimaryButton
-                          onClick={() => assignSelected("USCITA")}
-                          className="btn--block"
-                        >
+                        <PrimaryButton onClick={() => assignSelected("USCITA")} className="btn--block">
                           Assegna Uscite selezionate
                         </PrimaryButton>
                       </div>
@@ -1085,13 +809,7 @@ export default function RaccolteFondi() {
                       ) : (
                         <div className="listBox movList">
                           {assEntrate.map((m) => (
-                            <AssignedMoveCard
-                              key={m.id}
-                              m={m}
-                              tone="green"
-                              macroLabelTxt="Raccolte Fondi"
-                              onUnassign={unassignMovimento}
-                            />
+                            <AssignedMoveCard key={m.id} m={m} tone="green" macroLabelTxt="Raccolte Fondi" onUnassign={unassignMovimento} />
                           ))}
                         </div>
                       )}
@@ -1107,13 +825,7 @@ export default function RaccolteFondi() {
                       ) : (
                         <div className="listBox movList">
                           {assUscite.map((m) => (
-                            <AssignedMoveCard
-                              key={m.id}
-                              m={m}
-                              tone="red"
-                              macroLabelTxt="Raccolte Fondi"
-                              onUnassign={unassignMovimento}
-                            />
+                            <AssignedMoveCard key={m.id} m={m} tone="red" macroLabelTxt="Raccolte Fondi" onUnassign={unassignMovimento} />
                           ))}
                         </div>
                       )}
@@ -1124,38 +836,17 @@ export default function RaccolteFondi() {
 
               <div className="mt-3" />
 
-              {/* ✅ TOTALE “STILE AIG”: LABEL MAIUSCOLO, NO BOLD */}
               <div style={fullBleed}>
                 <Card title="TOTALE RACCOLTA FONDI">
-                  <div style={noEllipsis}>
-                    <WrapRowValue
-                      label={<span style={noEllipsis}>TOTALE ENTRATE ASSEGNATE</span>}
-                      value={<EuroFmt v={totEntrate} />}
-                    />
-
-                    <WrapRowValue
-                      label={<span style={noEllipsis}>TOTALE USCITE ASSEGNATE</span>}
-                      value={<EuroFmt v={totUscite} />}
-                    />
-
-                    <WrapRowValue
-                      label={<span style={noEllipsis}>COSTI GENERALI IMPUTATI</span>}
-                      value={<EuroFmt v={cgImputati} />}
-                    />
-
-                    <WrapRowValue
-                      label={
-                        <span style={noEllipsis}>
-                          TOTALE USCITE EFFETTIVE (INCL. COSTI GENERALI)
-                        </span>
-                      }
-                      value={<EuroFmt v={totUsciteEff} />}
-                    />
-                  </div>
+                  <WrapRowValue label={<span style={noEllipsis}>TOTALE ENTRATE ASSEGNATE</span>} value={<EuroFmt v={totEntrate} />} />
+                  <WrapRowValue label={<span style={noEllipsis}>TOTALE USCITE ASSEGNATE</span>} value={<EuroFmt v={totUscite} />} />
+                  <WrapRowValue label={<span style={noEllipsis}>COSTI GENERALI IMPUTATI</span>} value={<EuroFmt v={cgImputati} />} />
+                  <WrapRowValue
+                    label={<span style={noEllipsis}>TOTALE USCITE EFFETTIVE (INCL. COSTI GENERALI)</span>}
+                    value={<EuroFmt v={totUsciteEff} />}
+                  />
                 </Card>
               </div>
-
-              <div className="mt-3" />
             </div>
           </div>
         </div>
