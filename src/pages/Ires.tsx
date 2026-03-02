@@ -307,23 +307,6 @@ const C = useMemo(
   const IresOrdinario = Math.max(0, Utile) * 0.24;
 
   // =========================
-  // SAVE
-  // =========================
-  const saveRicaviPrec = async () => {
-    if (!annualitaId) return;
-    setSaving(true);
-    setError(null);
-
-    const { error } = await supabase
-      .from("annualita")
-      .update({ ricavi_annualita_precedente: ricaviPrec })
-      .eq("id", annualitaId);
-
-    setSaving(false);
-    if (error) setError(error.message);
-  };
-
-  // =========================
   // UI
   // =========================
   return (
