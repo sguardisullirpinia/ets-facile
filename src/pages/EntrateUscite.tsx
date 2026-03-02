@@ -423,7 +423,7 @@ export default function EntrateUscite() {
       "Descrizione operazione": m.descrizione_operazione || "",
       Importo: num(m.importo),
       IVA: num(m.iva),
-      Totale: totaleMov(m), // ✅ nuovo: importo + iva
+      Totale: totaleMov(m),
     }));
 
     const rowsAvanzi = avanzi.map((m) => ({
@@ -497,13 +497,6 @@ export default function EntrateUscite() {
     outline: "none",
   };
 
-  const sumRowStyle: React.CSSProperties = {
-    display: "grid",
-    gridTemplateColumns: "1fr auto",
-    alignItems: "start",
-    columnGap: 12,
-  };
-
   const dividerStyle: React.CSSProperties = {
     height: 1,
     background: "rgba(0,0,0,0.07)",
@@ -523,12 +516,58 @@ export default function EntrateUscite() {
     textAlign: "right",
   };
 
+  // ✅ stack badge (rimane uguale, non è "titolo riga")
   const badgeStackStyle: React.CSSProperties = {
     display: "flex",
     flexWrap: "wrap",
     gap: 8,
     marginTop: 2,
   };
+
+  // =========================
+  // ✅ STILE RIEPILOGO COME AIG:
+  // - Label: MAIUSCOLO, NON BOLD
+  // - Valore: a destra, bold
+  // =========================
+  const wrapRowBox: React.CSSProperties = {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 10,
+    alignItems: "flex-start",
+    padding: "10px 0",
+    borderBottom: "1px solid rgba(0,0,0,0.08)",
+  };
+
+  const wrapRowLabel: React.CSSProperties = {
+    flex: "1 1 240px",
+    minWidth: 0,
+    whiteSpace: "normal",
+    overflowWrap: "anywhere",
+    lineHeight: 1.25,
+    textTransform: "uppercase",
+    fontWeight: 400, // ✅ NO grassetto
+  };
+
+  const wrapRowValue: React.CSSProperties = {
+    flex: "0 0 auto",
+    marginLeft: "auto",
+    textAlign: "right",
+    whiteSpace: "nowrap",
+    fontWeight: 900,
+  };
+
+  const WrapRowValue = ({
+    label,
+    value,
+  }: {
+    label: React.ReactNode;
+    value: React.ReactNode;
+  }) => (
+    <div style={wrapRowBox}>
+      <div style={wrapRowLabel}>{label}</div>
+      <div style={wrapRowValue}>{value}</div>
+    </div>
+  );
 
   return (
     <Layout>
@@ -609,7 +648,6 @@ export default function EntrateUscite() {
 
                   <div style={{ display: "grid", justifyItems: "end", gap: 8 }}>
                     <div className="rowAmount" style={amountBoxStyle}>
-                      {/* Avanzi: importo (iva normalmente 0) */}
                       <Euro v={num(m.importo)} />
                     </div>
 
@@ -787,7 +825,6 @@ export default function EntrateUscite() {
                       style={{ display: "grid", justifyItems: "end", gap: 8 }}
                     >
                       <div className="rowAmount" style={amountBoxStyle}>
-                        {/* ✅ Importo mostrato = importo + iva */}
                         <Euro v={totaleMov(m)} />
                       </div>
 
@@ -813,7 +850,7 @@ export default function EntrateUscite() {
         </div>
       </div>
 
-      {/* ✅ RIEPILOGO */}
+      {/* ✅ RIEPILOGO (STILE COME AIG: label uppercase no-bold) */}
       <div className="section">
         <div className="sectionTitle">RIEPILOGO</div>
 
@@ -823,33 +860,18 @@ export default function EntrateUscite() {
             <div className="rowMain" style={{ display: "grid", gap: 10 }}>
               <div style={blockTitleStyle}>Entrate</div>
 
-              <div style={sumRowStyle}>
-                <div className="rowTitle">Totale entrate banca</div>
-                <div className="rowAmount" style={amountBoxStyle}>
-                  <Euro v={totEntrateBanca} />
-                </div>
-              </div>
-
-              <div style={sumRowStyle}>
-                <div className="rowTitle">Totale entrate cassa</div>
-                <div className="rowAmount" style={amountBoxStyle}>
-                  <Euro v={totEntrateCassa} />
-                </div>
-              </div>
-
-              <div style={dividerStyle} />
-
-              <div style={sumRowStyle}>
-                <div className="rowTitle" style={{ fontWeight: 800 }}>
-                  TOTALE ENTRATE
-                </div>
-                <div
-                  className="rowAmount"
-                  style={{ ...amountBoxStyle, fontWeight: 800 }}
-                >
-                  <Euro v={totEntrate} />
-                </div>
-              </div>
+              <WrapRowValue
+                label="Totale entrate banca"
+                value={<Euro v={totEntrateBanca} />}
+              />
+              <WrapRowValue
+                label="Totale entrate cassa"
+                value={<Euro v={totEntrateCassa} />}
+              />
+              <WrapRowValue
+                label="Totale entrate"
+                value={<Euro v={totEntrate} />}
+              />
             </div>
           </div>
 
@@ -858,33 +880,18 @@ export default function EntrateUscite() {
             <div className="rowMain" style={{ display: "grid", gap: 10 }}>
               <div style={blockTitleStyle}>Uscite</div>
 
-              <div style={sumRowStyle}>
-                <div className="rowTitle">Totale uscite banca</div>
-                <div className="rowAmount" style={amountBoxStyle}>
-                  <Euro v={totUsciteBanca} />
-                </div>
-              </div>
-
-              <div style={sumRowStyle}>
-                <div className="rowTitle">Totale uscite cassa</div>
-                <div className="rowAmount" style={amountBoxStyle}>
-                  <Euro v={totUsciteCassa} />
-                </div>
-              </div>
-
-              <div style={dividerStyle} />
-
-              <div style={sumRowStyle}>
-                <div className="rowTitle" style={{ fontWeight: 800 }}>
-                  TOTALE USCITE
-                </div>
-                <div
-                  className="rowAmount"
-                  style={{ ...amountBoxStyle, fontWeight: 800 }}
-                >
-                  <Euro v={totUscite} />
-                </div>
-              </div>
+              <WrapRowValue
+                label="Totale uscite banca"
+                value={<Euro v={totUsciteBanca} />}
+              />
+              <WrapRowValue
+                label="Totale uscite cassa"
+                value={<Euro v={totUsciteCassa} />}
+              />
+              <WrapRowValue
+                label="Totale uscite"
+                value={<Euro v={totUscite} />}
+              />
             </div>
           </div>
 
@@ -908,25 +915,14 @@ export default function EntrateUscite() {
                 </Badge>
               </div>
 
-              <div style={sumRowStyle}>
-                <div className="rowTitle">DISPONIBILITÀ BANCA</div>
-                <div
-                  className="rowAmount"
-                  style={{ ...amountBoxStyle, fontWeight: 800 }}
-                >
-                  <Euro v={disponibilitaBanca} />
-                </div>
-              </div>
-
-              <div style={sumRowStyle}>
-                <div className="rowTitle">DISPONIBILITÀ CASSA</div>
-                <div
-                  className="rowAmount"
-                  style={{ ...amountBoxStyle, fontWeight: 800 }}
-                >
-                  <Euro v={disponibilitaCassa} />
-                </div>
-              </div>
+              <WrapRowValue
+                label="Disponibilità banca"
+                value={<Euro v={disponibilitaBanca} />}
+              />
+              <WrapRowValue
+                label="Disponibilità cassa"
+                value={<Euro v={disponibilitaCassa} />}
+              />
             </div>
           </div>
 
@@ -935,15 +931,10 @@ export default function EntrateUscite() {
             <div className="rowMain" style={{ display: "grid", gap: 8 }}>
               <div style={blockTitleStyle}>Risultato di gestione</div>
 
-              <div style={sumRowStyle}>
-                <div className="rowTitle">AVANZO / DISAVANZO DI GESTIONE</div>
-                <div
-                  className="rowAmount"
-                  style={{ ...amountBoxStyle, fontWeight: 900 }}
-                >
-                  <Euro v={avanzoGestione} />
-                </div>
-              </div>
+              <WrapRowValue
+                label="Avanzo / disavanzo di gestione"
+                value={<Euro v={avanzoGestione} />}
+              />
 
               <div className="rowSub">(Totale entrate − Totale uscite)</div>
             </div>
