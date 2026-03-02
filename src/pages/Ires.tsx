@@ -68,7 +68,6 @@ export default function Ires() {
   const annualitaId = localStorage.getItem("annualita_id");
 
   const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
 
   const [tipoEnte, setTipoEnte] = useState<string>("ETS");
   const [ricaviPrec, setRicaviPrec] = useState<number>(0);
