@@ -305,20 +305,21 @@ export default function Test() {
   // TEST COMMERCIALITÀ ENTE
   // -------------------------
   const A = useMemo(
-    () =>
-      aigEsiti
-        .filter((x) => x.esito === "COMMERCIALE")
-        .reduce((s, x) => s + x.TER, 0),
-    [aigEsiti],
-  );
+  () =>
+    aigEsiti
+      .filter((x) => x.esito === "COMMERCIALE")
+      .reduce((s, x) => s + x.TE, 0),
+  [aigEsiti],
+);
 
-  const C = useMemo(
-    () =>
-      aigEsiti
-        .filter((x) => x.esito === "NON COMMERCIALE")
-        .reduce((s, x) => s + x.TER, 0),
-    [aigEsiti],
-  );
+// ✅ C: somma delle ENTRATE TOTALI assegnate alle AIG (TE) che risultano NON COMMERCIALI dal test 6%
+const C = useMemo(
+  () =>
+    aigEsiti
+      .filter((x) => x.esito === "NON COMMERCIALE")
+      .reduce((s, x) => s + x.TE, 0),
+  [aigEsiti],
+);
 
   // ✅ B: solo entrate AD allocati + esclusione sponsorizzazioni (code=6)
   // + esclusione se allocata a AD occasionale
