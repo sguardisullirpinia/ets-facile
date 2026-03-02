@@ -344,17 +344,39 @@ const C = useMemo(
       )}
 
       <Card title="Regime applicabile">
-  <WrapRow label="Regime" value={<strong>{regime}</strong>} />
+          {enteNatura === "NON COMMERCIALE" &&
+          (tipoEnte === "APS" || tipoEnte === "ODV") && (
+            <div style={{ marginBottom: 12 }}>
+              <div
+                style={{
+                  fontWeight: 900,
+                  marginBottom: 6,
+                  whiteSpace: "normal",
+                  lineHeight: 1.25,
+                }}
+              >
+                Ricavi annualità precedente
+              </div>
 
-  <WrapRow
-    label="Ricavi annualità precedente (valore inserito in Annualità)"
-    value={<Euro v={ricaviPrec} />}
-  />
+              <input
+                value={ricaviPrec}
+                onChange={(e) => setRicaviPrec(num(e.target.value))}
+                className="input"
+                inputMode="decimal"
+                style={{ width: "100%" }} // ✅ integrale nella card
+                placeholder="Es. 85000"
+              />
 
-  <div className="muted" style={{ marginTop: 10, fontSize: 12, lineHeight: 1.4 }}>
-    Nota: per modificare il regime, aggiorna il valore dei ricavi dalla pagina <b>Annualità</b>.
-  </div>
-</Card>
+              <div style={{ marginTop: 10 }}>
+                <PrimaryButton onClick={saveRicaviPrec} disabled={saving}>
+                  {saving ? "Salvo…" : "Salva"}
+                </PrimaryButton>
+              </div>
+            </div>
+          )}
+
+        <WrapRow label="Regime" value={<strong>{regime}</strong>} />
+      </Card>
 
       <Card title={`Calcolo IRES – ${regime}`}>
         {regime === "FORFETARIO" ? (
