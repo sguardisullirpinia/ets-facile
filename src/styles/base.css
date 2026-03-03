@@ -83,3 +83,12 @@ h2,
 h3 {
   margin: 0;
 }
+/* ===== Layout desktop medio (B) ===== */
+.appContent,
+.container {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
