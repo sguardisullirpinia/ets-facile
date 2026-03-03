@@ -682,3 +682,37 @@ textarea {
 .movList .listRow + .listRow {
   border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
 }
+/* incolla in components.css (o dove gestisci i componenti) */
+.accHead{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:0;
+  background:transparent;
+  border:0;
+  cursor:pointer;
+}
+
+.accHeadLeft{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+}
+
+.accChevron{
+  width:18px;
+  height:18px;
+  opacity:.7;
+  transition:transform .15s ease;
+}
+
+.accChevron.isOpen{
+  transform:rotate(90deg);
+}
+
+.accBody{
+  margin-top:10px;
+}
