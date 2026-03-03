@@ -130,18 +130,21 @@ function AccordionSection({
 }) {
   return (
     <div className="section">
-      <button type="button" className="accHead" onClick={onToggle} aria-expanded={open}>
-        <div className="accHeadLeft">
-          <ChevronRight className={`accChevron ${open ? "isOpen" : ""}`} />
-          <div className="sectionTitle" style={{ margin: 0 }}>
-            {title}
-          </div>
-        </div>
+      <button
+        type="button"
+        className={`accHead ${open ? "isOpen" : ""}`}
+        onClick={onToggle}
+        aria-expanded={open}
+      >
+        <div className="accTitle">{title}</div>
 
-        {rightSlot ? <div onClick={(e) => e.stopPropagation()}>{rightSlot}</div> : null}
+        <div className="accRight" onClick={(e) => e.stopPropagation()}>
+          {rightSlot ? <div className="accMeta">{rightSlot}</div> : null}
+          <ChevronRight className={`accChevron ${open ? "isOpen" : ""}`} />
+        </div>
       </button>
 
-      {open ? <div className="accBody">{children}</div> : null}
+      <div className={`accBody ${open ? "isOpen" : ""}`}>{children}</div>
     </div>
   );
 }
