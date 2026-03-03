@@ -682,37 +682,66 @@ textarea {
 .movList .listRow + .listRow {
   border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
 }
-/* incolla in components.css (o dove gestisci i componenti) */
+/* Accordion header stile “card” */
 .accHead{
   width:100%;
   display:flex;
   align-items:center;
   justify-content:space-between;
   gap:12px;
-  padding:0;
-  background:transparent;
-  border:0;
+
+  padding:14px 14px;
+  border-radius:16px;
+
+  border:1px solid rgba(0,0,0,.10);
+  background:#fff;
+  box-shadow: 0 1px 0 rgba(0,0,0,.03);
+
   cursor:pointer;
 }
 
-.accHeadLeft{
+.accHead:hover{
+  background: rgba(0,0,0,.015);
+}
+
+.accTitle{
+  font-size:13px;
+  font-weight:900;
+  letter-spacing:.4px;
+  text-transform:uppercase;
+  text-align:left;
+  line-height:1.2;
+}
+
+.accRight{
   display:flex;
   align-items:center;
   gap:10px;
-  min-width:0;
+  flex:0 0 auto;
 }
 
+.accMeta{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+/* Chevron */
 .accChevron{
   width:18px;
   height:18px;
-  opacity:.7;
-  transition:transform .15s ease;
+  opacity:.75;
+  transition: transform .15s ease;
 }
-
 .accChevron.isOpen{
-  transform:rotate(90deg);
+  transform: rotate(90deg);
 }
 
+/* Body: niente “box grigio”, stacca bene dall’header */
 .accBody{
   margin-top:10px;
+  display:none;
+}
+.accBody.isOpen{
+  display:block;
 }
