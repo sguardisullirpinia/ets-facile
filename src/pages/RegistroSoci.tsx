@@ -419,13 +419,24 @@ export default function RegistroSoci() {
                   </div>
 
                   <button
-                    type="button"
-                    className="btn btn--ghost"
-                    onClick={() => openEdit(s)}
-                    title="Modifica socio"
-                  >
-                    ✏️
-                  </button>
+  type="button"
+  onClick={() => openEdit(s)}
+  title="Modifica socio"
+  style={{
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    border: "1px solid #e5e7eb",
+    background: "#fff",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    color: "#2563eb",
+  }}
+>
+  <Pencil size={18} />
+</button>
                 </div>
               </div>
             ))}
