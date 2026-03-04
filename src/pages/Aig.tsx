@@ -972,52 +972,61 @@ export default function Aig() {
             style={{ ...fullModalSheet, maxWidth: "none", margin: 0 }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header sticky */}
+                  {/* Header sticky */}
+      <div
+        className="sheetHeader"
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 2,
+          background: "rgba(246, 245, 241)",
+          borderBottom: "1px solid rgba(0,0,0,0.08)",
+        }}
+      >
+        {/* full width bar */}
+        <div
+          style={{
+            width: "100%",
+            padding: "14px 0",
+          }}
+        >
+          {/* aligned to the same container width of the app */}
+          <div style={modalContainer}>
             <div
-              className="sheetHeader"
               style={{
-                position: "sticky",
-                top: 0,
-                zIndex: 2,
-                background: "rgba(246, 245, 241)",
-                borderBottom: "1px solid rgba(0,0,0,0.08)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 16,
+                minHeight: 56,
               }}
             >
+              {/* LEFT */}
               <div
+                className="sheetTitle"
                 style={{
-                  maxWidth: 1150,
-                  margin: "0 auto",
-                  padding: "14px 20px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 16,
-                  minHeight: 56,
+                  fontWeight: 950,
+                  lineHeight: 1.2,
+                  margin: 0,
+                  padding: 0,
                 }}
               >
-                <div
-                  className="sheetTitle"
-                  style={{
-                    fontWeight: 950,
-                    lineHeight: 1.2,
-                    flex: 1,
-                    minWidth: 0,
-                    paddingRight: 8,
-                  }}
-                >
-                  {activeAig.nome}
-                </div>
-
-                <button
-                  className="btn"
-                  onClick={() => setActiveAig(null)}
-                  type="button"
-                  style={{ whiteSpace: "nowrap" }}
-                >
-                  Chiudi
-                </button>
+                {activeAig.nome}
               </div>
+
+              {/* RIGHT */}
+              <button
+                className="btn"
+                onClick={() => setActiveAig(null)}
+                type="button"
+                style={{ whiteSpace: "nowrap" }}
+              >
+                Chiudi
+              </button>
             </div>
+          </div>
+        </div>
+      </div>
 
             {/* Body */}
             <div style={modalContainer}>
