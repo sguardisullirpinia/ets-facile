@@ -22,8 +22,8 @@ type Movimento = {
   descrizione_operazione?: string | null;
   descrizione_libera?: string | null;
 
-  importo: any; // può arrivare number o string
-  iva: any; // può arrivare number o string
+  importo: any;
+  iva: any;
 };
 
 /** ✅ robusta: gestisce formati IT "1.234,56" e EN "1234.56" */
@@ -107,41 +107,11 @@ function IconButton({
 
 function TrashIcon() {
   return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M3 6h18"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M8 6V4h8v2"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M19 6l-1 14H6L5 6"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M10 11v6M14 11v6"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M3 6h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8 6V4h8v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M19 6l-1 14H6L5 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M10 11v6M14 11v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -173,7 +143,7 @@ export default function AttivitaDiverse() {
   const [cgMap, setCgMap] = useState<Record<string, number>>({});
 
   // =========================
-  // STILI NO-ELLIPSIS
+  // STILI UTILITÀ
   // =========================
   const noEllipsis: React.CSSProperties = {
     whiteSpace: "normal",
@@ -184,7 +154,6 @@ export default function AttivitaDiverse() {
     minWidth: 0,
   };
 
-  // Layout helper
   const row2Cols: React.CSSProperties = {
     display: "grid",
     gridTemplateColumns: "1fr auto",
@@ -192,9 +161,7 @@ export default function AttivitaDiverse() {
     columnGap: 12,
   };
 
-  // =========================
-  // ✅ Row wrapper: stile come AIG (label maiuscola NON bold, valore a destra bold)
-  // =========================
+  // riepilogo: label uppercase non-bold
   const wrapRowBox: React.CSSProperties = {
     display: "flex",
     flexWrap: "wrap",
@@ -210,8 +177,6 @@ export default function AttivitaDiverse() {
     whiteSpace: "normal",
     overflowWrap: "anywhere",
     lineHeight: 1.25,
-
-    // ✅ richiesto: maiuscolo e NON grassetto
     textTransform: "uppercase",
     fontWeight: 400,
   };
@@ -224,13 +189,7 @@ export default function AttivitaDiverse() {
     fontWeight: 950,
   };
 
-  const WrapRowValue = ({
-    label,
-    value,
-  }: {
-    label: ReactNode;
-    value: ReactNode;
-  }) => (
+  const WrapRowValue = ({ label, value }: { label: ReactNode; value: ReactNode }) => (
     <div style={wrapRowBox}>
       <div style={wrapRowLabel}>{label}</div>
       <div style={wrapRowValue}>{value}</div>
@@ -238,7 +197,7 @@ export default function AttivitaDiverse() {
   );
 
   // =========================
-  // ✅ MODALE FULLSCREEN STYLES (come Raccolte Fondi)
+  // MODALE FULLSCREEN (overlay + sheet)
   // =========================
   const fullModalOverlay: React.CSSProperties = {
     position: "fixed",
@@ -261,7 +220,14 @@ export default function AttivitaDiverse() {
     paddingBottom: 120,
   };
 
-  // ✅ helper per far andare le Card a filo schermo nel modale
+  // ✅ contenitore coerente col layout
+  const modalContainer: React.CSSProperties = {
+    maxWidth: 1150,
+    margin: "0 auto",
+    padding: "14px 20px",
+  };
+
+  // ✅ full-bleed coerente con padding 20
   const fullBleed: React.CSSProperties = {
     marginLeft: -20,
     marginRight: -20,
@@ -277,7 +243,7 @@ export default function AttivitaDiverse() {
   }, [active]);
 
   // =========================
-  // ✅ COMPONENTI “STILE RACCOLTE FONDI”
+  // CARD MOVIMENTI (disponibili/assegnati)
   // =========================
   const AvailableMoveCard = ({
     m,
@@ -358,7 +324,6 @@ export default function AttivitaDiverse() {
             paddingTop: 22,
           }}
         >
-          {/* ✅ LORDO = importo + iva */}
           <Euro v={totaleMov(m)} />
         </div>
       </label>
@@ -424,7 +389,6 @@ export default function AttivitaDiverse() {
             className="rowAmount"
             style={{ justifySelf: "end", textAlign: "right", fontWeight: 950 }}
           >
-            {/* ✅ LORDO = importo + iva */}
             <Euro v={totaleMov(m)} />
           </div>
 
@@ -463,7 +427,6 @@ export default function AttivitaDiverse() {
     setItems((data || []) as AttDivRow[]);
   };
 
-  // ✅ carica mappa costi generali imputati
   const loadCostiGeneraliMap = async () => {
     if (!annualitaId) return;
 
@@ -549,23 +512,17 @@ export default function AttivitaDiverse() {
     );
     if (!ok) return;
 
-    const { error: unErr } = await supabase.rpc(
-      "unassign_movimenti_for_activity",
-      {
-        p_type: "ATTIVITA_DIVERSE",
-        p_id: id,
-      },
-    );
+    const { error: unErr } = await supabase.rpc("unassign_movimenti_for_activity", {
+      p_type: "ATTIVITA_DIVERSE",
+      p_id: id,
+    });
 
     if (unErr) {
       alert("Errore sblocco movimenti: " + unErr.message);
       return;
     }
 
-    const { error } = await supabase
-      .from("attivita_diverse")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabase.from("attivita_diverse").delete().eq("id", id);
 
     if (error) {
       alert(error.message);
@@ -574,29 +531,6 @@ export default function AttivitaDiverse() {
 
     if (active?.id === id) setActive(null);
     loadItems();
-  };
-
-  // ✅ Rimuove assegnazione del singolo movimento
-  const unassignMovimento = async (movId: string) => {
-    if (!active) return;
-
-    const ok = confirm(
-      "Vuoi rimuovere l’assegnazione di questo movimento?\n(Il movimento NON verrà eliminato e tornerà tra quelli disponibili.)",
-    );
-    if (!ok) return;
-
-    const { error } = await supabase
-      .from("movimenti")
-      .update({ allocated_to_type: null, allocated_to_id: null })
-      .eq("id", movId);
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    await loadMovimentiForItem(active.id);
-    await loadCostiGeneraliMap();
   };
 
   const loadMovimentiForItem = async (attId: string) => {
@@ -660,19 +594,38 @@ export default function AttivitaDiverse() {
     setSelUscite({});
   };
 
-  // ✅ apre MODALE dettaglio
   const openItem = async (it: AttDivRow) => {
     setActive(it);
     await loadMovimentiForItem(it.id);
     await loadCostiGeneraliMap();
   };
 
+  const unassignMovimento = async (movId: string) => {
+    if (!active) return;
+
+    const ok = confirm(
+      "Vuoi rimuovere l’assegnazione di questo movimento?\n(Il movimento NON verrà eliminato e tornerà tra quelli disponibili.)",
+    );
+    if (!ok) return;
+
+    const { error } = await supabase
+      .from("movimenti")
+      .update({ allocated_to_type: null, allocated_to_id: null })
+      .eq("id", movId);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    await loadMovimentiForItem(active.id);
+    await loadCostiGeneraliMap();
+  };
+
   const assignSelected = async (kind: "ENTRATA" | "USCITA") => {
     if (!active) return;
 
-    const selectedIds = Object.entries(
-      kind === "ENTRATA" ? selEntrate : selUscite,
-    )
+    const selectedIds = Object.entries(kind === "ENTRATA" ? selEntrate : selUscite)
       .filter(([, v]) => v)
       .map(([id]) => id);
 
@@ -697,7 +650,6 @@ export default function AttivitaDiverse() {
     await loadCostiGeneraliMap();
   };
 
-  // ✅ TOTALI: somma LORDO (importo+iva)
   const totEntrate = useMemo(
     () => assEntrate.reduce((s, m) => s + totaleMov(m), 0),
     [assEntrate],
@@ -713,28 +665,23 @@ export default function AttivitaDiverse() {
     return num(cgMap[active.id] ?? 0);
   }, [active, cgMap]);
 
-  const totUsciteEff = useMemo(
-    () => totUscite + cgImputati,
-    [totUscite, cgImputati],
-  );
+  const totUsciteEff = useMemo(() => totUscite + cgImputati, [totUscite, cgImputati]);
 
   return (
     <Layout>
       <div className="pageHeader" style={{ paddingTop: 10 }}>
         <div>
-          <h2 className="pageTitle">ATTIVITA' DIVERSE</h2>
+          <h2 className="pageTitle">ATTIVITA&apos; DIVERSE</h2>
           <div className="pageHelp">
             Crea le Attività Diverse di cui all&apos;art. 6 del CTS e assegna a
-            ciascuna attività le entrate e le uscite sostenute per la sua
-            realizzazione.
+            ciascuna attività le entrate e le uscite sostenute per la sua realizzazione.
             <br />
             <br />
             <u>
-              Le attività diverse sono iniziative di natura commerciale (es.
-              gestione di un punto ristoro/bar durante l&apos;evento o affitto
-              della propria sede a privati per feste di compleanno) che devono
-              restare secondarie e strumentali rispetto alle attività di
-              interesse generale.
+              Le attività diverse sono iniziative di natura commerciale (es. gestione
+              di un punto ristoro/bar durante l&apos;evento o affitto della propria sede
+              a privati per feste di compleanno) che devono restare secondarie e strumentali
+              rispetto alle attività di interesse generale.
             </u>
           </div>
         </div>
@@ -764,20 +711,14 @@ export default function AttivitaDiverse() {
 
             <div className="sheetHeader">
               <div className="sheetTitle">Crea Attività Diversa</div>
-              <button
-                className="btn"
-                onClick={() => setOpenSheet(false)}
-                type="button"
-              >
+              <button className="btn" onClick={() => setOpenSheet(false)} type="button">
                 Chiudi
               </button>
             </div>
 
             <div className="sheetGrid" style={{ gap: 12 }}>
               <div>
-                <div style={{ fontWeight: 900, marginBottom: 6 }}>
-                  Nome (obbligatorio)
-                </div>
+                <div style={{ fontWeight: 900, marginBottom: 6 }}>Nome (obbligatorio)</div>
                 <input
                   value={newNome}
                   onChange={(e) => setNewNome(e.target.value)}
@@ -787,9 +728,7 @@ export default function AttivitaDiverse() {
               </div>
 
               <div>
-                <div style={{ fontWeight: 900, marginBottom: 6 }}>
-                  Descrizione (opzionale)
-                </div>
+                <div style={{ fontWeight: 900, marginBottom: 6 }}>Descrizione (opzionale)</div>
                 <input
                   value={newDescr}
                   onChange={(e) => setNewDescr(e.target.value)}
@@ -798,17 +737,11 @@ export default function AttivitaDiverse() {
                 />
               </div>
 
-              <div
-                className="listRow"
-                style={{ ...row2Cols, padding: "12px 14px" }}
-              >
+              <div className="listRow" style={{ ...row2Cols, padding: "12px 14px" }}>
                 <div className="rowMain">
-                  <div className="rowTitle">
-                    Attività svolta occasionalmente
-                  </div>
+                  <div className="rowTitle">Attività svolta occasionalmente</div>
                   <div className="rowSub">
-                    Se spuntata: i ricavi NON si considerano nel test di
-                    commercialità dell’Ente.
+                    Se spuntata: i ricavi NON si considerano nel test di commercialità dell’Ente.
                   </div>
                 </div>
 
@@ -820,11 +753,7 @@ export default function AttivitaDiverse() {
                 />
               </div>
 
-              <button
-                className="btn btn--primary btn--block"
-                onClick={createItem}
-                type="button"
-              >
+              <button className="btn btn--primary btn--block" onClick={createItem} type="button">
                 Salva
               </button>
             </div>
@@ -860,10 +789,7 @@ export default function AttivitaDiverse() {
                   <div className="rowTitle" style={noEllipsis}>
                     {it.nome}
                   </div>
-                  <div
-                    className="rowSub"
-                    style={{ ...noEllipsis, marginTop: 6 }}
-                  >
+                  <div className="rowSub" style={{ ...noEllipsis, marginTop: 6 }}>
                     {it.descrizione || "—"}
                   </div>
 
@@ -895,7 +821,7 @@ export default function AttivitaDiverse() {
       {active && (
         <div
           className="sheetOverlay"
-          style={{ ...fullModalOverlay, width: "100vw", height: "100vh" }}
+          style={fullModalOverlay}
           onClick={() => setActive(null)}
           role="dialog"
           aria-modal="true"
@@ -905,7 +831,7 @@ export default function AttivitaDiverse() {
             style={{ ...fullModalSheet, maxWidth: "none", margin: 0 }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header sticky */}
+            {/* Header sticky (titolo sx / chiudi dx) */}
             <div
               className="sheetHeader"
               style={{
@@ -914,29 +840,39 @@ export default function AttivitaDiverse() {
                 zIndex: 2,
                 background: "rgba(246, 245, 241)",
                 borderBottom: "1px solid rgba(0,0,0,0.08)",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "16px",
               }}
             >
-              <div className="sheetTitle" style={{ fontWeight: 950 }}>
-                {active.nome}
-              </div>
+              <div style={{ width: "100%", padding: "14px 0" }}>
+                <div style={{ maxWidth: 1150, margin: "0 auto", padding: "0 20px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 16,
+                      minHeight: 56,
+                    }}
+                  >
+                    <div className="sheetTitle" style={{ fontWeight: 950, lineHeight: 1.2 }}>
+                      {active.nome}
+                    </div>
 
-              <button
-                className="btn"
-                onClick={() => setActive(null)}
-                type="button"
-              >
-                Chiudi
-              </button>
+                    <button
+                      className="btn"
+                      onClick={() => setActive(null)}
+                      type="button"
+                      style={{ whiteSpace: "nowrap" }}
+                    >
+                      Chiudi
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
 
-              <div style={{ maxWidth: 1150, margin: "0 auto", padding: "14px 20px" }}>>
-              {active.descrizione && (
-                <div style={{ ...noEllipsis }}>{active.descrizione}</div>
-              )}
+            {/* Body allineato ai bordi del layout */}
+            <div style={modalContainer}>
+              {active.descrizione && <div style={{ ...noEllipsis }}>{active.descrizione}</div>}
 
               <div style={{ marginTop: 10 }}>
                 <Badge tone={active.occasionale ? "amber" : "green"}>
@@ -946,28 +882,23 @@ export default function AttivitaDiverse() {
 
               <div className="mt-3" />
 
-              {/* Flag occasionale (a filo schermo) */}
+              {/* Flag occasionale */}
               <div style={fullBleed}>
                 <div className="listBox">
                   <div className="listRow" style={row2Cols}>
                     <div className="rowMain">
-                      <div className="rowTitle">
-                        Attività Diversa “Occasionale”
-                      </div>
+                      <div className="rowTitle">Attività Diversa “Occasionale”</div>
                       <div className="rowSub">
-                        Spuntare se l&apos;attività è svolta in modo
-                        occasionale. In questo caso i ricavi di questa attività{" "}
-                        <b>non</b> saranno considerati nel test di commercialità
-                        dell’Ente.
+                        Spuntare se l&apos;attività è svolta in modo occasionale.
+                        In questo caso i ricavi di questa attività <b>non</b> saranno considerati
+                        nel test di commercialità dell’Ente.
                       </div>
                     </div>
 
                     <input
                       type="checkbox"
                       checked={active.occasionale}
-                      onChange={(e) =>
-                        updateOccasionale(active.id, e.target.checked)
-                      }
+                      onChange={(e) => updateOccasionale(active.id, e.target.checked)}
                       className="checkBox"
                     />
                   </div>
@@ -976,7 +907,7 @@ export default function AttivitaDiverse() {
 
               <div className="mt-3" />
 
-              {/* ✅ MOVIMENTI DISPONIBILI */}
+              {/* MOVIMENTI DISPONIBILI */}
               <div style={fullBleed}>
                 <Card title="Movimenti disponibili (non assegnati)">
                   <div className="splitGrid">
@@ -996,22 +927,14 @@ export default function AttivitaDiverse() {
                               tone="green"
                               macroLabelTxt={macroLabel(m.macro)}
                               checked={!!selEntrate[m.id]}
-                              onToggle={(v) =>
-                                setSelEntrate((p) => ({
-                                  ...p,
-                                  [m.id]: v,
-                                }))
-                              }
+                              onToggle={(v) => setSelEntrate((p) => ({ ...p, [m.id]: v }))}
                             />
                           ))}
                         </div>
                       )}
 
                       <div className="panelActions">
-                        <PrimaryButton
-                          onClick={() => assignSelected("ENTRATA")}
-                          className="btn--block"
-                        >
+                        <PrimaryButton onClick={() => assignSelected("ENTRATA")} className="btn--block">
                           Assegna Entrate selezionate
                         </PrimaryButton>
                       </div>
@@ -1033,22 +956,14 @@ export default function AttivitaDiverse() {
                               tone="red"
                               macroLabelTxt={macroLabel(m.macro)}
                               checked={!!selUscite[m.id]}
-                              onToggle={(v) =>
-                                setSelUscite((p) => ({
-                                  ...p,
-                                  [m.id]: v,
-                                }))
-                              }
+                              onToggle={(v) => setSelUscite((p) => ({ ...p, [m.id]: v }))}
                             />
                           ))}
                         </div>
                       )}
 
                       <div className="panelActions">
-                        <PrimaryButton
-                          onClick={() => assignSelected("USCITA")}
-                          className="btn--block"
-                        >
+                        <PrimaryButton onClick={() => assignSelected("USCITA")} className="btn--block">
                           Assegna Uscite selezionate
                         </PrimaryButton>
                       </div>
@@ -1059,7 +974,7 @@ export default function AttivitaDiverse() {
 
               <div className="mt-3" />
 
-              {/* ✅ MOVIMENTI ASSEGNATI */}
+              {/* MOVIMENTI ASSEGNATI */}
               <div style={fullBleed}>
                 <Card title="Movimenti assegnati">
                   <div className="splitGrid">
@@ -1112,37 +1027,24 @@ export default function AttivitaDiverse() {
 
               <div className="mt-3" />
 
-              {/* ✅ TOTALE ATTIVITA' DIVERSA — STILE COME AIG */}
+              {/* TOTALE ATTIVITA' DIVERSA */}
               <div style={fullBleed}>
-                <Card title="TOTALE ATTIVITA' DIVERSA">
+                <Card title="TOTALE ATTIVITA&apos; DIVERSA">
                   <div style={noEllipsis}>
                     <WrapRowValue
-                      label={
-                        <span style={noEllipsis}>Totale entrate assegnate</span>
-                      }
+                      label={<span style={noEllipsis}>Totale entrate assegnate</span>}
                       value={<Euro v={totEntrate} />}
                     />
-
                     <WrapRowValue
-                      label={
-                        <span style={noEllipsis}>Totale uscite assegnate</span>
-                      }
+                      label={<span style={noEllipsis}>Totale uscite assegnate</span>}
                       value={<Euro v={totUscite} />}
                     />
-
                     <WrapRowValue
-                      label={
-                        <span style={noEllipsis}>Costi generali imputati</span>
-                      }
+                      label={<span style={noEllipsis}>Costi generali imputati</span>}
                       value={<Euro v={cgImputati} />}
                     />
-
                     <WrapRowValue
-                      label={
-                        <span style={noEllipsis}>
-                          Totale uscite effettive (incl. costi generali)
-                        </span>
-                      }
+                      label={<span style={noEllipsis}>Totale uscite effettive (incl. costi generali)</span>}
                       value={<Euro v={totUsciteEff} />}
                     />
                   </div>
