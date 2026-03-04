@@ -34,10 +34,6 @@ function fmtDate(d: string | null) {
   return `${day}/${m}/${y}`;
 }
 
-function safe(v: any) {
-  return v === null || v === undefined ? "" : String(v);
-}
-
 function IconButton({
   title,
   onClick,
