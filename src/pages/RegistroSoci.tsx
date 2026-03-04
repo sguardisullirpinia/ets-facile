@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Layout from "../components/Layout";
 import { supabase } from "../lib/supabase";
 import { Badge, Card, PrimaryButton, SecondaryButton } from "../components/ui";
+import { Pencil, Trash2 } from "lucide-react";
 
 type Qualifica = "FONDATORE" | "ORDINARIO" | "SOSTENITORE";
 
