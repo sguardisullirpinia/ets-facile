@@ -263,8 +263,8 @@ export default function AttivitaDiverse() {
 
   // ✅ helper per far andare le Card a filo schermo nel modale
   const fullBleed: React.CSSProperties = {
-    marginLeft: -14,
-    marginRight: -14,
+    marginLeft: -20,
+    marginRight: -20,
   };
 
   // blocca scroll body quando modale aperto
