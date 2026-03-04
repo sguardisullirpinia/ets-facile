@@ -1,346 +1,695 @@
+// EntrateUscite.tsx
 import { useEffect, useMemo, useState } from "react";
 import Layout from "../components/Layout";
 import { supabase } from "../lib/supabase";
-import { Badge, Card, PrimaryButton, SecondaryButton } from "../components/ui";
-import { Pencil, Trash2 } from "lucide-react";
+import { Badge, Euro } from "../components/ui";
+import * as XLSX from "xlsx";
 
-type Qualifica = "FONDATORE" | "ORDINARIO" | "SOSTENITORE";
-
-type Socio = {
+type Movimento = {
   id: string;
-  numero: number;
-  nome: string;
-  cognome: string;
-
-  data_nascita: string | null;
-  luogo_nascita: string | null;
-  residenza: string | null;
-
-  data_ammissione: string | null;
-  data_cessazione: string | null;
-
-  pec: string | null;
-  email: string | null;
-
-  qualifica: Qualifica | null;
+  tipologia: string;
+  data: string | null;
+  macro: string | null;
+  conto: string | null; // CASSA / BANCA
+  descrizione_label: string | null;
+  descrizione_operazione: string | null;
+  importo: number;
+  iva: number;
+  is_costo_generale?: boolean;
 };
 
-type QuotaRow = {
-  id: string;
-  socio_id: string;
-  annualita_id: string;
-  versata: boolean;
-  data_versamento: string | null;
-  importo: number | null;
-};
-
-function todayISO() {
-  const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
+function num(v: any) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
 }
 
-export default function RegistroSoci() {
-  const annualitaId = localStorage.getItem("annualita_id");
+function totaleMov(m: Movimento) {
+  return num(m.importo) + num(m.iva);
+}
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+function macroLabel(m: string | null) {
+  switch (m) {
+    case "COSTI_GENERALI":
+      return "Costi generali";
+    case "AIG":
+      return "AIG";
+    case "ATTIVITA_DIVERSE":
+      return "Attività Diverse";
+    case "RACCOLTE_FONDI":
+      return "Raccolte Fondi";
+    case "QUOTE_ASSOCIATIVE":
+      return "Quote associative";
+    case "EROGAZIONI_LIBERALI":
+      return "Erogazioni liberali";
+    case "PROVENTI_5X1000":
+      return "5×1000";
+    case "CONTRIBUTI_PA_SENZA_CORRISPETTIVO":
+      return "Contributi PA";
+    case "ALTRI_PROVENTI_NON_COMMERCIALI":
+      return "Altri proventi NC";
+    default:
+      return "—";
+  }
+}
 
-  const [soci, setSoci] = useState<Socio[]>([]);
-  const [quoteMap, setQuoteMap] = useState<Record<string, QuotaRow | undefined>>(
-    {},
+function contoLabel(c: string | null) {
+  if (c === "CASSA") return "Cassa";
+  if (c === "BANCA") return "Banca";
+  return "";
+}
+
+function ymdKey(d: string | null) {
+  return d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : "—";
+}
+
+function fmtDate(d: string | null) {
+  if (!d) return "Senza data";
+  const [y, m, day] = d.split("-");
+  if (!y || !m || !day) return d;
+  return `${day}/${m}/${y}`;
+}
+
+function dateParts(d: string | null) {
+  if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return { day: "—", mon: "" };
+  const [, m, day] = d.split("-");
+  const months = [
+    "GEN",
+    "FEB",
+    "MAR",
+    "APR",
+    "MAG",
+    "GIU",
+    "LUG",
+    "AGO",
+    "SET",
+    "OTT",
+    "NOV",
+    "DIC",
+  ];
+  const mi = Math.max(1, Math.min(12, Number(m))) - 1;
+  return { day, mon: months[mi] };
+}
+
+function MiniTag({
+  children,
+  tone,
+}: {
+  children: React.ReactNode;
+  tone?: "green" | "red" | "blue" | "amber" | "yellow" | "neutral";
+}) {
+  return (
+    <span
+      className={`miniTag ${tone ? `miniTag--${tone}` : "miniTag--neutral"}`}
+    >
+      {children}
+    </span>
   );
+}
 
-  // modal create/edit
-  const [open, setOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [editing, setEditing] = useState<Socio | null>(null);
+function toneForMacro(m: string | null) {
+  if (m === "AIG") return "blue";
+  if (m === "RACCOLTE_FONDI") return "yellow";
+  if (m === "ATTIVITA_DIVERSE") return "amber";
+  return "neutral";
+}
 
-  // form socio
-  const [nome, setNome] = useState("");
-  const [cognome, setCognome] = useState("");
+function IconButton({
+  title,
+  onClick,
+  children,
+  className,
+}: {
+  title: string;
+  onClick: (e: React.MouseEvent) => void;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <button
+      title={title}
+      onClick={onClick}
+      className={className ? `iconBtn ${className}` : "iconBtn"}
+      type="button"
+    >
+      {children}
+    </button>
+  );
+}
 
-  const [dataNascita, setDataNascita] = useState("");
-  const [luogoNascita, setLuogoNascita] = useState("");
-  const [residenza, setResidenza] = useState("");
+function TrashIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M3 6h18"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M8 6V4h8v2"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M19 6l-1 14H6L5 6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M10 11v6M14 11v6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
-  const [dataAmmissione, setDataAmmissione] = useState("");
-  const [dataCessazione, setDataCessazione] = useState("");
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      style={{
+        transform: open ? "rotate(90deg)" : "rotate(0deg)",
+        transition: "transform .18s ease",
+      }}
+    >
+      <path
+        d="M9 18l6-6-6-6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
-  const [pec, setPec] = useState("");
-  const [email, setEmail] = useState("");
+function FilterIcon({ open }: { open: boolean }) {
+  // icona "sliders"
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      style={{ opacity: open ? 1 : 0.85 }}
+    >
+      <path
+        d="M4 21v-7"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M4 10V3"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M12 21v-9"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M12 8V3"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M20 21v-5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M20 12V3"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M2 14h4"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M10 8h4"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M18 16h4"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
 
-  const [qualifica, setQualifica] = useState<Qualifica>("ORDINARIO");
+function AccordionHeader({
+  title,
+  open,
+  onToggle,
+  right,
+}: {
+  title: string;
+  open: boolean;
+  onToggle: () => void;
+  right?: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      className="accHeader"
+      onClick={onToggle}
+      aria-expanded={open}
+      style={{
+        width: "100%",
+        display: "grid",
+        gridTemplateColumns: "auto 1fr auto",
+        alignItems: "center",
+        gap: 10,
+        padding: "10px 12px",
+        borderRadius: 14,
+        border: "1px solid rgba(0,0,0,0.08)",
+        background: "#fff",
+      }}
+    >
+      <span style={{ display: "grid", placeItems: "center" }}>
+        <ChevronIcon open={open} />
+      </span>
 
-  const resetForm = () => {
-    setNome("");
-    setCognome("");
-    setDataNascita("");
-    setLuogoNascita("");
-    setResidenza("");
-    setDataAmmissione("");
-    setDataCessazione("");
-    setPec("");
-    setEmail("");
-    setQualifica("ORDINARIO");
-  };
+      <span style={{ textAlign: "left", fontWeight: 950, letterSpacing: 0.2 }}>
+        {title}
+      </span>
 
-  const openCreate = () => {
-    setEditing(null);
-    resetForm();
-    setOpen(true);
-  };
+      <span style={{ justifySelf: "end" }}>{right}</span>
+    </button>
+  );
+}
 
-  const openEdit = (s: Socio) => {
-    setEditing(s);
+const MACRO_ORDER = [
+  "COSTI_GENERALI",
+  "AIG",
+  "ATTIVITA_DIVERSE",
+  "RACCOLTE_FONDI",
+  "QUOTE_ASSOCIATIVE",
+  "EROGAZIONI_LIBERALI",
+  "PROVENTI_5X1000",
+  "CONTRIBUTI_PA_SENZA_CORRISPETTIVO",
+  "ALTRI_PROVENTI_NON_COMMERCIALI",
+] as const;
 
-    setNome(s.nome || "");
-    setCognome(s.cognome || "");
+export default function EntrateUscite() {
+  const annualitaId = localStorage.getItem("annualita_id");
+  const annualitaAnno = localStorage.getItem("annualita_anno") || "";
 
-    setDataNascita(s.data_nascita || "");
-    setLuogoNascita(s.luogo_nascita || "");
-    setResidenza(s.residenza || "");
+  const [error, setError] = useState<string | null>(null);
+  const [list, setList] = useState<Movimento[]>([]);
 
-    setDataAmmissione(s.data_ammissione || "");
-    setDataCessazione(s.data_cessazione || "");
+  // ✅ accordion
+  const [openAvanzi, setOpenAvanzi] = useState(false);
+  const [openMovimenti, setOpenMovimenti] = useState(true);
+  const [openRiepilogo, setOpenRiepilogo] = useState(false);
 
-    setPec(s.pec || "");
-    setEmail(s.email || "");
+  // ✅ filtri
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [macroFilter, setMacroFilter] = useState<string>("ALL");
+  const [sortBy, setSortBy] = useState<"data" | "importo" | "descrizione">(
+    "data",
+  );
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
-    setQualifica((s.qualifica as Qualifica) || "ORDINARIO");
+  const HELP_FULL =
+    "Inserisci le entrate e le uscite dell’anno, distinguendo tra movimenti di banca e di cassa. \nIndividua sempre una macro-categoria a cui assegnare la posta attiva o passiva, tra AIG (attività di Interesse Generale), Attività diverse, Raccolte Fondi, Quote Associative, Erogazioni Liberali, Proventi 5/1000, Contributi PA senza corrispettivo.\n\nN.B. I Costi Generali che incidono su tutte le attività dell'Ente [es. affitto struttura, luce, acqua, ecc.] vengono dal sistema automaticamente imputati alle varie attività in relazione all'ammontare delle entrate";
 
-    setOpen(true);
-  };
-
-  const loadAll = async () => {
+  const load = async () => {
     setError(null);
-    setLoading(true);
+    if (!annualitaId) return;
 
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
-      setError("Utente non autenticato.");
-      setLoading(false);
-      return;
-    }
-
-    // 1) soci (stabili)
-    const { data: sociData, error: sociErr } = await supabase
-      .from("soci")
+    const { data, error } = await supabase
+      .from("movimenti")
       .select(
-        "id, numero, nome, cognome, data_nascita, luogo_nascita, residenza, data_ammissione, data_cessazione, pec, email, qualifica",
+        "id, tipologia, data, macro, conto, descrizione_label, descrizione_operazione, importo, iva, is_costo_generale",
       )
-      .order("numero", { ascending: true });
+      .eq("annualita_id", annualitaId)
+      .order("data", { ascending: true });
 
-    if (sociErr) {
-      setError(sociErr.message);
-      setLoading(false);
+    if (error) {
+      setError(error.message);
       return;
     }
-
-    const sociRows = (sociData || []) as Socio[];
-    setSoci(sociRows);
-
-    // 2) quote per annualità selezionata
-    if (!annualitaId) {
-      setQuoteMap({});
-      setLoading(false);
-      return;
-    }
-
-    const { data: qData, error: qErr } = await supabase
-      .from("quote_associative")
-      .select("id, socio_id, annualita_id, versata, data_versamento, importo")
-      .eq("annualita_id", annualitaId);
-
-    if (qErr) {
-      setError(qErr.message);
-      setLoading(false);
-      return;
-    }
-
-    const map: Record<string, QuotaRow> = {};
-    (qData || []).forEach((r: any) => {
-      map[r.socio_id] = r as QuotaRow;
-    });
-    setQuoteMap(map);
-
-    setLoading(false);
+    setList((data || []) as Movimento[]);
   };
 
   useEffect(() => {
-    loadAll();
+    load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [annualitaId]);
+  }, []);
 
-  const saveSocio = async () => {
-    setError(null);
-
-    const n = nome.trim();
-    const c = cognome.trim();
-    if (!n || !c) {
-      setError("Nome e cognome sono obbligatori.");
-      return;
-    }
-
-    // opzionale: controllo date logico
-    if (dataAmmissione && dataCessazione && dataCessazione < dataAmmissione) {
-      setError("La data di cessazione non può essere precedente all’ammissione.");
-      return;
-    }
-
-    setSaving(true);
-
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
-      setSaving(false);
-      setError("Utente non autenticato.");
-      return;
-    }
-
-    const payload = {
-      nome: n,
-      cognome: c,
-
-      data_nascita: dataNascita || null,
-      luogo_nascita: luogoNascita.trim() || null,
-      residenza: residenza.trim() || null,
-
-      data_ammissione: dataAmmissione || null,
-      data_cessazione: dataCessazione || null,
-
-      pec: pec.trim() || null,
-      email: email.trim() || null,
-
-      qualifica: qualifica,
-    };
-
-    if (editing) {
-      const { error: updErr } = await supabase
-        .from("soci")
-        .update(payload)
-        .eq("id", editing.id);
-
-      if (updErr) {
-        setError(updErr.message);
-        setSaving(false);
-        return;
-      }
-    } else {
-      const { error: insErr } = await supabase.from("soci").insert({
-        user_id: userData.user.id,
-        ...payload,
-        // numero assegnato dal trigger
-      });
-
-      if (insErr) {
-        setError(insErr.message);
-        setSaving(false);
-        return;
-      }
-    }
-
-    setSaving(false);
-    setOpen(false);
-    setEditing(null);
-    await loadAll();
-  };
-
-  const toggleQuota = async (socioId: string, next: boolean) => {
-    if (!annualitaId) {
-      setError("Annualità non selezionata.");
-      return;
-    }
-
-    setError(null);
-
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
-      setError("Utente non autenticato.");
-      return;
-    }
-
-    const existing = quoteMap[socioId];
-
-    const payload = {
-      versata: next,
-      data_versamento: next ? todayISO() : null,
-    };
-
-    if (existing) {
-      const { error } = await supabase
-        .from("quote_associative")
-        .update(payload)
-        .eq("id", existing.id);
-
-      if (error) {
-        setError(error.message);
-        return;
-      }
-    } else {
-      const { error } = await supabase.from("quote_associative").insert({
-        user_id: userData.user.id,
-        socio_id: socioId,
-        annualita_id: annualitaId,
-        ...payload,
-      });
-
-      if (error) {
-        setError(error.message);
-        return;
-      }
-    }
-
-    await loadAll();
-  };
-
-  const fabStyle: React.CSSProperties = {
-    position: "fixed",
-    right: 16,
-    bottom: 84, // ✅ sopra la BottomBar
-    width: 56,
-    height: 56,
-    borderRadius: 18,
-    border: "1px solid rgba(0,0,0,0.05)",
-    background: "#2563eb",
-    color: "#fff",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-    boxShadow: "0 14px 30px rgba(37, 99, 235, 0.28)",
-    zIndex: 200,
-    fontSize: 28,
-    lineHeight: 1,
-  };
-
-  const quotaBadge = (socioId: string) => {
-    const q = quoteMap[socioId];
-    if (!annualitaId) return <Badge>—</Badge>;
-    if (q?.versata) return <Badge tone="green">SI</Badge>;
-    return <Badge tone="blue">NO</Badge>;
-  };
-
-  const modalTitle = useMemo(
-    () => (editing ? "Modifica socio" : "Nuovo socio"),
-    [editing],
+  const avanzi = useMemo(
+    () =>
+      list.filter(
+        (m) =>
+          m.tipologia === "AVANZO_CASSA_T_1" ||
+          m.tipologia === "AVANZO_BANCA_T_1",
+      ),
+    [list],
   );
 
-  const qualificaLabel = (q?: Qualifica | null) => {
-    if (q === "FONDATORE") return "Fondatore";
-    if (q === "SOSTENITORE") return "Sostenitore";
-    return "Ordinario";
+  const movimenti = useMemo(
+    () =>
+      list.filter((m) => m.tipologia === "ENTRATA" || m.tipologia === "USCITA"),
+    [list],
+  );
+
+  const macroEff = (m: Movimento) =>
+    m.is_costo_generale ? "COSTI_GENERALI" : m.macro;
+
+  const macroOptions = useMemo(() => {
+    const present = new Set<string>();
+    for (const m of movimenti) present.add(macroEff(m) || "—");
+
+    const ordered = MACRO_ORDER.slice().map(String);
+    const extras = Array.from(present).filter((x) => !ordered.includes(x));
+    extras.sort((a, b) => macroLabel(a).localeCompare(macroLabel(b)));
+
+    return [...ordered, ...extras].filter((x) => x !== "—");
+  }, [movimenti]);
+
+  const movimentiFilteredSorted = useMemo(() => {
+    let res = movimenti.slice();
+
+    if (macroFilter !== "ALL") {
+      res = res.filter((m) => (macroEff(m) || "—") === macroFilter);
+    }
+
+    const q = search.trim().toLowerCase();
+    if (q) {
+      res = res.filter((m) => {
+        const a = (m.descrizione_label || "").toLowerCase();
+        const b = (m.descrizione_operazione || "").toLowerCase();
+        const c = macroLabel(macroEff(m)).toLowerCase();
+        const d = contoLabel(m.conto).toLowerCase();
+        return a.includes(q) || b.includes(q) || c.includes(q) || d.includes(q);
+      });
+    }
+
+    const dir = sortDir === "asc" ? 1 : -1;
+
+    res.sort((a, b) => {
+      if (sortBy === "data") {
+        const ak = ymdKey(a.data);
+        const bk = ymdKey(b.data);
+
+        const aNo = ak === "—";
+        const bNo = bk === "—";
+        if (aNo && bNo) return 0;
+        if (aNo) return 1;
+        if (bNo) return -1;
+
+        if (ak === bk) return 0;
+        return ak.localeCompare(bk) * dir;
+      }
+
+      if (sortBy === "importo") {
+        const av = totaleMov(a);
+        const bv = totaleMov(b);
+        if (av === bv) return ymdKey(b.data).localeCompare(ymdKey(a.data));
+        return (av - bv) * dir;
+      }
+
+      const ad = (
+        (a.descrizione_label || "").trim() ||
+        (a.descrizione_operazione || "").trim() ||
+        "—"
+      ).toLowerCase();
+      const bd = (
+        (b.descrizione_label || "").trim() ||
+        (b.descrizione_operazione || "").trim() ||
+        "—"
+      ).toLowerCase();
+      const c = ad.localeCompare(bd);
+      if (c !== 0) return c * dir;
+      return ymdKey(b.data).localeCompare(ymdKey(a.data));
+    });
+
+    return res;
+  }, [movimenti, macroFilter, search, sortBy, sortDir]);
+
+  // totali generali
+  const totEntrate = useMemo(
+    () =>
+      movimenti
+        .filter((m) => m.tipologia === "ENTRATA")
+        .reduce((s, m) => s + totaleMov(m), 0),
+    [movimenti],
+  );
+  const totUscite = useMemo(
+    () =>
+      movimenti
+        .filter((m) => m.tipologia === "USCITA")
+        .reduce((s, m) => s + totaleMov(m), 0),
+    [movimenti],
+  );
+
+  const totEntrateBanca = useMemo(
+    () =>
+      movimenti
+        .filter((m) => m.tipologia === "ENTRATA" && m.conto === "BANCA")
+        .reduce((s, m) => s + totaleMov(m), 0),
+    [movimenti],
+  );
+  const totEntrateCassa = useMemo(
+    () =>
+      movimenti
+        .filter((m) => m.tipologia === "ENTRATA" && m.conto === "CASSA")
+        .reduce((s, m) => s + totaleMov(m), 0),
+    [movimenti],
+  );
+  const totUsciteBanca = useMemo(
+    () =>
+      movimenti
+        .filter((m) => m.tipologia === "USCITA" && m.conto === "BANCA")
+        .reduce((s, m) => s + totaleMov(m), 0),
+    [movimenti],
+  );
+  const totUsciteCassa = useMemo(
+    () =>
+      movimenti
+        .filter((m) => m.tipologia === "USCITA" && m.conto === "CASSA")
+        .reduce((s, m) => s + totaleMov(m), 0),
+    [movimenti],
+  );
+
+  const avanzoBancaT1 = useMemo(
+    () =>
+      avanzi
+        .filter((m) => m.tipologia === "AVANZO_BANCA_T_1")
+        .reduce((s, m) => s + num(m.importo), 0),
+    [avanzi],
+  );
+  const avanzoCassaT1 = useMemo(
+    () =>
+      avanzi
+        .filter((m) => m.tipologia === "AVANZO_CASSA_T_1")
+        .reduce((s, m) => s + num(m.importo), 0),
+    [avanzi],
+  );
+
+  const disponibilitaBanca = useMemo(
+    () => avanzoBancaT1 + totEntrateBanca - totUsciteBanca,
+    [avanzoBancaT1, totEntrateBanca, totUsciteBanca],
+  );
+  const disponibilitaCassa = useMemo(
+    () => avanzoCassaT1 + totEntrateCassa - totUsciteCassa,
+    [avanzoCassaT1, totEntrateCassa, totUsciteCassa],
+  );
+
+  const avanzoGestione = useMemo(
+    () => totEntrate - totUscite,
+    [totEntrate, totUscite],
+  );
+
+  const goNew = (
+    tipologia: "ENTRATA" | "USCITA" | "AVANZO_CASSA_T_1" | "AVANZO_BANCA_T_1",
+  ) => {
+    localStorage.removeItem("movimento_edit_id");
+    localStorage.setItem("movimento_tipologia", tipologia);
+    window.location.href = "/movimento";
   };
+
+  const openEdit = (id: string) => {
+    localStorage.setItem("movimento_edit_id", id);
+    window.location.href = "/movimento";
+  };
+
+  const elimina = async (id: string) => {
+    const ok = confirm("Vuoi eliminare questo movimento?");
+    if (!ok) return;
+
+    const { error } = await supabase.from("movimenti").delete().eq("id", id);
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    load();
+  };
+
+  const downloadExcel = () => {
+    const fileYear = annualitaAnno ? `_${annualitaAnno}` : "";
+    const filename = `entrate_uscite${fileYear}.xlsx`;
+
+    const rowsMov = movimenti.map((m) => ({
+      ID: m.id,
+      Tipologia: m.tipologia,
+      Data: m.data ? fmtDate(m.data) : "Senza data",
+      Macro: macroLabel(macroEff(m)),
+      "Cassa/Banca": contoLabel(m.conto),
+      "Descrizione codificata": m.descrizione_label || "",
+      "Descrizione operazione": m.descrizione_operazione || "",
+      Importo: num(m.importo),
+      IVA: num(m.iva),
+      Totale: totaleMov(m),
+    }));
+
+    const rowsAvanzi = avanzi.map((m) => ({
+      ID: m.id,
+      Tipologia:
+        m.tipologia === "AVANZO_CASSA_T_1"
+          ? "Avanzo cassa (t-1)"
+          : "Avanzo banca (t-1)",
+      "Cassa/Banca": contoLabel(m.conto),
+      Importo: num(m.importo),
+      IVA: num(m.iva),
+      Totale: totaleMov(m),
+    }));
+
+    const wb = XLSX.utils.book_new();
+    const ws1 = XLSX.utils.json_to_sheet(rowsMov);
+    XLSX.utils.book_append_sheet(wb, ws1, "Movimenti");
+    const ws2 = XLSX.utils.json_to_sheet(rowsAvanzi);
+    XLSX.utils.book_append_sheet(wb, ws2, "Avanzi");
+
+    XLSX.writeFile(wb, filename);
+  };
+
+  // UI filtri
+  const filterBar: React.CSSProperties = {
+    display: "grid",
+    gridTemplateColumns: "1fr",
+    gap: 10,
+    padding: "12px 14px",
+    borderRadius: 14,
+    background: "var(--card, rgba(0,0,0,0.03))",
+  };
+
+  const row2: React.CSSProperties = {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 10,
+  };
+
+  const ctrl: React.CSSProperties = {
+    width: "100%",
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "1px solid rgba(0,0,0,0.12)",
+    background: "white",
+    fontSize: 14,
+    outline: "none",
+  };
+
+  // riepilogo
+  const wrapRowBox: React.CSSProperties = {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 10,
+    alignItems: "flex-start",
+    padding: "10px 0",
+    borderBottom: "1px solid rgba(0,0,0,0.08)",
+  };
+
+  const wrapRowLabel: React.CSSProperties = {
+    flex: "1 1 240px",
+    minWidth: 0,
+    whiteSpace: "normal",
+    overflowWrap: "anywhere",
+    lineHeight: 1.25,
+    textTransform: "uppercase",
+    fontWeight: 400,
+  };
+
+  const wrapRowValue: React.CSSProperties = {
+    flex: "0 0 auto",
+    marginLeft: "auto",
+    textAlign: "right",
+    whiteSpace: "nowrap",
+    fontWeight: 900,
+  };
+
+  const WrapRowValue = ({
+    label,
+    value,
+  }: {
+    label: React.ReactNode;
+    value: React.ReactNode;
+  }) => (
+    <div style={wrapRowBox}>
+      <div style={wrapRowLabel}>{label}</div>
+      <div style={wrapRowValue}>{value}</div>
+    </div>
+  );
+
+  // badge conteggio
+  const CountPill = ({ n }: { n: number }) => (
+    <span
+      style={{
+        fontSize: 12,
+        fontWeight: 900,
+        padding: "5px 10px",
+        borderRadius: 999,
+        border: "1px solid rgba(0,0,0,0.10)",
+        background: "rgba(0,0,0,0.03)",
+      }}
+    >
+      {n}
+    </span>
+  );
 
   return (
     <Layout>
+      {/* HEADER */}
       <div className="pageHeader" style={{ paddingTop: 15 }}>
         <div>
-          <h2 className="pageTitle">Registro Soci</h2>
-          <div className="pageHelp">
-            L’elenco è unico. La quota associativa si aggiorna in base
-            all’annualità selezionata.
+          <h2 className="pageTitle">PRIMA NOTA</h2>
+          <div className="pageHelp" style={{ whiteSpace: "pre-line" }}>
+            {HELP_FULL}
           </div>
         </div>
       </div>
@@ -352,279 +701,449 @@ export default function RegistroSoci() {
         </div>
       )}
 
-      <Card title="Elenco soci">
-        {loading ? (
-          <div style={{ color: "#6b7280", fontWeight: 700 }}>Caricamento…</div>
-        ) : soci.length === 0 ? (
-          <div style={{ color: "#6b7280", fontWeight: 700 }}>
-            Nessun socio inserito. Tocca “+” per aggiungerne uno.
-          </div>
-        ) : (
-          <div style={{ display: "grid", gap: 10 }}>
-            {soci.map((s) => (
-              <div
-                key={s.id}
-                style={{
-                  border: "1px solid #e5e7eb",
-                  borderRadius: 16,
-                  background: "#fff",
-                  padding: 12,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 10,
-                }}
-              >
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 950, color: "#111827" }}>
-                    #{s.numero} · {s.cognome} {s.nome}
-                    <span style={{ marginLeft: 8, fontSize: 12, color: "#6b7280", fontWeight: 900 }}>
-                      ({qualificaLabel(s.qualifica)})
-                    </span>
-                  </div>
-
-                  <div style={{ fontSize: 12, color: "#6b7280", fontWeight: 700 }}>
-                    {s.data_nascita ? `Nascita: ${s.data_nascita}` : "Nascita: —"}
-                    {s.luogo_nascita ? ` · ${s.luogo_nascita}` : ""}
-                    {s.residenza ? ` · Res.: ${s.residenza}` : ""}
-                  </div>
-
-                  <div style={{ fontSize: 12, color: "#6b7280", fontWeight: 700, marginTop: 2 }}>
-                    Amm.: {s.data_ammissione || "—"} · Cess.: {s.data_cessazione || "—"}
-                    {s.email ? ` · Email: ${s.email}` : ""}
-                    {s.pec ? ` · PEC: ${s.pec}` : ""}
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ display: "grid", justifyItems: "end", gap: 6 }}>
-                    <div style={{ fontSize: 12, color: "#6b7280", fontWeight: 800 }}>
-                      Quota {annualitaId ? "annuale" : "(seleziona annualità)"}
-                    </div>
-                    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                      {quotaBadge(s.id)}
-                      {annualitaId && (
-                        <button
-                          type="button"
-                          className="btn btn--ghost"
-                          onClick={() =>
-                            toggleQuota(s.id, !(quoteMap[s.id]?.versata ?? false))
-                          }
-                          title="Cambia stato quota"
-                        >
-                          Cambia
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <button
-  type="button"
-  onClick={() => openEdit(s)}
-  title="Modifica socio"
-  style={{
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    border: "1px solid #e5e7eb",
-    background: "#fff",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-    color: "#2563eb",
-  }}
->
-  <Pencil size={18} />
-</button>
-                  <button
-  type="button"
-  title="Elimina socio"
-  onClick={(e) => {
-    e.stopPropagation();
-
-    const ok = window.confirm(
-      `Vuoi eliminare il socio ${s.cognome} ${s.nome}?`,
-    );
-
-    if (!ok) return;
-
-    supabase
-      .from("soci")
-      .delete()
-      .eq("id", s.id)
-      .then(() => loadAll());
-  }}
-  style={{
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    border: "1px solid #e5e7eb",
-    background: "#fff",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-    color: "#6b7280",
-  }}
->
-  <Trash2 size={18} />
-</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
-
       {/* FAB */}
-      <button style={fabStyle} onClick={openCreate} type="button" aria-label="Aggiungi socio">
+      <button
+        className="fab"
+        onClick={() => goNew("ENTRATA")}
+        type="button"
+        aria-label="Nuovo movimento"
+      >
         +
       </button>
 
-      {/* MODALE */}
-      {open && (
-        <div
-          onClick={() => !saving && setOpen(false)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(15,23,42,0.45)",
-            display: "flex",
-            alignItems: "flex-end",
-            justifyContent: "center",
-            padding: 12,
-            zIndex: 99999,
-            overflowY: "auto",
-            WebkitOverflowScrolling: "touch",
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              width: "100%",
-              maxWidth: 560,
-              background: "#fff",
-              borderRadius: 18,
-              boxShadow: "0 20px 60px rgba(15,23,42,0.25)",
-              overflow: "hidden",
-              maxHeight: "calc(100vh - 24px)",
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            <div style={{ padding: 14, borderBottom: "1px solid #e5e7eb" }}>
-              <div style={{ fontWeight: 950, color: "#111827" }}>{modalTitle}</div>
-              <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>
-                Inserisci i dati anagrafici del socio.
+      {/* ===== ACCORDION: AVANZI ===== */}
+      <div className="section">
+        <AccordionHeader
+          title="Avanzi da esercizio precedente (T-1)"
+          open={openAvanzi}
+          onToggle={() => setOpenAvanzi((s) => !s)}
+          right={<CountPill n={avanzi.length} />}
+        />
+
+        {openAvanzi && (
+          <div style={{ marginTop: 10 }} className="listBox">
+            {avanzi.length === 0 ? (
+              <div className="listRow">
+                <div className="rowMain">
+                  <div className="rowSub">Nessun avanzo inserito</div>
+                </div>
+              </div>
+            ) : (
+              avanzi.map((m) => {
+                const label =
+                  m.tipologia === "AVANZO_CASSA_T_1"
+                    ? "Avanzo cassa"
+                    : "Avanzo banca";
+
+                return (
+                  <div
+                    key={m.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => openEdit(m.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") openEdit(m.id);
+                    }}
+                    className="listRow"
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr auto",
+                      alignItems: "start",
+                      columnGap: 12,
+                    }}
+                  >
+                    <div className="rowMain">
+                      <div className="rowTitle">{label}</div>
+                      <div className="rowSub">
+                        Esercizio precedente
+                        {m.conto ? (
+                          <>
+                            {" "}
+                            • <b>{contoLabel(m.conto)}</b>
+                          </>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <div
+                      style={{ display: "grid", justifyItems: "end", gap: 8 }}
+                    >
+                      <div
+                        className="rowAmount"
+                        style={{ justifySelf: "end", textAlign: "right" }}
+                      >
+                        <Euro v={num(m.importo)} />
+                      </div>
+
+                      <IconButton
+                        title="Elimina"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          elimina(m.id);
+                        }}
+                      >
+                        <TrashIcon />
+                      </IconButton>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ===== ACCORDION: MOVIMENTI ===== */}
+      <div className="section">
+        <AccordionHeader
+          title="Movimenti dell'annualità"
+          open={openMovimenti}
+          onToggle={() => setOpenMovimenti((s) => !s)}
+          right={<CountPill n={movimentiFilteredSorted.length} />}
+        />
+
+        {openMovimenti && (
+          <div style={{ marginTop: 10 }}>
+            {/* barra filtri richiudibile */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                marginBottom: 8,
+              }}
+            >
+              <button
+                type="button"
+                className="iconBtn"
+                onClick={() => setFiltersOpen((s) => !s)}
+                title={filtersOpen ? "Chiudi filtri" : "Apri filtri"}
+                aria-label="Filtri"
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 14,
+                  border: "1px solid rgba(0,0,0,0.10)",
+                  background: "#fff",
+                }}
+              >
+                <FilterIcon open={filtersOpen} />
+              </button>
+            </div>
+
+            {filtersOpen && (
+              <div style={filterBar}>
+                <input
+                  style={ctrl}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Cerca (descrizione, operazione, macro, cassa/banca)..."
+                />
+
+                <div style={row2}>
+                  <select
+                    style={ctrl}
+                    value={macroFilter}
+                    onChange={(e) => setMacroFilter(e.target.value)}
+                  >
+                    <option value="ALL">Tutte le macro</option>
+                    {macroOptions.map((m) => (
+                      <option key={m} value={m}>
+                        {macroLabel(m)}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    style={ctrl}
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                  >
+                    <option value="data">Ordina per: Data</option>
+                    <option value="importo">Ordina per: Importo</option>
+                    <option value="descrizione">Ordina per: Descrizione</option>
+                  </select>
+                </div>
+
+                <div style={row2}>
+                  <select
+                    style={ctrl}
+                    value={sortDir}
+                    onChange={(e) => setSortDir(e.target.value as any)}
+                  >
+                    <option value="desc">Decrescente</option>
+                    <option value="asc">Crescente</option>
+                  </select>
+
+                  <button
+                    className="btn btn--block"
+                    type="button"
+                    onClick={() => {
+                      setSearch("");
+                      setMacroFilter("ALL");
+                      setSortBy("data");
+                      setSortDir("desc");
+                    }}
+                  >
+                    Reset filtri
+                  </button>
+                </div>
+
+                <div className="rowSub" style={{ marginTop: -2 }}>
+                  Visualizzati: <b>{movimentiFilteredSorted.length}</b> /{" "}
+                  {movimenti.length}
+                </div>
+              </div>
+            )}
+
+            {/* lista movimenti */}
+            <div className="listBox">
+              {movimentiFilteredSorted.length === 0 ? (
+                <div className="listRow">
+                  <div className="rowMain">
+                    <div className="rowSub">Nessun movimento trovato</div>
+                  </div>
+                </div>
+              ) : (
+                movimentiFilteredSorted.map((m, idx) => {
+                  const isEntrata = m.tipologia === "ENTRATA";
+                  const codificata =
+                    (m.descrizione_label || "").trim() || "N/D";
+                  const operazione =
+                    (m.descrizione_operazione || "").trim() || "—";
+                  const { day, mon } = dateParts(m.data);
+                  const me = macroEff(m);
+
+                  return (
+                    <div key={m.id}>
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => openEdit(m.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ")
+                            openEdit(m.id);
+                        }}
+                        className="movRow"
+                      >
+                        <div className="movDate">
+                          <div className="movDay">{day}</div>
+                          <div className="movMon">{mon}</div>
+                        </div>
+
+                        <div className="movMain">
+                          <div className="movTop">
+                            <div className="movTags">
+                              <MiniTag tone={isEntrata ? "green" : "red"}>
+                                {isEntrata ? "Entrata" : "Uscita"}
+                              </MiniTag>
+                              <MiniTag tone={toneForMacro(me) as any}>
+                                {macroLabel(me)}
+                              </MiniTag>
+                              {m.conto ? (
+                                <MiniTag tone="neutral">
+                                  {contoLabel(m.conto)}
+                                </MiniTag>
+                              ) : null}
+                            </div>
+                          </div>
+
+                          <div className="movTitle">{codificata}</div>
+                          <div className="movSub">{operazione}</div>
+                        </div>
+
+                        <div className="movRight">
+                          <div className="movAmount">
+                            <Euro v={totaleMov(m)} />
+                          </div>
+
+                          <IconButton
+                            title="Elimina"
+                            className="iconBtn--sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              elimina(m.id);
+                            }}
+                          >
+                            <TrashIcon />
+                          </IconButton>
+                        </div>
+                      </div>
+
+                      {idx !== movimentiFilteredSorted.length - 1 && (
+                        <div style={{ height: 10 }} />
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ===== ACCORDION: RIEPILOGO ===== */}
+      <div className="section">
+        <AccordionHeader
+          title="Riepilogo"
+          open={openRiepilogo}
+          onToggle={() => setOpenRiepilogo((s) => !s)}
+          
+        />
+
+        {openRiepilogo && (
+          <div style={{ marginTop: 10 }} className="listBox">
+            <div className="listRow">
+              <div className="rowMain" style={{ display: "grid", gap: 10 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    letterSpacing: 0.4,
+                    opacity: 0.7,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Entrate
+                </div>
+                <WrapRowValue
+                  label="Totale entrate banca"
+                  value={<Euro v={totEntrateBanca} />}
+                />
+                <WrapRowValue
+                  label="Totale entrate cassa"
+                  value={<Euro v={totEntrateCassa} />}
+                />
+                <WrapRowValue
+                  label="Totale entrate"
+                  value={<Euro v={totEntrate} />}
+                />
               </div>
             </div>
 
-            <div style={{ padding: 14, display: "grid", gap: 12, overflowY: "auto" }}>
-              {/* Qualifica */}
-              <div style={{ display: "grid", gap: 6 }}>
-                <div style={{ fontSize: 12, color: "#374151", fontWeight: 900 }}>
-                  Qualifica socio
-                </div>
-                <select
-                  className="input"
-                  value={qualifica}
-                  onChange={(e) => setQualifica(e.target.value as Qualifica)}
+            <div className="listRow">
+              <div className="rowMain" style={{ display: "grid", gap: 10 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    letterSpacing: 0.4,
+                    opacity: 0.7,
+                    textTransform: "uppercase",
+                  }}
                 >
-                  <option value="FONDATORE">Fondatore</option>
-                  <option value="ORDINARIO">Ordinario</option>
-                  <option value="SOSTENITORE">Sostenitore</option>
-                </select>
-              </div>
-
-              <div style={{ display: "grid", gap: 6 }}>
-                <div style={{ fontSize: 12, color: "#374151", fontWeight: 900 }}>Nome *</div>
-                <input className="input" value={nome} onChange={(e) => setNome(e.target.value)} />
-              </div>
-
-              <div style={{ display: "grid", gap: 6 }}>
-                <div style={{ fontSize: 12, color: "#374151", fontWeight: 900 }}>Cognome *</div>
-                <input className="input" value={cognome} onChange={(e) => setCognome(e.target.value)} />
-              </div>
-
-              <div style={{ display: "grid", gap: 6 }}>
-                <div style={{ fontSize: 12, color: "#374151", fontWeight: 900 }}>Data di nascita</div>
-                <input
-                  className="input"
-                  type="date"
-                  value={dataNascita}
-                  onChange={(e) => setDataNascita(e.target.value)}
-                />
-              </div>
-
-              <div style={{ display: "grid", gap: 6 }}>
-                <div style={{ fontSize: 12, color: "#374151", fontWeight: 900 }}>Luogo di nascita</div>
-                <input className="input" value={luogoNascita} onChange={(e) => setLuogoNascita(e.target.value)} />
-              </div>
-
-              <div style={{ display: "grid", gap: 6 }}>
-                <div style={{ fontSize: 12, color: "#374151", fontWeight: 900 }}>Residenza</div>
-                <input className="input" value={residenza} onChange={(e) => setResidenza(e.target.value)} />
-              </div>
-
-              {/* Ammissione / Cessazione */}
-              <div style={{ display: "grid", gap: 6 }}>
-                <div style={{ fontSize: 12, color: "#374151", fontWeight: 900 }}>Data di ammissione</div>
-                <input
-                  className="input"
-                  type="date"
-                  value={dataAmmissione}
-                  onChange={(e) => setDataAmmissione(e.target.value)}
-                />
-              </div>
-
-              <div style={{ display: "grid", gap: 6 }}>
-                <div style={{ fontSize: 12, color: "#374151", fontWeight: 900 }}>Data di cessazione</div>
-                <input
-                  className="input"
-                  type="date"
-                  value={dataCessazione}
-                  onChange={(e) => setDataCessazione(e.target.value)}
-                />
-                <div style={{ fontSize: 12, color: "#6b7280" }}>
-                  Se valorizzata, indica che il socio non è più attivo.
+                  Uscite
                 </div>
-              </div>
-
-              {/* Email / PEC */}
-              <div style={{ display: "grid", gap: 6 }}>
-                <div style={{ fontSize: 12, color: "#374151", fontWeight: 900 }}>Email</div>
-                <input
-                  className="input"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="esempio@email.it"
+                <WrapRowValue
+                  label="Totale uscite banca"
+                  value={<Euro v={totUsciteBanca} />}
+                />
+                <WrapRowValue
+                  label="Totale uscite cassa"
+                  value={<Euro v={totUsciteCassa} />}
+                />
+                <WrapRowValue
+                  label="Totale uscite"
+                  value={<Euro v={totUscite} />}
                 />
               </div>
+            </div>
 
-              <div style={{ display: "grid", gap: 6 }}>
-                <div style={{ fontSize: 12, color: "#374151", fontWeight: 900 }}>PEC</div>
-                <input
-                  className="input"
-                  value={pec}
-                  onChange={(e) => setPec(e.target.value)}
-                  placeholder="esempio@pec.it"
+            <div className="listRow">
+              <div className="rowMain" style={{ display: "grid", gap: 10 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    letterSpacing: 0.4,
+                    opacity: 0.7,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Disponibilità
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 8,
+                    marginTop: 2,
+                  }}
+                >
+                  <Badge tone="neutral">
+                    Avanzo banca (t-1):{" "}
+                    <b>
+                      <Euro v={avanzoBancaT1} />
+                    </b>
+                  </Badge>
+                  <Badge tone="neutral">
+                    Avanzo cassa (t-1):{" "}
+                    <b>
+                      <Euro v={avanzoCassaT1} />
+                    </b>
+                  </Badge>
+                </div>
+                <WrapRowValue
+                  label="Disponibilità banca"
+                  value={<Euro v={disponibilitaBanca} />}
+                />
+                <WrapRowValue
+                  label="Disponibilità cassa"
+                  value={<Euro v={disponibilitaCassa} />}
                 />
               </div>
+            </div>
 
-              <div style={{ display: "flex", gap: 10 }}>
-                <PrimaryButton onClick={saveSocio} disabled={saving}>
-                  {saving ? "Salvataggio…" : editing ? "Salva modifiche" : "Crea socio"}
-                </PrimaryButton>
-                <SecondaryButton onClick={() => !saving && setOpen(false)}>
-                  Annulla
-                </SecondaryButton>
+            <div className="listRow">
+              <div className="rowMain" style={{ display: "grid", gap: 8 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    letterSpacing: 0.4,
+                    opacity: 0.7,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Risultato di gestione
+                </div>
+                <WrapRowValue
+                  label="Avanzo / disavanzo di gestione"
+                  value={<Euro v={avanzoGestione} />}
+                />
+                <div className="rowSub">(Totale entrate − Totale uscite)</div>
               </div>
             </div>
           </div>
+        )}
+      </div>
+
+      {/* EXPORT */}
+      <div className="section" style={{ paddingBottom: 90 }}>
+        <div className="sectionTitle">ESPORTA</div>
+        <div className="listBox">
+          <div className="listRow">
+            <div className="rowMain">
+              <div className="rowTitle">Scarica Entrate/Uscite in Excel</div>
+              <div className="rowSub">
+                Include movimenti e avanzi (in due fogli separati) + colonna
+                Cassa/Banca.
+              </div>
+            </div>
+
+            <button
+              className="btn"
+              type="button"
+              onClick={downloadExcel}
+              disabled={!list.length}
+              title={
+                !list.length ? "Nessun dato da esportare" : "Scarica Excel"
+              }
+            >
+              Scarica Excel
+            </button>
+          </div>
         </div>
-      )}
+      </div>
     </Layout>
   );
 }
