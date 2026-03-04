@@ -599,12 +599,6 @@ const C = useMemo(
       </Card>
 
       <div className="mt-3" />
-
-      <div style={{ textAlign: "center" }}>
-        <PrimaryButton onClick={() => navigate("/ires")}>
-          Vai al calcolo IRES →
-        </PrimaryButton>
-      </div>
     </Layout>
   );
 }
