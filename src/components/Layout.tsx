@@ -295,18 +295,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             >
               Ires
             </button>
-            <button
-  className="btn btn--block"
-  type="button"
-  onClick={() => {
-    nav("/registro-soci");
-    setOpenMenu(false);
-  }}
->
-  Registro Soci
-</button>
-            )}
-
+          
             {/* ✅ Liquidazione IVA solo se regime ordinario */}
             {isRegimeOrdinario && (
               <button
