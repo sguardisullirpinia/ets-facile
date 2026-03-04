@@ -273,7 +273,16 @@ export default function Layout({ children }: { children: ReactNode }) {
                 ✕
               </button>
             </div>
-
+            <button
+  className="btn btn--block"
+  type="button"
+  onClick={() => {
+    nav("/registro-soci");
+    setOpenMenu(false);
+  }}
+>
+  Registro Soci
+</button>
             <button
               className="btn btn--block"
               type="button"
