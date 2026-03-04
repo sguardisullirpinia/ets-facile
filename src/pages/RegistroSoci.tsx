@@ -382,7 +382,7 @@ export default function RegistroSoci() {
             alignItems: "flex-end",
             justifyContent: "center",
             padding: 12,
-            zIndex: 50,
+            zIndex: 99999,
             overflowY: "auto",
             WebkitOverflowScrolling: "touch",
           }}
