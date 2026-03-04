@@ -987,11 +987,7 @@ export default function EntrateUscite() {
           title="Riepilogo"
           open={openRiepilogo}
           onToggle={() => setOpenRiepilogo((s) => !s)}
-          right={
-            <span style={{ fontWeight: 100 }}>
-              avanzo/disavanzo <Euro v={avanzoGestione} />
-            </span>
-          }
+          
         />
 
         {openRiepilogo && (
