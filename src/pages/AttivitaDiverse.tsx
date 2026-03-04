@@ -50,13 +50,6 @@ function totaleMov(m: Movimento) {
   return num(m.importo) + num(m.iva);
 }
 
-function fmtDate(d: string | null) {
-  if (!d) return "—";
-  const [y, m, day] = (d || "").split("-");
-  if (!y || !m || !day) return d || "—";
-  return `${day}/${m}/${y}`;
-}
-
 function dateParts(d: string | null) {
   if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return { day: "—", mon: "" };
   const [, m, day] = d.split("-");
