@@ -295,7 +295,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             >
               Ires
             </button>
-          
+
             {/* ✅ Liquidazione IVA solo se regime ordinario */}
             {isRegimeOrdinario && (
               <button
@@ -308,7 +308,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               >
                 Liquidazione Iva
               </button>
-            
+            )}
 
             {/* opzionale: micro-nota in forfettario */}
             {!isRegimeOrdinario && (
