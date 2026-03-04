@@ -216,9 +216,11 @@ export default function Layout({ children }: { children: ReactNode }) {
       </header>
 
       {/* CONTENUTO */}
-      <main className="appMain">
-        <div className="appContent">{children}</div>
-      </main>
+     <main className="appMain">
+  <div className="appContent" style={{ paddingBottom: 90 }}>
+    {children}
+  </div>
+</main>
 
       {/* BOTTOM BAR */}
       <BottomBar />
