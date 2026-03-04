@@ -3,14 +3,25 @@ import Layout from "../components/Layout";
 import { supabase } from "../lib/supabase";
 import { Badge, Card, PrimaryButton, SecondaryButton } from "../components/ui";
 
+type Qualifica = "FONDATORE" | "ORDINARIO" | "SOSTENITORE";
+
 type Socio = {
   id: string;
   numero: number;
   nome: string;
   cognome: string;
+
   data_nascita: string | null;
   luogo_nascita: string | null;
   residenza: string | null;
+
+  data_ammissione: string | null;
+  data_cessazione: string | null;
+
+  pec: string | null;
+  email: string | null;
+
+  qualifica: Qualifica | null;
 };
 
 type QuotaRow = {
@@ -22,9 +33,12 @@ type QuotaRow = {
   importo: number | null;
 };
 
-function onlyDateISO(v: string) {
-  // input type="date" già in YYYY-MM-DD
-  return v || null;
+function todayISO() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 export default function RegistroSoci() {
@@ -46,9 +60,18 @@ export default function RegistroSoci() {
   // form socio
   const [nome, setNome] = useState("");
   const [cognome, setCognome] = useState("");
-  const [dataNascita, setDataNascita] = useState<string>("");
+
+  const [dataNascita, setDataNascita] = useState("");
   const [luogoNascita, setLuogoNascita] = useState("");
   const [residenza, setResidenza] = useState("");
+
+  const [dataAmmissione, setDataAmmissione] = useState("");
+  const [dataCessazione, setDataCessazione] = useState("");
+
+  const [pec, setPec] = useState("");
+  const [email, setEmail] = useState("");
+
+  const [qualifica, setQualifica] = useState<Qualifica>("ORDINARIO");
 
   const resetForm = () => {
     setNome("");
@@ -56,6 +79,11 @@ export default function RegistroSoci() {
     setDataNascita("");
     setLuogoNascita("");
     setResidenza("");
+    setDataAmmissione("");
+    setDataCessazione("");
+    setPec("");
+    setEmail("");
+    setQualifica("ORDINARIO");
   };
 
   const openCreate = () => {
@@ -66,11 +94,22 @@ export default function RegistroSoci() {
 
   const openEdit = (s: Socio) => {
     setEditing(s);
+
     setNome(s.nome || "");
     setCognome(s.cognome || "");
+
     setDataNascita(s.data_nascita || "");
     setLuogoNascita(s.luogo_nascita || "");
     setResidenza(s.residenza || "");
+
+    setDataAmmissione(s.data_ammissione || "");
+    setDataCessazione(s.data_cessazione || "");
+
+    setPec(s.pec || "");
+    setEmail(s.email || "");
+
+    setQualifica((s.qualifica as Qualifica) || "ORDINARIO");
+
     setOpen(true);
   };
 
@@ -88,7 +127,9 @@ export default function RegistroSoci() {
     // 1) soci (stabili)
     const { data: sociData, error: sociErr } = await supabase
       .from("soci")
-      .select("id, numero, nome, cognome, data_nascita, luogo_nascita, residenza")
+      .select(
+        "id, numero, nome, cognome, data_nascita, luogo_nascita, residenza, data_ammissione, data_cessazione, pec, email, qualifica",
+      )
       .order("numero", { ascending: true });
 
     if (sociErr) {
@@ -142,6 +183,12 @@ export default function RegistroSoci() {
       return;
     }
 
+    // opzionale: controllo date logico
+    if (dataAmmissione && dataCessazione && dataCessazione < dataAmmissione) {
+      setError("La data di cessazione non può essere precedente all’ammissione.");
+      return;
+    }
+
     setSaving(true);
 
     const { data: userData } = await supabase.auth.getUser();
@@ -154,9 +201,18 @@ export default function RegistroSoci() {
     const payload = {
       nome: n,
       cognome: c,
-      data_nascita: dataNascita ? onlyDateISO(dataNascita) : null,
+
+      data_nascita: dataNascita || null,
       luogo_nascita: luogoNascita.trim() || null,
       residenza: residenza.trim() || null,
+
+      data_ammissione: dataAmmissione || null,
+      data_cessazione: dataCessazione || null,
+
+      pec: pec.trim() || null,
+      email: email.trim() || null,
+
+      qualifica: qualifica,
     };
 
     if (editing) {
@@ -174,7 +230,7 @@ export default function RegistroSoci() {
       const { error: insErr } = await supabase.from("soci").insert({
         user_id: userData.user.id,
         ...payload,
-        // numero viene assegnato dal trigger
+        // numero assegnato dal trigger
       });
 
       if (insErr) {
@@ -206,16 +262,9 @@ export default function RegistroSoci() {
 
     const existing = quoteMap[socioId];
 
-    // se spunto "SI" imposto anche data versamento a oggi (opzionale)
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, "0");
-    const dd = String(today.getDate()).padStart(2, "0");
-    const todayISO = `${yyyy}-${mm}-${dd}`;
-
     const payload = {
       versata: next,
-      data_versamento: next ? todayISO : null,
+      data_versamento: next ? todayISO() : null,
     };
 
     if (existing) {
@@ -248,7 +297,7 @@ export default function RegistroSoci() {
   const fabStyle: React.CSSProperties = {
     position: "fixed",
     right: 16,
-    bottom: 84,
+    bottom: 84, // ✅ sopra la BottomBar
     width: 56,
     height: 56,
     borderRadius: 18,
@@ -269,13 +318,19 @@ export default function RegistroSoci() {
     const q = quoteMap[socioId];
     if (!annualitaId) return <Badge>—</Badge>;
     if (q?.versata) return <Badge tone="green">SI</Badge>;
-    return <Badge tone="blue">NO</Badge>;
+    return <Badge tone="gray">NO</Badge>;
   };
 
   const modalTitle = useMemo(
     () => (editing ? "Modifica socio" : "Nuovo socio"),
     [editing],
   );
+
+  const qualificaLabel = (q?: Qualifica | null) => {
+    if (q === "FONDATORE") return "Fondatore";
+    if (q === "SOSTENITORE") return "Sostenitore";
+    return "Ordinario";
+  };
 
   return (
     <Layout>
@@ -322,11 +377,21 @@ export default function RegistroSoci() {
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontWeight: 950, color: "#111827" }}>
                     #{s.numero} · {s.cognome} {s.nome}
+                    <span style={{ marginLeft: 8, fontSize: 12, color: "#6b7280", fontWeight: 900 }}>
+                      ({qualificaLabel(s.qualifica)})
+                    </span>
                   </div>
+
                   <div style={{ fontSize: 12, color: "#6b7280", fontWeight: 700 }}>
-                    {s.data_nascita ? `Nato/a il ${s.data_nascita}` : "—"}
+                    {s.data_nascita ? `Nascita: ${s.data_nascita}` : "Nascita: —"}
                     {s.luogo_nascita ? ` · ${s.luogo_nascita}` : ""}
                     {s.residenza ? ` · Res.: ${s.residenza}` : ""}
+                  </div>
+
+                  <div style={{ fontSize: 12, color: "#6b7280", fontWeight: 700, marginTop: 2 }}>
+                    Amm.: {s.data_ammissione || "—"} · Cess.: {s.data_cessazione || "—"}
+                    {s.email ? ` · Email: ${s.email}` : ""}
+                    {s.pec ? ` · PEC: ${s.pec}` : ""}
                   </div>
                 </div>
 
@@ -341,7 +406,9 @@ export default function RegistroSoci() {
                         <button
                           type="button"
                           className="btn btn--ghost"
-                          onClick={() => toggleQuota(s.id, !(quoteMap[s.id]?.versata ?? false))}
+                          onClick={() =>
+                            toggleQuota(s.id, !(quoteMap[s.id]?.versata ?? false))
+                          }
                           title="Cambia stato quota"
                         >
                           Cambia
@@ -409,6 +476,22 @@ export default function RegistroSoci() {
             </div>
 
             <div style={{ padding: 14, display: "grid", gap: 12, overflowY: "auto" }}>
+              {/* Qualifica */}
+              <div style={{ display: "grid", gap: 6 }}>
+                <div style={{ fontSize: 12, color: "#374151", fontWeight: 900 }}>
+                  Qualifica socio
+                </div>
+                <select
+                  className="input"
+                  value={qualifica}
+                  onChange={(e) => setQualifica(e.target.value as Qualifica)}
+                >
+                  <option value="FONDATORE">Fondatore</option>
+                  <option value="ORDINARIO">Ordinario</option>
+                  <option value="SOSTENITORE">Sostenitore</option>
+                </select>
+              </div>
+
               <div style={{ display: "grid", gap: 6 }}>
                 <div style={{ fontSize: 12, color: "#374151", fontWeight: 900 }}>Nome *</div>
                 <input className="input" value={nome} onChange={(e) => setNome(e.target.value)} />
@@ -437,6 +520,52 @@ export default function RegistroSoci() {
               <div style={{ display: "grid", gap: 6 }}>
                 <div style={{ fontSize: 12, color: "#374151", fontWeight: 900 }}>Residenza</div>
                 <input className="input" value={residenza} onChange={(e) => setResidenza(e.target.value)} />
+              </div>
+
+              {/* Ammissione / Cessazione */}
+              <div style={{ display: "grid", gap: 6 }}>
+                <div style={{ fontSize: 12, color: "#374151", fontWeight: 900 }}>Data di ammissione</div>
+                <input
+                  className="input"
+                  type="date"
+                  value={dataAmmissione}
+                  onChange={(e) => setDataAmmissione(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: "grid", gap: 6 }}>
+                <div style={{ fontSize: 12, color: "#374151", fontWeight: 900 }}>Data di cessazione</div>
+                <input
+                  className="input"
+                  type="date"
+                  value={dataCessazione}
+                  onChange={(e) => setDataCessazione(e.target.value)}
+                />
+                <div style={{ fontSize: 12, color: "#6b7280" }}>
+                  Se valorizzata, indica che il socio non è più attivo.
+                </div>
+              </div>
+
+              {/* Email / PEC */}
+              <div style={{ display: "grid", gap: 6 }}>
+                <div style={{ fontSize: 12, color: "#374151", fontWeight: 900 }}>Email</div>
+                <input
+                  className="input"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="esempio@email.it"
+                />
+              </div>
+
+              <div style={{ display: "grid", gap: 6 }}>
+                <div style={{ fontSize: 12, color: "#374151", fontWeight: 900 }}>PEC</div>
+                <input
+                  className="input"
+                  value={pec}
+                  onChange={(e) => setPec(e.target.value)}
+                  placeholder="esempio@pec.it"
+                />
               </div>
 
               <div style={{ display: "flex", gap: 10 }}>
