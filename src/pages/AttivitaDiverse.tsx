@@ -820,37 +820,47 @@ export default function AttivitaDiverse() {
             style={{ ...fullModalSheet, maxWidth: "none", margin: 0 }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header sticky: titolo a sinistra e chiudi a destra */}
-            <div
-              className="sheetHeader"
-              style={{
-                position: "sticky",
-                top: 0,
-                zIndex: 2,
-                background: "rgba(246, 245, 241)",
-                borderBottom: "1px solid rgba(0,0,0,0.08)",
-              }}
-            >
-              <div
-                style={{
-                  maxWidth: 1150,
-                  margin: "0 auto",
-                  padding: "16px 20px",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: 12,
-                }}
-              >
-                <div className="sheetTitle" style={{ fontWeight: 950 }}>
-                  {active.nome}
-                </div>
+           {/* Header sticky */}
+<div
+  className="sheetHeader"
+  style={{
+    position: "sticky",
+    top: 0,
+    zIndex: 2,
+    background: "rgba(246, 245, 241)",
+    borderBottom: "1px solid rgba(0,0,0,0.08)",
+  }}
+>
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 12,
+      width: "100%",
+      padding: "16px 20px",
+      maxWidth: 1150,
+      margin: "0 auto",
+    }}
+  >
+    <div
+      className="sheetTitle"
+      style={{
+        fontWeight: 950,
+        minWidth: 0,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {active.nome}
+    </div>
 
-                <button className="btn" onClick={() => setActive(null)} type="button">
-                  Chiudi
-                </button>
-              </div>
-            </div>
+    <button className="btn" onClick={() => setActive(null)} type="button">
+      Chiudi
+    </button>
+  </div>
+</div>
 
             {/* Body allineato ai bordi laterali */}
             <div style={modalContainer}>
