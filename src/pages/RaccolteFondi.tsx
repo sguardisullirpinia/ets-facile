@@ -8,7 +8,7 @@ type RfRow = {
   id: string;
   nome: string;
   descrizione: string | null;
-  data: string | null; // DATE
+  data: string | null;
 };
 
 type Movimento = {
@@ -26,6 +26,7 @@ type Movimento = {
   iva: any;
 };
 
+/** robusto IT/EN */
 function num(v: any) {
   if (v === null || v === undefined) return 0;
   if (typeof v === "number") return Number.isFinite(v) ? v : 0;
@@ -45,18 +46,10 @@ function totaleMov(m: Movimento) {
   return num(m.importo) + num(m.iva);
 }
 
-function dateParts(d: string | null) {
-  if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return { day: "—", mon: "" };
-  const [, m, day] = d.split("-");
-  const months = ["GEN", "FEB", "MAR", "APR", "MAG", "GIU", "LUG", "AGO", "SET", "OTT", "NOV", "DIC"];
-  const mi = Math.max(1, Math.min(12, Number(m))) - 1;
-  return { day, mon: months[mi] };
-}
-
 function fmtDate(d: string | null) {
   if (!d) return "—";
-  const [y, m, day] = d.split("-");
-  if (!y || !m || !day) return d;
+  const [y, m, day] = (d || "").split("-");
+  if (!y || !m || !day) return d || "—";
   return `${day}/${m}/${y}`;
 }
 
@@ -65,43 +58,6 @@ function bestDescr(m: Movimento) {
   const b = (m.descrizione_operazione || "").trim();
   const c = (m.descrizione_libera || "").trim();
   return a || b || c || "—";
-}
-
-function MiniTag({
-  children,
-  tone,
-}: {
-  children: React.ReactNode;
-  tone?: "green" | "red" | "blue" | "amber" | "yellow" | "neutral";
-}) {
-  return (
-    <span className={`miniTag ${tone ? `miniTag--${tone}` : "miniTag--neutral"}`}>
-      {children}
-    </span>
-  );
-}
-
-function IconButton({
-  title,
-  onClick,
-  children,
-  className,
-}: {
-  title: string;
-  onClick: (e: React.MouseEvent) => void;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <button
-      title={title}
-      onClick={onClick}
-      className={className ? `iconBtn ${className}` : "iconBtn"}
-      type="button"
-    >
-      {children}
-    </button>
-  );
 }
 
 function TrashIcon() {
@@ -115,15 +71,30 @@ function TrashIcon() {
   );
 }
 
+function IconButton({
+  title,
+  onClick,
+  children,
+}: {
+  title: string;
+  onClick: (e: React.MouseEvent) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button title={title} onClick={onClick} className="iconBtn" type="button">
+      {children}
+    </button>
+  );
+}
+
 export default function RaccolteFondi() {
   const annualitaId = localStorage.getItem("annualita_id");
 
   const [error, setError] = useState<string | null>(null);
 
-  // lista
   const [items, setItems] = useState<RfRow[]>([]);
 
-  // create/edit (bottom sheet)
+  // sheet create/edit
   const [openModal, setOpenModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -135,7 +106,6 @@ export default function RaccolteFondi() {
   // dettaglio fullscreen
   const [active, setActive] = useState<RfRow | null>(null);
 
-  // movimenti
   const [availEntrate, setAvailEntrate] = useState<Movimento[]>([]);
   const [availUscite, setAvailUscite] = useState<Movimento[]>([]);
   const [assEntrate, setAssEntrate] = useState<Movimento[]>([]);
@@ -146,7 +116,7 @@ export default function RaccolteFondi() {
 
   const [cgMap, setCgMap] = useState<Record<string, number>>({});
 
-  // ====== STILI BASE ======
+  // ====== utility style ======
   const noEllipsis: React.CSSProperties = {
     whiteSpace: "normal",
     overflow: "visible",
@@ -163,7 +133,7 @@ export default function RaccolteFondi() {
     columnGap: 12,
   };
 
-  // ====== MODALE FULLSCREEN (margini come AIG/Att.Diverse) ======
+  // ====== modale fullscreen ======
   const fullModalOverlay: React.CSSProperties = {
     position: "fixed",
     inset: 0,
@@ -200,102 +170,160 @@ export default function RaccolteFondi() {
     };
   }, [active]);
 
-  // ====== MOVIMENTI (UGUALI ad Attività Diverse / AIG / Entrate-Uscite) ======
-  const MovRowSelectable = ({
+  // ====== cards movimento (IDENTICHE a AIG/Attività Diverse) ======
+  const AvailableMoveCard = ({
     m,
+    tone,
+    macroLabelTxt,
     checked,
     onToggle,
   }: {
     m: Movimento;
+    tone: "green" | "red";
+    macroLabelTxt: string;
     checked: boolean;
     onToggle: (v: boolean) => void;
   }) => {
     const isEntrata = m.tipologia === "ENTRATA";
-    const { day, mon } = dateParts(m.data);
     const title = (m.descrizione_label || "").trim() || bestDescr(m);
     const sub = (m.descrizione_operazione || "").trim() || "—";
 
     return (
-      <label className="movRow" style={{ cursor: "pointer" }}>
+      <label
+        className="listRow"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "auto 1fr auto",
+          alignItems: "start",
+          columnGap: 12,
+          cursor: "pointer",
+        }}
+      >
         <input
           type="checkbox"
           checked={checked}
           onChange={(e) => onToggle(e.target.checked)}
-          style={{ width: 18, height: 18, marginRight: 10, alignSelf: "center" }}
+          style={{
+            width: 18,
+            height: 18,
+            marginTop: 6,
+            cursor: "pointer",
+            flex: "0 0 auto",
+          }}
         />
 
-        <div className="movDate">
-          <div className="movDay">{day}</div>
-          <div className="movMon">{mon}</div>
-        </div>
-
-        <div className="movMain">
-          <div className="movTop">
-            <div className="movTags">
-              <MiniTag tone={isEntrata ? "green" : "red"}>{isEntrata ? "Entrata" : "Uscita"}</MiniTag>
-              <MiniTag tone="yellow">Raccolte Fondi</MiniTag>
-            </div>
+        <div className="rowMain" style={{ minWidth: 0 }}>
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 850,
+              opacity: 0.7,
+              marginBottom: 8,
+              ...noEllipsis,
+            }}
+          >
+            {fmtDate(m.data)}
           </div>
 
-          <div className="movTitle">{title}</div>
-          <div className="movSub">{sub}</div>
+          <div className="rowMeta" style={{ marginTop: 0, marginBottom: 8 }}>
+            <Badge tone={tone as any}>{isEntrata ? "Entrata" : "Uscita"}</Badge>
+            <Badge tone="yellow">{macroLabelTxt}</Badge>
+          </div>
+
+          <div className="rowTitle" style={noEllipsis}>
+            {title}
+          </div>
+          <div className="rowSub" style={noEllipsis}>
+            {sub}
+          </div>
         </div>
 
-        <div className="movRight">
-          <div className="movAmount">
-            <Euro v={totaleMov(m)} />
-          </div>
+        <div
+          className="rowAmount"
+          style={{
+            justifySelf: "end",
+            textAlign: "right",
+            fontWeight: 950,
+            paddingTop: 22,
+          }}
+        >
+          <Euro v={totaleMov(m)} />
         </div>
       </label>
     );
   };
 
-  const MovRowAssigned = ({ m }: { m: Movimento }) => {
+  const AssignedMoveCard = ({
+    m,
+    tone,
+    macroLabelTxt,
+    onUnassign,
+  }: {
+    m: Movimento;
+    tone: "green" | "red";
+    macroLabelTxt: string;
+    onUnassign: (id: string) => void;
+  }) => {
     const isEntrata = m.tipologia === "ENTRATA";
-    const { day, mon } = dateParts(m.data);
     const title = (m.descrizione_label || "").trim() || bestDescr(m);
     const sub = (m.descrizione_operazione || "").trim() || "—";
 
     return (
-      <div className="movRow" role="group">
-        <div className="movDate">
-          <div className="movDay">{day}</div>
-          <div className="movMon">{mon}</div>
-        </div>
-
-        <div className="movMain">
-          <div className="movTop">
-            <div className="movTags">
-              <MiniTag tone={isEntrata ? "green" : "red"}>{isEntrata ? "Entrata" : "Uscita"}</MiniTag>
-              <MiniTag tone="yellow">Raccolte Fondi</MiniTag>
-            </div>
+      <div
+        className="listRow"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr auto",
+          alignItems: "start",
+          columnGap: 12,
+        }}
+      >
+        <div className="rowMain" style={{ minWidth: 0 }}>
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 850,
+              opacity: 0.7,
+              marginBottom: 8,
+              ...noEllipsis,
+            }}
+          >
+            {fmtDate(m.data)}
           </div>
 
-          <div className="movTitle">{title}</div>
-          <div className="movSub">{sub}</div>
+          <div className="rowMeta" style={{ marginTop: 0, marginBottom: 8 }}>
+            <Badge tone={tone as any}>{isEntrata ? "Entrata" : "Uscita"}</Badge>
+            <Badge tone="yellow">{macroLabelTxt}</Badge>
+          </div>
+
+          <div className="rowTitle" style={noEllipsis}>
+            {title}
+          </div>
+          <div className="rowSub" style={noEllipsis}>
+            {sub}
+          </div>
         </div>
 
-        <div className="movRight">
-          <div className="movAmount">
+        <div style={{ display: "grid", justifyItems: "end", gap: 8 }}>
+          <div className="rowAmount" style={{ justifySelf: "end", textAlign: "right", fontWeight: 950 }}>
             <Euro v={totaleMov(m)} />
           </div>
 
-          <IconButton
-            title="Rimuovi assegnazione"
-            className="iconBtn--sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              unassignMovimento(m.id);
-            }}
+          <button
+            className="iconBtn"
+            type="button"
+            title="Rimuovi assegnazione (torna tra disponibili)"
+            onClick={() => onUnassign(m.id)}
+            aria-label="Rimuovi assegnazione"
           >
             <TrashIcon />
-          </IconButton>
+          </button>
         </div>
       </div>
     );
   };
 
-  // ====== RIEPILOGO stile AIG ======
+  // ====== riepilogo stile AIG ======
   const wrapRowBox: React.CSSProperties = {
     display: "flex",
     flexWrap: "wrap",
@@ -330,7 +358,7 @@ export default function RaccolteFondi() {
     </div>
   );
 
-  // ====== LOAD LISTA ======
+  // ====== load lista ======
   const loadItems = async () => {
     setError(null);
     if (!annualitaId) return;
@@ -377,7 +405,7 @@ export default function RaccolteFondi() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [annualitaId, items.length]);
 
-  // ====== CREATE / EDIT SHEET ======
+  // ====== create/edit sheet ======
   const openCreate = () => {
     setError(null);
     setEditMode(false);
@@ -416,13 +444,10 @@ export default function RaccolteFondi() {
       if (error) return alert(error.message);
     } else {
       if (!editingId) return;
+
       const { error } = await supabase
         .from("raccolte_fondi")
-        .update({
-          nome: n,
-          descrizione: descr.trim() || null,
-          data: rfData,
-        })
+        .update({ nome: n, descrizione: descr.trim() || null, data: rfData })
         .eq("id", editingId);
 
       if (error) return alert(error.message);
@@ -445,7 +470,6 @@ export default function RaccolteFondi() {
       p_type: "RACCOLTE_FONDI",
       p_id: id,
     });
-
     if (unErr) return alert("Errore sblocco movimenti: " + unErr.message);
 
     const { error } = await supabase.from("raccolte_fondi").delete().eq("id", id);
@@ -456,7 +480,7 @@ export default function RaccolteFondi() {
     await loadCostiGeneraliMap();
   };
 
-  // ====== DETTAGLIO: LOAD MOVIMENTI ======
+  // ====== dettaglio: movimenti ======
   const loadMovimentiForItem = async (rfId: string) => {
     setError(null);
     if (!annualitaId) return;
@@ -473,7 +497,6 @@ export default function RaccolteFondi() {
       .is("allocated_to_id", null)
       .neq("macro", "COSTI_GENERALI")
       .order("data", { ascending: true });
-
     if (aeErr) return setError(aeErr.message);
 
     const { data: au, error: auErr } = await supabase
@@ -485,7 +508,6 @@ export default function RaccolteFondi() {
       .is("allocated_to_id", null)
       .neq("macro", "COSTI_GENERALI")
       .order("data", { ascending: true });
-
     if (auErr) return setError(auErr.message);
 
     const { data: se, error: seErr } = await supabase
@@ -496,7 +518,6 @@ export default function RaccolteFondi() {
       .eq("allocated_to_id", rfId)
       .eq("tipologia", "ENTRATA")
       .order("data", { ascending: true });
-
     if (seErr) return setError(seErr.message);
 
     const { data: su, error: suErr } = await supabase
@@ -507,7 +528,6 @@ export default function RaccolteFondi() {
       .eq("allocated_to_id", rfId)
       .eq("tipologia", "USCITA")
       .order("data", { ascending: true });
-
     if (suErr) return setError(suErr.message);
 
     setAvailEntrate((ae || []) as Movimento[]);
@@ -520,12 +540,16 @@ export default function RaccolteFondi() {
 
   const openItem = (it: RfRow) => {
     setError(null);
+
+    // chiudi eventuale sheet
     setOpenModal(false);
     setEditMode(false);
     setEditingId(null);
 
+    // apri subito
     setActive(it);
 
+    // carica dopo
     void (async () => {
       await loadMovimentiForItem(it.id);
       await loadCostiGeneraliMap();
@@ -573,7 +597,7 @@ export default function RaccolteFondi() {
     await loadCostiGeneraliMap();
   };
 
-  // ====== TOTALI (lordo) ======
+  // ====== totali ======
   const totEntrate = useMemo(() => assEntrate.reduce((s, m) => s + totaleMov(m), 0), [assEntrate]);
   const totUscite = useMemo(() => assUscite.reduce((s, m) => s + totaleMov(m), 0), [assUscite]);
 
@@ -606,7 +630,7 @@ export default function RaccolteFondi() {
         +
       </button>
 
-      {/* SHEET CREATE/EDIT */}
+      {/* SHEET create/edit */}
       {openModal && (
         <div className="sheetOverlay" onClick={closeModal}>
           <div className="sheet" onClick={(e) => e.stopPropagation()}>
@@ -715,7 +739,7 @@ export default function RaccolteFondi() {
       {active && (
         <div className="sheetOverlay" style={fullModalOverlay} onClick={() => setActive(null)} role="dialog" aria-modal="true">
           <div className="sheet" style={{ ...fullModalSheet, maxWidth: "none", margin: 0 }} onClick={(e) => e.stopPropagation()}>
-            {/* HEADER sticky: titolo sx / chiudi dx + margini coerenti */}
+            {/* header sticky: titolo sx / chiudi dx (NON ravvicinati) */}
             <div
               className="sheetHeader"
               style={{
@@ -728,6 +752,7 @@ export default function RaccolteFondi() {
             >
               <div
                 style={{
+                  width: "100%",
                   maxWidth: 1150,
                   margin: "0 auto",
                   padding: "16px 20px",
@@ -741,13 +766,12 @@ export default function RaccolteFondi() {
                   {active.nome}
                 </div>
 
-                <button className="btn" type="button" onClick={() => setActive(null)}>
+                <button className="btn" onClick={() => setActive(null)} type="button">
                   Chiudi
                 </button>
               </div>
             </div>
 
-            {/* BODY allineato */}
             <div style={modalContainer}>
               <div style={{ paddingTop: 14, paddingBottom: 24 }}>
                 <div style={{ marginTop: 6 }}>
@@ -770,9 +794,11 @@ export default function RaccolteFondi() {
                       ) : (
                         <div className="movList listBox">
                           {availEntrate.map((m) => (
-                            <MovRowSelectable
+                            <AvailableMoveCard
                               key={m.id}
                               m={m}
+                              tone="green"
+                              macroLabelTxt="Raccolte Fondi"
                               checked={!!selEntrate[m.id]}
                               onToggle={(v) => setSelEntrate((p) => ({ ...p, [m.id]: v }))}
                             />
@@ -797,9 +823,11 @@ export default function RaccolteFondi() {
                       ) : (
                         <div className="movList listBox">
                           {availUscite.map((m) => (
-                            <MovRowSelectable
+                            <AvailableMoveCard
                               key={m.id}
                               m={m}
+                              tone="red"
+                              macroLabelTxt="Raccolte Fondi"
                               checked={!!selUscite[m.id]}
                               onToggle={(v) => setSelUscite((p) => ({ ...p, [m.id]: v }))}
                             />
@@ -830,7 +858,13 @@ export default function RaccolteFondi() {
                       ) : (
                         <div className="listBox movList">
                           {assEntrate.map((m) => (
-                            <MovRowAssigned key={m.id} m={m} />
+                            <AssignedMoveCard
+                              key={m.id}
+                              m={m}
+                              tone="green"
+                              macroLabelTxt="Raccolte Fondi"
+                              onUnassign={unassignMovimento}
+                            />
                           ))}
                         </div>
                       )}
@@ -846,7 +880,13 @@ export default function RaccolteFondi() {
                       ) : (
                         <div className="listBox movList">
                           {assUscite.map((m) => (
-                            <MovRowAssigned key={m.id} m={m} />
+                            <AssignedMoveCard
+                              key={m.id}
+                              m={m}
+                              tone="red"
+                              macroLabelTxt="Raccolte Fondi"
+                              onUnassign={unassignMovimento}
+                            />
                           ))}
                         </div>
                       )}
