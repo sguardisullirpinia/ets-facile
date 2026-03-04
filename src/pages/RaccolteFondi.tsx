@@ -1,5 +1,6 @@
 // RaccolteFondi.tsx
 import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import Layout from "../components/Layout";
 import { supabase } from "../lib/supabase";
 import { Badge, Card, PrimaryButton, Euro } from "../components/ui";
@@ -26,7 +27,7 @@ type Movimento = {
   iva: any;
 };
 
-/** robusto IT/EN */
+/** ✅ robusto IT/EN */
 function num(v: any) {
   if (v === null || v === undefined) return 0;
   if (typeof v === "number") return Number.isFinite(v) ? v : 0;
@@ -42,6 +43,7 @@ function num(v: any) {
   return Number.isFinite(n) ? n : 0;
 }
 
+/** ✅ totale movimento LORDO = importo + iva */
 function totaleMov(m: Movimento) {
   return num(m.importo) + num(m.iva);
 }
@@ -53,11 +55,35 @@ function fmtDate(d: string | null) {
   return `${day}/${m}/${y}`;
 }
 
-function bestDescr(m: Movimento) {
-  const a = (m.descrizione_label || "").trim();
-  const b = (m.descrizione_operazione || "").trim();
-  const c = (m.descrizione_libera || "").trim();
-  return a || b || c || "—";
+/** ✅ come Attività Diverse */
+function dateParts(d: string | null) {
+  if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return { day: "—", mon: "" };
+  const [, m, day] = d.split("-");
+  const months = ["GEN", "FEB", "MAR", "APR", "MAG", "GIU", "LUG", "AGO", "SET", "OTT", "NOV", "DIC"];
+  const mi = Math.max(1, Math.min(12, Number(m))) - 1;
+  return { day, mon: months[mi] };
+}
+
+function MiniTag({
+  children,
+  tone,
+}: {
+  children: React.ReactNode;
+  tone?: "green" | "red" | "blue" | "amber" | "yellow" | "neutral";
+}) {
+  return (
+    <span className={`miniTag ${tone ? `miniTag--${tone}` : "miniTag--neutral"}`}>
+      {children}
+    </span>
+  );
+}
+
+function getDescrPair(m: Movimento) {
+  const cod = (m.descrizione_label || "").trim();
+  const op = ((m.descrizione_operazione as any) || "").trim();
+  const lib = ((m.descrizione_libera as any) || "").trim();
+  const oper = op || lib;
+  return { cod: cod || "N/D", oper: oper || "—" };
 }
 
 function TrashIcon() {
@@ -78,7 +104,7 @@ function IconButton({
 }: {
   title: string;
   onClick: (e: React.MouseEvent) => void;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <button title={title} onClick={onClick} className="iconBtn" type="button">
@@ -91,7 +117,6 @@ export default function RaccolteFondi() {
   const annualitaId = localStorage.getItem("annualita_id");
 
   const [error, setError] = useState<string | null>(null);
-
   const [items, setItems] = useState<RfRow[]>([]);
 
   // sheet create/edit
@@ -170,33 +195,35 @@ export default function RaccolteFondi() {
     };
   }, [active]);
 
-  // ====== cards movimento (IDENTICHE a AIG/Attività Diverse) ======
+  // =========================
+  // ✅ MOV ROW (UGUALE ad Attività Diverse)
+  // =========================
   const AvailableMoveCard = ({
     m,
-    tone,
-    macroLabelTxt,
     checked,
     onToggle,
   }: {
     m: Movimento;
-    tone: "green" | "red";
-    macroLabelTxt: string;
     checked: boolean;
     onToggle: (v: boolean) => void;
   }) => {
     const isEntrata = m.tipologia === "ENTRATA";
-    const title = (m.descrizione_label || "").trim() || bestDescr(m);
-    const sub = (m.descrizione_operazione || "").trim() || "—";
+    const title = (m.descrizione_label || "").trim() || getDescrPair(m).cod;
+    const sub =
+      (m.descrizione_operazione || "").trim() ||
+      (m.descrizione_libera || "").trim() ||
+      "—";
+
+    const { day, mon } = dateParts(m.data);
 
     return (
-      <label
-        className="listRow"
+      <div
+        className="movRow"
         style={{
           display: "grid",
-          gridTemplateColumns: "auto 1fr auto",
+          gridTemplateColumns: "auto auto 1fr auto",
           alignItems: "start",
           columnGap: 12,
-          cursor: "pointer",
         }}
       >
         <input
@@ -206,111 +233,84 @@ export default function RaccolteFondi() {
           style={{
             width: 18,
             height: 18,
-            marginTop: 6,
+            marginTop: 10,
             cursor: "pointer",
             flex: "0 0 auto",
           }}
         />
 
-        <div className="rowMain" style={{ minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 850,
-              opacity: 0.7,
-              marginBottom: 8,
-              ...noEllipsis,
-            }}
-          >
-            {fmtDate(m.data)}
-          </div>
-
-          <div className="rowMeta" style={{ marginTop: 0, marginBottom: 8 }}>
-            <Badge tone={tone as any}>{isEntrata ? "Entrata" : "Uscita"}</Badge>
-            <Badge tone="yellow">{macroLabelTxt}</Badge>
-          </div>
-
-          <div className="rowTitle" style={noEllipsis}>
-            {title}
-          </div>
-          <div className="rowSub" style={noEllipsis}>
-            {sub}
-          </div>
+        <div className="movDate">
+          <div className="movDay">{day}</div>
+          <div className="movMon">{mon}</div>
         </div>
 
-        <div
-          className="rowAmount"
-          style={{
-            justifySelf: "end",
-            textAlign: "right",
-            fontWeight: 950,
-            paddingTop: 22,
-          }}
-        >
-          <Euro v={totaleMov(m)} />
+        <div className="movMain">
+          <div className="movTop">
+            <div className="movTags">
+              <MiniTag tone={isEntrata ? "green" : "red"}>
+                {isEntrata ? "Entrata" : "Uscita"}
+              </MiniTag>
+              <MiniTag tone="amber">Raccolte Fondi</MiniTag>
+            </div>
+          </div>
+
+          <div className="movTitle">{title}</div>
+          <div className="movSub">{sub}</div>
         </div>
-      </label>
+
+        <div className="movRight">
+          <div className="movAmount">
+            <Euro v={totaleMov(m)} />
+          </div>
+        </div>
+      </div>
     );
   };
 
   const AssignedMoveCard = ({
     m,
-    tone,
-    macroLabelTxt,
     onUnassign,
   }: {
     m: Movimento;
-    tone: "green" | "red";
-    macroLabelTxt: string;
     onUnassign: (id: string) => void;
   }) => {
     const isEntrata = m.tipologia === "ENTRATA";
-    const title = (m.descrizione_label || "").trim() || bestDescr(m);
-    const sub = (m.descrizione_operazione || "").trim() || "—";
+    const title = (m.descrizione_label || "").trim() || getDescrPair(m).cod;
+    const sub =
+      (m.descrizione_operazione || "").trim() ||
+      (m.descrizione_libera || "").trim() ||
+      "—";
+
+    const { day, mon } = dateParts(m.data);
 
     return (
-      <div
-        className="listRow"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr auto",
-          alignItems: "start",
-          columnGap: 12,
-        }}
-      >
-        <div className="rowMain" style={{ minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 850,
-              opacity: 0.7,
-              marginBottom: 8,
-              ...noEllipsis,
-            }}
-          >
-            {fmtDate(m.data)}
-          </div>
-
-          <div className="rowMeta" style={{ marginTop: 0, marginBottom: 8 }}>
-            <Badge tone={tone as any}>{isEntrata ? "Entrata" : "Uscita"}</Badge>
-            <Badge tone="yellow">{macroLabelTxt}</Badge>
-          </div>
-
-          <div className="rowTitle" style={noEllipsis}>
-            {title}
-          </div>
-          <div className="rowSub" style={noEllipsis}>
-            {sub}
-          </div>
+      <div className="movRow">
+        <div className="movDate">
+          <div className="movDay">{day}</div>
+          <div className="movMon">{mon}</div>
         </div>
 
-        <div style={{ display: "grid", justifyItems: "end", gap: 8 }}>
-          <div className="rowAmount" style={{ justifySelf: "end", textAlign: "right", fontWeight: 950 }}>
+        <div className="movMain">
+          <div className="movTop">
+            <div className="movTags">
+              <MiniTag tone={isEntrata ? "green" : "red"}>
+                {isEntrata ? "Entrata" : "Uscita"}
+              </MiniTag>
+              <MiniTag tone="amber">Raccolte Fondi</MiniTag>
+            </div>
+          </div>
+
+          <div className="movTitle">{title}</div>
+          <div className="movSub">{sub}</div>
+        </div>
+
+        <div className="movRight">
+          <div className="movAmount">
             <Euro v={totaleMov(m)} />
           </div>
 
           <button
-            className="iconBtn"
+            className="iconBtn iconBtn--sm"
             type="button"
             title="Rimuovi assegnazione (torna tra disponibili)"
             onClick={() => onUnassign(m.id)}
@@ -323,7 +323,7 @@ export default function RaccolteFondi() {
     );
   };
 
-  // ====== riepilogo stile AIG ======
+  // ====== riepilogo stile AIG/AttDiv ======
   const wrapRowBox: React.CSSProperties = {
     display: "flex",
     flexWrap: "wrap",
@@ -737,9 +737,19 @@ export default function RaccolteFondi() {
 
       {/* DETTAGLIO FULLSCREEN */}
       {active && (
-        <div className="sheetOverlay" style={fullModalOverlay} onClick={() => setActive(null)} role="dialog" aria-modal="true">
-          <div className="sheet" style={{ ...fullModalSheet, maxWidth: "none", margin: 0 }} onClick={(e) => e.stopPropagation()}>
-            {/* header sticky: titolo sx / chiudi dx (NON ravvicinati) */}
+        <div
+          className="sheetOverlay"
+          style={fullModalOverlay}
+          onClick={() => setActive(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="sheet"
+            style={{ ...fullModalSheet, maxWidth: "none", margin: 0 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* header sticky: come Attività Diverse */}
             <div
               className="sheetHeader"
               style={{
@@ -752,17 +762,26 @@ export default function RaccolteFondi() {
             >
               <div
                 style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
                   width: "100%",
+                  padding: "16px 20px",
                   maxWidth: 1150,
                   margin: "0 auto",
-                  padding: "16px 20px",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: 12,
                 }}
               >
-                <div className="sheetTitle" style={{ fontWeight: 950 }}>
+                <div
+                  className="sheetTitle"
+                  style={{
+                    fontWeight: 950,
+                    minWidth: 0,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
                   {active.nome}
                 </div>
 
@@ -782,7 +801,8 @@ export default function RaccolteFondi() {
 
                 <div className="mt-3" />
 
-                <Card title="MOVIMENTI NON ASSEGNATI">
+                {/* MOVIMENTI DISPONIBILI */}
+                <Card title="Movimenti disponibili (non assegnati)">
                   <div className="splitGrid">
                     <div className="panel">
                       <div className="panelTitle">Entrate disponibili</div>
@@ -797,8 +817,6 @@ export default function RaccolteFondi() {
                             <AvailableMoveCard
                               key={m.id}
                               m={m}
-                              tone="green"
-                              macroLabelTxt="Raccolte Fondi"
                               checked={!!selEntrate[m.id]}
                               onToggle={(v) => setSelEntrate((p) => ({ ...p, [m.id]: v }))}
                             />
@@ -826,8 +844,6 @@ export default function RaccolteFondi() {
                             <AvailableMoveCard
                               key={m.id}
                               m={m}
-                              tone="red"
-                              macroLabelTxt="Raccolte Fondi"
                               checked={!!selUscite[m.id]}
                               onToggle={(v) => setSelUscite((p) => ({ ...p, [m.id]: v }))}
                             />
@@ -846,7 +862,8 @@ export default function RaccolteFondi() {
 
                 <div className="mt-3" />
 
-                <Card title="MOVIMENTI ASSEGNATI">
+                {/* MOVIMENTI ASSEGNATI */}
+                <Card title="Movimenti assegnati">
                   <div className="splitGrid">
                     <div className="panel">
                       <div className="panelTitle">Entrate assegnate</div>
@@ -858,13 +875,7 @@ export default function RaccolteFondi() {
                       ) : (
                         <div className="listBox movList">
                           {assEntrate.map((m) => (
-                            <AssignedMoveCard
-                              key={m.id}
-                              m={m}
-                              tone="green"
-                              macroLabelTxt="Raccolte Fondi"
-                              onUnassign={unassignMovimento}
-                            />
+                            <AssignedMoveCard key={m.id} m={m} onUnassign={unassignMovimento} />
                           ))}
                         </div>
                       )}
@@ -880,13 +891,7 @@ export default function RaccolteFondi() {
                       ) : (
                         <div className="listBox movList">
                           {assUscite.map((m) => (
-                            <AssignedMoveCard
-                              key={m.id}
-                              m={m}
-                              tone="red"
-                              macroLabelTxt="Raccolte Fondi"
-                              onUnassign={unassignMovimento}
-                            />
+                            <AssignedMoveCard key={m.id} m={m} onUnassign={unassignMovimento} />
                           ))}
                         </div>
                       )}
@@ -896,13 +901,14 @@ export default function RaccolteFondi() {
 
                 <div className="mt-3" />
 
+                {/* TOTALI */}
                 <Card title="TOTALE RACCOLTA FONDI">
                   <div style={noEllipsis}>
-                    <WrapRowValue label={<span style={noEllipsis}>TOTALE ENTRATE ASSEGNATE</span>} value={<Euro v={totEntrate} />} />
-                    <WrapRowValue label={<span style={noEllipsis}>TOTALE USCITE ASSEGNATE</span>} value={<Euro v={totUscite} />} />
-                    <WrapRowValue label={<span style={noEllipsis}>COSTI GENERALI IMPUTATI</span>} value={<Euro v={cgImputati} />} />
+                    <WrapRowValue label={<span style={noEllipsis}>Totale entrate assegnate</span>} value={<Euro v={totEntrate} />} />
+                    <WrapRowValue label={<span style={noEllipsis}>Totale uscite assegnate</span>} value={<Euro v={totUscite} />} />
+                    <WrapRowValue label={<span style={noEllipsis}>Costi generali imputati</span>} value={<Euro v={cgImputati} />} />
                     <WrapRowValue
-                      label={<span style={noEllipsis}>TOTALE USCITE EFFETTIVE (INCL. COSTI GENERALI)</span>}
+                      label={<span style={noEllipsis}>Totale uscite effettive (incl. costi generali)</span>}
                       value={<Euro v={totUsciteEff} />}
                     />
                   </div>
