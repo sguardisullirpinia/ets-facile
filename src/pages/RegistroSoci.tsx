@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Layout from "../components/Layout";
 import { supabase } from "../lib/supabase";
 import { Badge, Card, PrimaryButton, SecondaryButton } from "../components/ui";
-import { Pencil } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 
 type Qualifica = "FONDATORE" | "ORDINARIO" | "SOSTENITORE";
 
@@ -436,6 +436,39 @@ export default function RegistroSoci() {
   }}
 >
   <Pencil size={18} />
+</button>
+                  <button
+  type="button"
+  title="Elimina socio"
+  onClick={(e) => {
+    e.stopPropagation();
+
+    const ok = window.confirm(
+      `Vuoi eliminare il socio ${s.cognome} ${s.nome}?`,
+    );
+
+    if (!ok) return;
+
+    supabase
+      .from("soci")
+      .delete()
+      .eq("id", s.id)
+      .then(() => loadAll());
+  }}
+  style={{
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    border: "1px solid #e5e7eb",
+    background: "#fff",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    color: "#6b7280",
+  }}
+>
+  <Trash2 size={18} />
 </button>
                 </div>
               </div>
