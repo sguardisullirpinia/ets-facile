@@ -522,7 +522,7 @@ export default function Ires() {
       )}
 
       {/* REGIME: mostra quello scelto in Annualità + postilla */}
-      <Card title="Regime applicabile">
+      <Card title="REGIME">
         <WrapRow
           label="Regime (da Annualità)"
           value={<strong>{regimeDaAnnualita}</strong>}
