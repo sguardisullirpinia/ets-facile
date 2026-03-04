@@ -248,7 +248,7 @@ export default function RegistroSoci() {
   const fabStyle: React.CSSProperties = {
     position: "fixed",
     right: 16,
-    bottom: 16,
+    bottom: 84,
     width: 56,
     height: 56,
     borderRadius: 18,
@@ -260,7 +260,7 @@ export default function RegistroSoci() {
     justifyContent: "center",
     cursor: "pointer",
     boxShadow: "0 14px 30px rgba(37, 99, 235, 0.28)",
-    zIndex: 20,
+    zIndex: 200,
     fontSize: 28,
     lineHeight: 1,
   };
