@@ -55,6 +55,40 @@ function fmtDate(d: string | null) {
   if (!y || !m || !day) return d || "—";
   return `${day}/${m}/${y}`;
 }
+function dateParts(d: string | null) {
+  if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return { day: "—", mon: "" };
+  const [, m, day] = d.split("-");
+  const months = [
+    "GEN",
+    "FEB",
+    "MAR",
+    "APR",
+    "MAG",
+    "GIU",
+    "LUG",
+    "AGO",
+    "SET",
+    "OTT",
+    "NOV",
+    "DIC",
+  ];
+  const mi = Math.max(1, Math.min(12, Number(m))) - 1;
+  return { day, mon: months[mi] };
+}
+
+function MiniTag({
+  children,
+  tone,
+}: {
+  children: React.ReactNode;
+  tone?: "green" | "red" | "blue" | "amber" | "yellow" | "neutral";
+}) {
+  return (
+    <span className={`miniTag ${tone ? `miniTag--${tone}` : "miniTag--neutral"}`}>
+      {children}
+    </span>
+  );
+}
 
 function macroLabel(m: string | null) {
   switch (m) {
