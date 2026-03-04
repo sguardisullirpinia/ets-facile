@@ -868,7 +868,7 @@ export default function AttivitaDiverse() {
                 {active.descrizione && <div style={{ ...noEllipsis }}>{active.descrizione}</div>}
 
                 <div style={{ marginTop: 10 }}>
-                  <Badge tone={active.occasionale ? "amber" : "green"}>
+                  <Badge tone={active.occasionale ? "green" : "amber"}>
                     Occasionale: {active.occasionale ? "Sì" : "No"}
                   </Badge>
                 </div>
