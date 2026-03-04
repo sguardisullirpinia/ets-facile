@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import { supabase } from "../lib/supabase";
-import { Badge, Card, Euro, PrimaryButton } from "../components/ui";
+import { Badge, Card, Euro } from "../components/ui";
 
 type AigRow = { id: string };
 type AttDivRow = { id: string; occasionale: boolean };
