@@ -308,6 +308,16 @@ export default function Layout({ children }: { children: ReactNode }) {
               >
                 Liquidazione Iva
               </button>
+            <button
+  className="btn btn--block"
+  type="button"
+  onClick={() => {
+    nav("/registro-soci");
+    setOpenMenu(false);
+  }}
+>
+  Registro Soci
+</button>
             )}
 
             {/* opzionale: micro-nota in forfettario */}
