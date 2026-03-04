@@ -85,31 +85,6 @@ function MiniTag({
   );
 }
 
-function macroLabel(m: string | null) {
-  switch (m) {
-    case "AIG":
-      return "AIG";
-    case "ATTIVITA_DIVERSE":
-      return "Attività Diverse";
-    case "RACCOLTE_FONDI":
-      return "Raccolte Fondi";
-    case "QUOTE_ASSOCIATIVE":
-      return "Quote associative";
-    case "EROGAZIONI_LIBERALI":
-      return "Erogazioni liberali";
-    case "PROVENTI_5X1000":
-      return "5×1000";
-    case "CONTRIBUTI_PA_SENZA_CORRISPETTIVO":
-      return "Contributi PA";
-    case "ALTRI_PROVENTI_NON_COMMERCIALI":
-      return "Altri proventi NC";
-    case "COSTI_GENERALI":
-      return "Costi generali";
-    default:
-      return "—";
-  }
-}
-
 function getDescrPair(m: Movimento) {
   const cod = (m.descrizione_label || "").trim();
   const op = ((m.descrizione_operazione as any) || "").trim();
