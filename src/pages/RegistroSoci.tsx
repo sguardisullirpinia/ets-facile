@@ -318,7 +318,7 @@ export default function RegistroSoci() {
     const q = quoteMap[socioId];
     if (!annualitaId) return <Badge>—</Badge>;
     if (q?.versata) return <Badge tone="green">SI</Badge>;
-    return <Badge tone="gray">NO</Badge>;
+    return <Badge tone="blue">NO</Badge>;
   };
 
   const modalTitle = useMemo(
