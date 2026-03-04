@@ -1,3 +1,4 @@
+// AttivitaDiverse.tsx
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import Layout from "../components/Layout";
@@ -22,8 +23,8 @@ type Movimento = {
   descrizione_operazione?: string | null;
   descrizione_libera?: string | null;
 
-  importo: any;
-  iva: any;
+  importo: any; // può arrivare number o string
+  iva: any; // può arrivare number o string
 };
 
 /** ✅ robusta: gestisce formati IT "1.234,56" e EN "1234.56" */
@@ -55,6 +56,7 @@ function fmtDate(d: string | null) {
   if (!y || !m || !day) return d || "—";
   return `${day}/${m}/${y}`;
 }
+
 function dateParts(d: string | null) {
   if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return { day: "—", mon: "" };
   const [, m, day] = d.split("-");
@@ -142,10 +144,34 @@ function IconButton({
 function TrashIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M3 6h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M8 6V4h8v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M19 6l-1 14H6L5 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M10 11v6M14 11v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M3 6h18"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M8 6V4h8v2"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M19 6l-1 14H6L5 6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M10 11v6M14 11v6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -195,7 +221,9 @@ export default function AttivitaDiverse() {
     columnGap: 12,
   };
 
-  // riepilogo: label uppercase non-bold
+  // =========================
+  // ✅ Row wrapper (riepilogo)
+  // =========================
   const wrapRowBox: React.CSSProperties = {
     display: "flex",
     flexWrap: "wrap",
@@ -231,7 +259,7 @@ export default function AttivitaDiverse() {
   );
 
   // =========================
-  // MODALE FULLSCREEN (overlay + sheet)
+  // ✅ MODALE FULLSCREEN STYLES
   // =========================
   const fullModalOverlay: React.CSSProperties = {
     position: "fixed",
@@ -254,17 +282,11 @@ export default function AttivitaDiverse() {
     paddingBottom: 120,
   };
 
-  // ✅ contenitore coerente col layout
+  // ✅ container coerente con layout (bordi laterali)
   const modalContainer: React.CSSProperties = {
     maxWidth: 1150,
     margin: "0 auto",
-    padding: "14px 20px",
-  };
-
-  // ✅ full-bleed coerente con padding 20
-  const fullBleed: React.CSSProperties = {
-    marginLeft: -20,
-    marginRight: -20,
+    padding: "0 20px",
   };
 
   // blocca scroll body quando modale aperto
@@ -277,18 +299,14 @@ export default function AttivitaDiverse() {
   }, [active]);
 
   // =========================
-  // CARD MOVIMENTI (disponibili/assegnati)
+  // ✅ MOV ROW (stile come Entrate/Uscite + AIG)
   // =========================
   const AvailableMoveCard = ({
     m,
-    tone,
-    macroLabelTxt,
     checked,
     onToggle,
   }: {
     m: Movimento;
-    tone: "green" | "red";
-    macroLabelTxt: string;
     checked: boolean;
     onToggle: (v: boolean) => void;
   }) => {
@@ -299,15 +317,16 @@ export default function AttivitaDiverse() {
       (m.descrizione_libera || "").trim() ||
       "—";
 
+    const { day, mon } = dateParts(m.data);
+
     return (
-      <label
-        className="listRow"
+      <div
+        className="movRow"
         style={{
           display: "grid",
-          gridTemplateColumns: "auto 1fr auto",
+          gridTemplateColumns: "auto auto 1fr auto",
           alignItems: "start",
           columnGap: 12,
-          cursor: "pointer",
         }}
       >
         <input
@@ -317,62 +336,45 @@ export default function AttivitaDiverse() {
           style={{
             width: 18,
             height: 18,
-            marginTop: 6,
+            marginTop: 10,
             cursor: "pointer",
             flex: "0 0 auto",
           }}
         />
 
-        <div className="rowMain" style={{ minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 850,
-              opacity: 0.7,
-              marginBottom: 8,
-              ...noEllipsis,
-            }}
-          >
-            {fmtDate(m.data)}
-          </div>
-
-          <div className="rowMeta" style={{ marginTop: 0, marginBottom: 8 }}>
-            <Badge tone={tone as any}>{isEntrata ? "Entrata" : "Uscita"}</Badge>
-            <Badge tone="neutral">{macroLabelTxt}</Badge>
-          </div>
-
-          <div className="rowTitle" style={noEllipsis}>
-            {title}
-          </div>
-          <div className="rowSub" style={noEllipsis}>
-            {sub}
-          </div>
+        <div className="movDate">
+          <div className="movDay">{day}</div>
+          <div className="movMon">{mon}</div>
         </div>
 
-        <div
-          className="rowAmount"
-          style={{
-            justifySelf: "end",
-            textAlign: "right",
-            fontWeight: 950,
-            paddingTop: 22,
-          }}
-        >
-          <Euro v={totaleMov(m)} />
+        <div className="movMain">
+          <div className="movTop">
+            <div className="movTags">
+              <MiniTag tone={isEntrata ? "green" : "red"}>
+                {isEntrata ? "Entrata" : "Uscita"}
+              </MiniTag>
+              <MiniTag tone="amber">Attività Diverse</MiniTag>
+            </div>
+          </div>
+
+          <div className="movTitle">{title}</div>
+          <div className="movSub">{sub}</div>
         </div>
-      </label>
+
+        <div className="movRight">
+          <div className="movAmount">
+            <Euro v={totaleMov(m)} />
+          </div>
+        </div>
+      </div>
     );
   };
 
   const AssignedMoveCard = ({
     m,
-    tone,
-    macroLabelTxt,
     onUnassign,
   }: {
     m: Movimento;
-    tone: "green" | "red";
-    macroLabelTxt: string;
     onUnassign: (id: string) => void;
   }) => {
     const isEntrata = m.tipologia === "ENTRATA";
@@ -382,52 +384,36 @@ export default function AttivitaDiverse() {
       (m.descrizione_libera || "").trim() ||
       "—";
 
+    const { day, mon } = dateParts(m.data);
+
     return (
-      <div
-        className="listRow"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr auto",
-          alignItems: "start",
-          columnGap: 12,
-        }}
-      >
-        <div className="rowMain" style={{ minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 850,
-              opacity: 0.7,
-              marginBottom: 8,
-              ...noEllipsis,
-            }}
-          >
-            {fmtDate(m.data)}
-          </div>
-
-          <div className="rowMeta" style={{ marginTop: 0, marginBottom: 8 }}>
-            <Badge tone={tone as any}>{isEntrata ? "Entrata" : "Uscita"}</Badge>
-            <Badge tone="yellow">{macroLabelTxt}</Badge>
-          </div>
-
-          <div className="rowTitle" style={noEllipsis}>
-            {title}
-          </div>
-          <div className="rowSub" style={noEllipsis}>
-            {sub}
-          </div>
+      <div className="movRow">
+        <div className="movDate">
+          <div className="movDay">{day}</div>
+          <div className="movMon">{mon}</div>
         </div>
 
-        <div style={{ display: "grid", justifyItems: "end", gap: 8 }}>
-          <div
-            className="rowAmount"
-            style={{ justifySelf: "end", textAlign: "right", fontWeight: 950 }}
-          >
+        <div className="movMain">
+          <div className="movTop">
+            <div className="movTags">
+              <MiniTag tone={isEntrata ? "green" : "red"}>
+                {isEntrata ? "Entrata" : "Uscita"}
+              </MiniTag>
+              <MiniTag tone="amber">Attività Diverse</MiniTag>
+            </div>
+          </div>
+
+          <div className="movTitle">{title}</div>
+          <div className="movSub">{sub}</div>
+        </div>
+
+        <div className="movRight">
+          <div className="movAmount">
             <Euro v={totaleMov(m)} />
           </div>
 
           <button
-            className="iconBtn"
+            className="iconBtn iconBtn--sm"
             type="button"
             title="Rimuovi assegnazione (torna tra disponibili)"
             onClick={() => onUnassign(m.id)}
@@ -567,6 +553,28 @@ export default function AttivitaDiverse() {
     loadItems();
   };
 
+  const unassignMovimento = async (movId: string) => {
+    if (!active) return;
+
+    const ok = confirm(
+      "Vuoi rimuovere l’assegnazione di questo movimento?\n(Il movimento NON verrà eliminato e tornerà tra quelli disponibili.)",
+    );
+    if (!ok) return;
+
+    const { error } = await supabase
+      .from("movimenti")
+      .update({ allocated_to_type: null, allocated_to_id: null })
+      .eq("id", movId);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    await loadMovimentiForItem(active.id);
+    await loadCostiGeneraliMap();
+  };
+
   const loadMovimentiForItem = async (attId: string) => {
     setError(null);
     if (!annualitaId) return;
@@ -634,28 +642,6 @@ export default function AttivitaDiverse() {
     await loadCostiGeneraliMap();
   };
 
-  const unassignMovimento = async (movId: string) => {
-    if (!active) return;
-
-    const ok = confirm(
-      "Vuoi rimuovere l’assegnazione di questo movimento?\n(Il movimento NON verrà eliminato e tornerà tra quelli disponibili.)",
-    );
-    if (!ok) return;
-
-    const { error } = await supabase
-      .from("movimenti")
-      .update({ allocated_to_type: null, allocated_to_id: null })
-      .eq("id", movId);
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    await loadMovimentiForItem(active.id);
-    await loadCostiGeneraliMap();
-  };
-
   const assignSelected = async (kind: "ENTRATA" | "USCITA") => {
     if (!active) return;
 
@@ -684,6 +670,7 @@ export default function AttivitaDiverse() {
     await loadCostiGeneraliMap();
   };
 
+  // ✅ TOTALI: somma LORDO (importo+iva)
   const totEntrate = useMemo(
     () => assEntrate.reduce((s, m) => s + totaleMov(m), 0),
     [assEntrate],
@@ -705,17 +692,17 @@ export default function AttivitaDiverse() {
     <Layout>
       <div className="pageHeader" style={{ paddingTop: 10 }}>
         <div>
-          <h2 className="pageTitle">ATTIVITA&apos; DIVERSE</h2>
+          <h2 className="pageTitle">ATTIVITA' DIVERSE</h2>
           <div className="pageHelp">
-            Crea le Attività Diverse di cui all&apos;art. 6 del CTS e assegna a
-            ciascuna attività le entrate e le uscite sostenute per la sua realizzazione.
+            Crea le Attività Diverse di cui all&apos;art. 6 del CTS e assegna a ciascuna
+            attività le entrate e le uscite sostenute per la sua realizzazione.
             <br />
             <br />
             <u>
-              Le attività diverse sono iniziative di natura commerciale (es. gestione
-              di un punto ristoro/bar durante l&apos;evento o affitto della propria sede
-              a privati per feste di compleanno) che devono restare secondarie e strumentali
-              rispetto alle attività di interesse generale.
+              Le attività diverse sono iniziative di natura commerciale (es. gestione di un punto
+              ristoro/bar durante l&apos;evento o affitto della propria sede a privati per feste di
+              compleanno) che devono restare secondarie e strumentali rispetto alle attività di
+              interesse generale.
             </u>
           </div>
         </div>
@@ -855,7 +842,7 @@ export default function AttivitaDiverse() {
       {active && (
         <div
           className="sheetOverlay"
-          style={fullModalOverlay}
+          style={{ ...fullModalOverlay, width: "100vw", height: "100vh" }}
           onClick={() => setActive(null)}
           role="dialog"
           aria-modal="true"
@@ -865,7 +852,7 @@ export default function AttivitaDiverse() {
             style={{ ...fullModalSheet, maxWidth: "none", margin: 0 }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header sticky (titolo sx / chiudi dx) */}
+            {/* Header sticky: titolo a sinistra e chiudi a destra */}
             <div
               className="sheetHeader"
               style={{
@@ -876,56 +863,49 @@ export default function AttivitaDiverse() {
                 borderBottom: "1px solid rgba(0,0,0,0.08)",
               }}
             >
-              <div style={{ width: "100%", padding: "14px 0" }}>
-                <div style={{ maxWidth: 1150, margin: "0 auto", padding: "0 20px" }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 16,
-                      minHeight: 56,
-                    }}
-                  >
-                    <div className="sheetTitle" style={{ fontWeight: 950, lineHeight: 1.2 }}>
-                      {active.nome}
-                    </div>
-
-                    <button
-                      className="btn"
-                      onClick={() => setActive(null)}
-                      type="button"
-                      style={{ whiteSpace: "nowrap" }}
-                    >
-                      Chiudi
-                    </button>
-                  </div>
+              <div
+                style={{
+                  maxWidth: 1150,
+                  margin: "0 auto",
+                  padding: "16px 20px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 12,
+                }}
+              >
+                <div className="sheetTitle" style={{ fontWeight: 950 }}>
+                  {active.nome}
                 </div>
+
+                <button className="btn" onClick={() => setActive(null)} type="button">
+                  Chiudi
+                </button>
               </div>
             </div>
 
-            {/* Body allineato ai bordi del layout */}
+            {/* Body allineato ai bordi laterali */}
             <div style={modalContainer}>
-              {active.descrizione && <div style={{ ...noEllipsis }}>{active.descrizione}</div>}
+              <div style={{ paddingTop: 14, paddingBottom: 24 }}>
+                {active.descrizione && <div style={{ ...noEllipsis }}>{active.descrizione}</div>}
 
-              <div style={{ marginTop: 10 }}>
-                <Badge tone={active.occasionale ? "amber" : "green"}>
-                  Occasionale: {active.occasionale ? "Sì" : "No"}
-                </Badge>
-              </div>
+                <div style={{ marginTop: 10 }}>
+                  <Badge tone={active.occasionale ? "amber" : "green"}>
+                    Occasionale: {active.occasionale ? "Sì" : "No"}
+                  </Badge>
+                </div>
 
-              <div className="mt-3" />
+                <div className="mt-3" />
 
-              {/* Flag occasionale */}
-              <div style={fullBleed}>
+                {/* Flag occasionale */}
                 <div className="listBox">
                   <div className="listRow" style={row2Cols}>
                     <div className="rowMain">
                       <div className="rowTitle">Attività Diversa “Occasionale”</div>
                       <div className="rowSub">
-                        Spuntare se l&apos;attività è svolta in modo occasionale.
-                        In questo caso i ricavi di questa attività <b>non</b> saranno considerati
-                        nel test di commercialità dell’Ente.
+                        Spuntare se l&apos;attività è svolta in modo occasionale. In questo caso i
+                        ricavi di questa attività <b>non</b> saranno considerati nel test di
+                        commercialità dell’Ente.
                       </div>
                     </div>
 
@@ -937,12 +917,10 @@ export default function AttivitaDiverse() {
                     />
                   </div>
                 </div>
-              </div>
 
-              <div className="mt-3" />
+                <div className="mt-3" />
 
-              {/* MOVIMENTI DISPONIBILI */}
-              <div style={fullBleed}>
+                {/* MOVIMENTI DISPONIBILI */}
                 <Card title="Movimenti disponibili (non assegnati)">
                   <div className="splitGrid">
                     <div className="panel">
@@ -958,8 +936,6 @@ export default function AttivitaDiverse() {
                             <AvailableMoveCard
                               key={m.id}
                               m={m}
-                              tone="green"
-                              macroLabelTxt={macroLabel(m.macro)}
                               checked={!!selEntrate[m.id]}
                               onToggle={(v) => setSelEntrate((p) => ({ ...p, [m.id]: v }))}
                             />
@@ -968,7 +944,10 @@ export default function AttivitaDiverse() {
                       )}
 
                       <div className="panelActions">
-                        <PrimaryButton onClick={() => assignSelected("ENTRATA")} className="btn--block">
+                        <PrimaryButton
+                          onClick={() => assignSelected("ENTRATA")}
+                          className="btn--block"
+                        >
                           Assegna Entrate selezionate
                         </PrimaryButton>
                       </div>
@@ -987,8 +966,6 @@ export default function AttivitaDiverse() {
                             <AvailableMoveCard
                               key={m.id}
                               m={m}
-                              tone="red"
-                              macroLabelTxt={macroLabel(m.macro)}
                               checked={!!selUscite[m.id]}
                               onToggle={(v) => setSelUscite((p) => ({ ...p, [m.id]: v }))}
                             />
@@ -997,19 +974,20 @@ export default function AttivitaDiverse() {
                       )}
 
                       <div className="panelActions">
-                        <PrimaryButton onClick={() => assignSelected("USCITA")} className="btn--block">
+                        <PrimaryButton
+                          onClick={() => assignSelected("USCITA")}
+                          className="btn--block"
+                        >
                           Assegna Uscite selezionate
                         </PrimaryButton>
                       </div>
                     </div>
                   </div>
                 </Card>
-              </div>
 
-              <div className="mt-3" />
+                <div className="mt-3" />
 
-              {/* MOVIMENTI ASSEGNATI */}
-              <div style={fullBleed}>
+                {/* MOVIMENTI ASSEGNATI */}
                 <Card title="Movimenti assegnati">
                   <div className="splitGrid">
                     <div className="panel">
@@ -1022,13 +1000,7 @@ export default function AttivitaDiverse() {
                       ) : (
                         <div className="listBox movList">
                           {assEntrate.map((m) => (
-                            <AssignedMoveCard
-                              key={m.id}
-                              m={m}
-                              tone="green"
-                              macroLabelTxt={macroLabel(m.macro)}
-                              onUnassign={unassignMovimento}
-                            />
+                            <AssignedMoveCard key={m.id} m={m} onUnassign={unassignMovimento} />
                           ))}
                         </div>
                       )}
@@ -1044,26 +1016,18 @@ export default function AttivitaDiverse() {
                       ) : (
                         <div className="listBox movList">
                           {assUscite.map((m) => (
-                            <AssignedMoveCard
-                              key={m.id}
-                              m={m}
-                              tone="red"
-                              macroLabelTxt={macroLabel(m.macro)}
-                              onUnassign={unassignMovimento}
-                            />
+                            <AssignedMoveCard key={m.id} m={m} onUnassign={unassignMovimento} />
                           ))}
                         </div>
                       )}
                     </div>
                   </div>
                 </Card>
-              </div>
 
-              <div className="mt-3" />
+                <div className="mt-3" />
 
-              {/* TOTALE ATTIVITA' DIVERSA */}
-              <div style={fullBleed}>
-                <Card title="TOTALE ATTIVITA&apos; DIVERSA">
+                {/* TOTALE ATTIVITA' DIVERSA */}
+                <Card title="TOTALE ATTIVITA' DIVERSA">
                   <div style={noEllipsis}>
                     <WrapRowValue
                       label={<span style={noEllipsis}>Totale entrate assegnate</span>}
@@ -1078,14 +1042,16 @@ export default function AttivitaDiverse() {
                       value={<Euro v={cgImputati} />}
                     />
                     <WrapRowValue
-                      label={<span style={noEllipsis}>Totale uscite effettive (incl. costi generali)</span>}
+                      label={
+                        <span style={noEllipsis}>Totale uscite effettive (incl. costi generali)</span>
+                      }
                       value={<Euro v={totUsciteEff} />}
                     />
                   </div>
                 </Card>
-              </div>
 
-              <div className="mt-3" />
+                <div className="mt-3" />
+              </div>
             </div>
           </div>
         </div>
