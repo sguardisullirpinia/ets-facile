@@ -933,7 +933,7 @@ export default function AttivitaDiverse() {
               </button>
             </div>
 
-            <div style={{ padding: 14 }}>
+              <div style={{ maxWidth: 1150, margin: "0 auto", padding: "14px 20px" }}>>
               {active.descrizione && (
                 <div style={{ ...noEllipsis }}>{active.descrizione}</div>
               )}
