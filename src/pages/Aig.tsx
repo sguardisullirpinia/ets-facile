@@ -1,3 +1,4 @@
+// Aig.tsx
 import { useEffect, useMemo, useState } from "react";
 import Layout from "../components/Layout";
 import { supabase } from "../lib/supabase";
@@ -20,23 +21,23 @@ type Movimento = {
   descrizione_operazione?: string | null;
   descrizione_libera?: string | null;
 
-  importo: any; // ⚠️ può arrivare number o string
-  iva: any; // ⚠️ può arrivare number o string
+  importo: any;
+  iva: any;
 
   allocated_to_id?: string | null;
 };
 
 type EsitoAig = {
-  TE: number; // totale entrate (lordo = importo+iva)
-  TU: number; // totale uscite (lordo = importo+iva)
-  CG: number; // costi generali imputati (già lordo)
-  TU_EFF: number; // TU + CG
-  TER: number; // entrate rilevanti (lordo)
+  TE: number;
+  TU: number;
+  CG: number;
+  TU_EFF: number;
+  TER: number;
   soglia: number;
   esito: "COMMERCIALE" | "NON COMMERCIALE";
 };
 
-/** ✅ Converte in numero gestendo formati IT (1.234,56) e EN (1234.56) */
+/** Converte in numero gestendo formati IT (1.234,56) e EN (1234.56) */
 function num(v: any) {
   if (v === null || v === undefined) return 0;
   if (typeof v === "number") return Number.isFinite(v) ? v : 0;
@@ -44,7 +45,6 @@ function num(v: any) {
   let s = String(v).trim();
   if (!s) return 0;
 
-  // se contiene sia "." che ",": assume IT (punti migliaia, virgola decimali)
   if (s.includes(",") && s.includes(".")) {
     s = s.replace(/\./g, "").replace(",", ".");
   } else if (s.includes(",")) {
@@ -55,7 +55,7 @@ function num(v: any) {
   return Number.isFinite(n) ? n : 0;
 }
 
-/** ✅ totale lordo movimento */
+/** totale lordo movimento */
 function totaleMov(m: Movimento) {
   return num(m.importo) + num(m.iva);
 }
@@ -65,6 +65,27 @@ function fmtDate(d: string | null) {
   const [y, m, day] = d.split("-");
   if (!y || !m || !day) return d;
   return `${day}/${m}/${y}`;
+}
+
+function dateParts(d: string | null) {
+  if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return { day: "—", mon: "" };
+  const [, m, day] = d.split("-");
+  const months = [
+    "GEN",
+    "FEB",
+    "MAR",
+    "APR",
+    "MAG",
+    "GIU",
+    "LUG",
+    "AGO",
+    "SET",
+    "OTT",
+    "NOV",
+    "DIC",
+  ];
+  const mi = Math.max(1, Math.min(12, Number(m))) - 1;
+  return { day, mon: months[mi] };
 }
 
 function bestDescr(m: Movimento) {
@@ -79,15 +100,13 @@ function calcEsitoForMovimenti(
   entrate: Movimento[],
   uscite: Movimento[],
   costiGeneraliImputati: number,
-) {
-  // ✅ TE / TU: SOMMA LORDO (importo + iva)
+): EsitoAig {
   const TE = entrate.reduce((s, m) => s + totaleMov(m), 0);
   const TU = uscite.reduce((s, m) => s + totaleMov(m), 0);
 
   const CG = num(costiGeneraliImputati);
   const TU_EFF = TU + CG;
 
-  // ✅ TER: se APS escludo codici 1-2, sempre LORDO
   const TER =
     tipoEnte !== "APS"
       ? TE
@@ -99,7 +118,7 @@ function calcEsitoForMovimenti(
   const esito: "COMMERCIALE" | "NON COMMERCIALE" =
     TER > soglia ? "COMMERCIALE" : "NON COMMERCIALE";
 
-  return { TE, TU, CG, TU_EFF, TER, soglia, esito } as EsitoAig;
+  return { TE, TU, CG, TU_EFF, TER, soglia, esito };
 }
 
 function TrashIcon() {
@@ -150,6 +169,53 @@ function EuroFmt({ v }: { v: number }) {
   );
 }
 
+/** Tag piccolo come Prima Nota */
+function MiniTag({
+  children,
+  tone,
+}: {
+  children: React.ReactNode;
+  tone?: "green" | "red" | "blue" | "amber" | "yellow" | "neutral";
+}) {
+  return (
+    <span
+      className={`miniTag ${tone ? `miniTag--${tone}` : "miniTag--neutral"}`}
+    >
+      {children}
+    </span>
+  );
+}
+
+function toneForMacro(m: string | null) {
+  if (m === "AIG") return "blue";
+  if (m === "RACCOLTE_FONDI") return "yellow";
+  if (m === "ATTIVITA_DIVERSE") return "amber";
+  return "neutral";
+}
+
+function IconButton({
+  title,
+  onClick,
+  children,
+  className,
+}: {
+  title: string;
+  onClick: (e: React.MouseEvent) => void;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <button
+      title={title}
+      onClick={onClick}
+      className={className ? `iconBtn ${className}` : "iconBtn"}
+      type="button"
+    >
+      {children}
+    </button>
+  );
+}
+
 export default function Aig() {
   const annualitaId = localStorage.getItem("annualita_id");
 
@@ -157,18 +223,13 @@ export default function Aig() {
   const [tipoEnte, setTipoEnte] = useState<string>("ETS");
   const [aigs, setAigs] = useState<AigRow[]>([]);
 
-  // ✅ costi generali imputati per AIG (da view)
   const [cgMap, setCgMap] = useState<Record<string, number>>({});
-
-  // esiti in elenco
   const [esitiMap, setEsitiMap] = useState<Record<string, EsitoAig>>({});
 
-  // creazione (modal bottom sheet)
   const [openSheet, setOpenSheet] = useState(false);
   const [newNome, setNewNome] = useState("");
   const [newDescr, setNewDescr] = useState("");
 
-  // dettaglio (MODALE FULLSCREEN)
   const [activeAig, setActiveAig] = useState<AigRow | null>(null);
 
   const [availEntrate, setAvailEntrate] = useState<Movimento[]>([]);
@@ -180,7 +241,7 @@ export default function Aig() {
   const [selUscite, setSelUscite] = useState<Record<string, boolean>>({});
 
   // =========================
-  // STILI NO-ELLIPSIS
+  // STILI UTILITÀ
   // =========================
   const noEllipsis: React.CSSProperties = {
     whiteSpace: "normal",
@@ -191,16 +252,13 @@ export default function Aig() {
     minWidth: 0,
   };
 
-  // separatore orizzontale tra righe elenco AIG
   const rowDivider: React.CSSProperties = {
     height: 1,
     background: "rgba(0,0,0,0.07)",
     margin: "0 14px",
   };
 
-  // =========================
-  // ✅ Row wrapper: se label è lunga, il valore va a capo ma resta a destra
-  // =========================
+  // Row wrapper: label lunga -> valore resta a dx
   const wrapRowBox: React.CSSProperties = {
     display: "flex",
     flexWrap: "wrap",
@@ -216,6 +274,8 @@ export default function Aig() {
     whiteSpace: "normal",
     overflowWrap: "anywhere",
     lineHeight: 1.25,
+    textTransform: "uppercase",
+    fontWeight: 400,
   };
 
   const wrapRowValue: React.CSSProperties = {
@@ -240,7 +300,7 @@ export default function Aig() {
   );
 
   // =========================
-  // ✅ MODALE FULLSCREEN STYLES
+  // MODALE FULLSCREEN (armonizzato)
   // =========================
   const fullModalOverlay: React.CSSProperties = {
     position: "fixed",
@@ -255,21 +315,24 @@ export default function Aig() {
     background: "#fff",
     width: "100%",
     height: "100%",
-    borderRadius: 0, // Forza la rimozione di angoli arrotondati
-    margin: 0, // Rimuove eventuali margini residui
-    padding: 0, // L'header deve toccare il bordo, quindi il padding va gestito internamente
+    borderRadius: 0,
+    margin: 0,
+    padding: 0,
     overflowY: "auto",
     WebkitOverflowScrolling: "touch",
     paddingBottom: 120,
   };
 
-  // ✅ helper per far andare le Card a filo schermo nel modale
-  const fullBleed: React.CSSProperties = {
-    marginLeft: -14,
-    marginRight: -14,
+  const modalContainer: React.CSSProperties = {
+    maxWidth: 1150,
+    margin: "0 auto",
+    padding: "0 20px",
   };
 
-  // blocca scroll body quando modale aperto
+  const modalSection: React.CSSProperties = {
+    marginTop: 14,
+  };
+
   useEffect(() => {
     if (activeAig) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "";
@@ -279,406 +342,7 @@ export default function Aig() {
   }, [activeAig]);
 
   // =========================
-  // ✅ RIMUOVI ASSEGNAZIONE MOVIMENTO (torna tra disponibili)
-  // =========================
-  const unassignMovimento = async (movId: string) => {
-    if (!activeAig) return;
-
-    const ok = confirm(
-      "Vuoi rimuovere l’assegnazione di questo movimento?\n(Il movimento NON verrà eliminato e tornerà tra quelli disponibili.)",
-    );
-    if (!ok) return;
-
-    const { error } = await supabase
-      .from("movimenti")
-      .update({ allocated_to_type: null, allocated_to_id: null })
-      .eq("id", movId);
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    await loadMovimentiForAig(activeAig.id);
-    loadEsitiAllAigs();
-  };
-
-  // =========================
-  // ✅ CARD MOVIMENTO ASSEGNATO (con cestino "stacca")
-  // =========================
-  const AssignedMoveCard = ({
-    m,
-    tone,
-    macroLabelTxt,
-  }: {
-    m: Movimento;
-    tone: "green" | "red";
-    macroLabelTxt: string;
-  }) => {
-    const isEntrata = m.tipologia === "ENTRATA";
-    const title = (m.descrizione_label || "").trim() || bestDescr(m);
-    const sub = (m.descrizione_operazione || "").trim() || "—";
-
-    return (
-      <div
-        className="listRow"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr auto",
-          alignItems: "start",
-          columnGap: 12,
-        }}
-      >
-        <div className="rowMain" style={{ minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 850,
-              opacity: 0.7,
-              marginBottom: 8,
-              ...noEllipsis,
-            }}
-          >
-            {fmtDate(m.data)}
-          </div>
-
-          <div className="rowMeta" style={{ marginTop: 0, marginBottom: 8 }}>
-            <Badge tone={tone as any}>{isEntrata ? "Entrata" : "Uscita"}</Badge>
-            <Badge tone="blue">{macroLabelTxt}</Badge>
-          </div>
-
-          <div className="rowTitle" style={noEllipsis}>
-            {title}
-          </div>
-          <div className="rowSub" style={noEllipsis}>
-            {sub}
-          </div>
-        </div>
-
-        <div style={{ display: "grid", justifyItems: "end", gap: 8 }}>
-          <div
-            className="rowAmount"
-            style={{ justifySelf: "end", textAlign: "right", fontWeight: 950 }}
-          >
-            {/* ✅ importo mostrato = importo + iva */}
-            <EuroFmt v={totaleMov(m)} />
-          </div>
-
-          <button
-            className="iconBtn"
-            type="button"
-            title="Rimuovi assegnazione (torna tra disponibili)"
-            onClick={() => unassignMovimento(m.id)}
-            aria-label="Rimuovi assegnazione"
-          >
-            <TrashIcon />
-          </button>
-        </div>
-      </div>
-    );
-  };
-
-  // =========================
-  // ✅ CARD MOVIMENTO DISPONIBILE (checkbox)
-  // =========================
-  const AvailableMoveCard = ({
-    m,
-    tone,
-    macroLabelTxt,
-    checked,
-    onToggle,
-  }: {
-    m: Movimento;
-    tone: "green" | "red";
-    macroLabelTxt: string;
-    checked: boolean;
-    onToggle: (v: boolean) => void;
-  }) => {
-    const isEntrata = m.tipologia === "ENTRATA";
-    const title = (m.descrizione_label || "").trim() || bestDescr(m);
-    const sub = (m.descrizione_operazione || "").trim() || "—";
-
-    return (
-      <label
-        className="listRow"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "auto 1fr auto",
-          alignItems: "start",
-          columnGap: 12,
-          cursor: "pointer",
-        }}
-      >
-        <input
-          type="checkbox"
-          checked={checked}
-          onChange={(e) => onToggle(e.target.checked)}
-          style={{
-            width: 18,
-            height: 18,
-            marginTop: 6,
-            cursor: "pointer",
-            flex: "0 0 auto",
-          }}
-        />
-
-        <div className="rowMain" style={{ minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 850,
-              opacity: 0.7,
-              marginBottom: 8,
-              ...noEllipsis,
-            }}
-          >
-            {fmtDate(m.data)}
-          </div>
-
-          <div className="rowMeta" style={{ marginTop: 0, marginBottom: 8 }}>
-            <Badge tone={tone as any}>{isEntrata ? "Entrata" : "Uscita"}</Badge>
-            <Badge tone="blue">{macroLabelTxt}</Badge>
-          </div>
-
-          <div className="rowTitle" style={noEllipsis}>
-            {title}
-          </div>
-          <div className="rowSub" style={noEllipsis}>
-            {sub}
-          </div>
-        </div>
-
-        <div
-          className="rowAmount"
-          style={{
-            justifySelf: "end",
-            textAlign: "right",
-            fontWeight: 950,
-            paddingTop: 22,
-          }}
-        >
-          {/* ✅ importo mostrato = importo + iva */}
-          <EuroFmt v={totaleMov(m)} />
-        </div>
-      </label>
-    );
-  };
-
-  // =========================
-  // LOAD PROFILO
-  // =========================
-  const loadTipoEnte = async () => {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return;
-
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("tipo_ente")
-      .eq("id", userData.user.id)
-      .single();
-
-    if (!error && data?.tipo_ente) setTipoEnte(data.tipo_ente);
-  };
-
-  // =========================
-  // LOAD LISTA AIG
-  // =========================
-  const loadAigs = async () => {
-    setError(null);
-    if (!annualitaId) return;
-
-    const { data, error } = await supabase
-      .from("aig")
-      .select("id, nome, descrizione")
-      .eq("annualita_id", annualitaId)
-      .order("nome", { ascending: true });
-
-    if (error) {
-      setError(error.message);
-      return;
-    }
-
-    setAigs((data || []) as AigRow[]);
-  };
-
-  // =========================
-  // LOAD COSTI GENERALI IMPUTATI (VIEW)
-  // =========================
-  const loadCostiGeneraliMap = async () => {
-    if (!annualitaId) return;
-
-    const { data, error } = await supabase
-      .from("v_costi_generali_imputati")
-      .select("allocated_to_id, costi_generali_imputati")
-      .eq("annualita_id", annualitaId)
-      .eq("allocated_to_type", "AIG");
-
-    if (error) {
-      setError(error.message);
-      return;
-    }
-
-    const m: Record<string, number> = {};
-    for (const r of (data || []) as any[]) {
-      const id = String(r.allocated_to_id || "");
-      if (!id) continue;
-      m[id] = num(r.costi_generali_imputati);
-    }
-    setCgMap(m);
-  };
-
-  // =========================
-  // LOAD ESITI (tutte le AIG)
-  // =========================
-  const loadEsitiAllAigs = async () => {
-    if (!annualitaId) return;
-
-    const { data, error } = await supabase
-      .from("movimenti")
-      .select("id, tipologia, importo, iva, descrizione_code, allocated_to_id")
-      .eq("annualita_id", annualitaId)
-      .eq("allocated_to_type", "AIG")
-      .not("allocated_to_id", "is", null);
-
-    if (error) {
-      setError(error.message);
-      return;
-    }
-
-    const byAig: Record<string, { entrate: Movimento[]; uscite: Movimento[] }> =
-      {};
-
-    for (const r of (data || []) as any[]) {
-      const aigId = String(r.allocated_to_id || "");
-      if (!aigId) continue;
-
-      if (!byAig[aigId]) byAig[aigId] = { entrate: [], uscite: [] };
-
-      // ✅ qui ci servono importo+iva
-      const movItem: Movimento = {
-        id: r.id,
-        tipologia: r.tipologia,
-        data: "—",
-        macro: "AIG",
-        descrizione_code: r.descrizione_code ?? null,
-        descrizione_label: null,
-        importo: r.importo ?? 0,
-        iva: r.iva ?? 0,
-        allocated_to_id: r.allocated_to_id ?? null,
-      };
-
-      if (r.tipologia === "ENTRATA") byAig[aigId].entrate.push(movItem);
-      if (r.tipologia === "USCITA") byAig[aigId].uscite.push(movItem);
-    }
-
-    const next: Record<string, EsitoAig> = {};
-    for (const [aigId, pack] of Object.entries(byAig)) {
-      const cg = num(cgMap[aigId] ?? 0);
-      next[aigId] = calcEsitoForMovimenti(
-        tipoEnte,
-        pack.entrate,
-        pack.uscite,
-        cg,
-      );
-    }
-
-    setEsitiMap(next);
-  };
-
-  useEffect(() => {
-    loadTipoEnte();
-    loadAigs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (!annualitaId) return;
-    loadCostiGeneraliMap();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [annualitaId, aigs.length]);
-
-  useEffect(() => {
-    if (!annualitaId) return;
-    if (aigs.length === 0) {
-      setEsitiMap({});
-      return;
-    }
-    loadEsitiAllAigs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aigs, tipoEnte, annualitaId, cgMap]);
-
-  // =========================
-  // CREA AIG
-  // =========================
-  const openCreate = () => {
-    setError(null);
-    setNewNome("");
-    setNewDescr("");
-    setOpenSheet(true);
-  };
-
-  const createAig = async () => {
-    setError(null);
-    if (!annualitaId) return;
-
-    const nome = newNome.trim();
-    if (!nome) return alert("Nome AIG obbligatorio");
-
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return alert("Utente non autenticato");
-
-    const { error } = await supabase.from("aig").insert({
-      user_id: userData.user.id,
-      annualita_id: annualitaId,
-      nome,
-      descrizione: newDescr.trim() || null,
-    });
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    setNewNome("");
-    setNewDescr("");
-    setOpenSheet(false);
-    loadAigs();
-  };
-
-  // =========================
-  // DELETE AIG
-  // =========================
-  const deleteAig = async (id: string) => {
-    const ok = confirm(
-      "Vuoi eliminare questa AIG? I movimenti assegnati torneranno disponibili.",
-    );
-    if (!ok) return;
-
-    const { error: unErr } = await supabase.rpc(
-      "unassign_movimenti_for_activity",
-      {
-        p_type: "AIG",
-        p_id: id,
-      },
-    );
-
-    if (unErr) {
-      alert("Errore sblocco movimenti: " + unErr.message);
-      return;
-    }
-
-    const { error } = await supabase.from("aig").delete().eq("id", id);
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    if (activeAig?.id === id) setActiveAig(null);
-    loadAigs();
-  };
-
-  // =========================
-  // DETTAGLIO: movimenti disponibili + assegnati
+  // DATA
   // =========================
   const loadMovimentiForAig = async (aigId: string) => {
     setError(null);
@@ -739,14 +403,353 @@ export default function Aig() {
     setSelUscite({});
   };
 
+  const loadEsitiAllAigs = async () => {
+    if (!annualitaId) return;
+
+    const { data, error } = await supabase
+      .from("movimenti")
+      .select("id, tipologia, importo, iva, descrizione_code, allocated_to_id")
+      .eq("annualita_id", annualitaId)
+      .eq("allocated_to_type", "AIG")
+      .not("allocated_to_id", "is", null);
+
+    if (error) {
+      setError(error.message);
+      return;
+    }
+
+    const byAig: Record<string, { entrate: Movimento[]; uscite: Movimento[] }> =
+      {};
+
+    for (const r of (data || []) as any[]) {
+      const aigId = String(r.allocated_to_id || "");
+      if (!aigId) continue;
+      if (!byAig[aigId]) byAig[aigId] = { entrate: [], uscite: [] };
+
+      const movItem: Movimento = {
+        id: r.id,
+        tipologia: r.tipologia,
+        data: "—",
+        macro: "AIG",
+        descrizione_code: r.descrizione_code ?? null,
+        descrizione_label: null,
+        importo: r.importo ?? 0,
+        iva: r.iva ?? 0,
+        allocated_to_id: r.allocated_to_id ?? null,
+      };
+
+      if (r.tipologia === "ENTRATA") byAig[aigId].entrate.push(movItem);
+      if (r.tipologia === "USCITA") byAig[aigId].uscite.push(movItem);
+    }
+
+    const next: Record<string, EsitoAig> = {};
+    for (const [aigId, pack] of Object.entries(byAig)) {
+      const cg = num(cgMap[aigId] ?? 0);
+      next[aigId] = calcEsitoForMovimenti(
+        tipoEnte,
+        pack.entrate,
+        pack.uscite,
+        cg,
+      );
+    }
+    setEsitiMap(next);
+  };
+
+  const unassignMovimento = async (movId: string) => {
+    if (!activeAig) return;
+
+    const ok = confirm(
+      "Vuoi rimuovere l’assegnazione di questo movimento?\n(Il movimento NON verrà eliminato e tornerà tra quelli disponibili.)",
+    );
+    if (!ok) return;
+
+    const { error } = await supabase
+      .from("movimenti")
+      .update({ allocated_to_type: null, allocated_to_id: null })
+      .eq("id", movId);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    await loadMovimentiForAig(activeAig.id);
+    await loadEsitiAllAigs();
+  };
+
+  // =========================
+  // ✅ MOV ROW (compact) — uguale stile Prima Nota
+  // =========================
+  const AssignedMoveRow = ({
+    m,
+    tone,
+    macroLabelTxt,
+  }: {
+    m: Movimento;
+    tone: "green" | "red";
+    macroLabelTxt: string;
+  }) => {
+    const isEntrata = m.tipologia === "ENTRATA";
+    const title = (m.descrizione_label || "").trim() || bestDescr(m);
+    const sub = (m.descrizione_operazione || "").trim() || "—";
+    const { day, mon } = dateParts(m.data);
+
+    return (
+      <div className="movRow">
+        <div className="movDate" aria-label={`Data ${fmtDate(m.data)}`}>
+          <div className="movDay">{day}</div>
+          <div className="movMon">{mon}</div>
+        </div>
+
+        <div className="movMain">
+          <div className="movTags">
+            <MiniTag tone={isEntrata ? "green" : "red"}>
+              {isEntrata ? "Entrata" : "Uscita"}
+            </MiniTag>
+            <MiniTag tone={toneForMacro(macroLabelTxt) as any}>
+              {macroLabelTxt}
+            </MiniTag>
+          </div>
+
+          <div className="movTitle" style={noEllipsis}>
+            {title}
+          </div>
+          <div className="movSub" style={noEllipsis}>
+            {sub}
+          </div>
+        </div>
+
+        <div className="movRight">
+          <div className="movAmount">
+            <EuroFmt v={totaleMov(m)} />
+          </div>
+
+          <IconButton
+            title="Rimuovi assegnazione (torna tra disponibili)"
+            className="iconBtn--sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              unassignMovimento(m.id);
+            }}
+          >
+            <TrashIcon />
+          </IconButton>
+        </div>
+      </div>
+    );
+  };
+
+  const AvailableMoveRow = ({
+    m,
+    tone,
+    macroLabelTxt,
+    checked,
+    onToggle,
+  }: {
+    m: Movimento;
+    tone: "green" | "red";
+    macroLabelTxt: string;
+    checked: boolean;
+    onToggle: (v: boolean) => void;
+  }) => {
+    const isEntrata = m.tipologia === "ENTRATA";
+    const title = (m.descrizione_label || "").trim() || bestDescr(m);
+    const sub = (m.descrizione_operazione || "").trim() || "—";
+    const { day, mon } = dateParts(m.data);
+
+    return (
+      <label className="movRow" style={{ cursor: "pointer" }}>
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onToggle(e.target.checked)}
+          style={{ width: 16, height: 16, marginTop: 6 }}
+        />
+
+        <div className="movDate" aria-label={`Data ${fmtDate(m.data)}`}>
+          <div className="movDay">{day}</div>
+          <div className="movMon">{mon}</div>
+        </div>
+
+        <div className="movMain">
+          <div className="movTags">
+            <MiniTag tone={isEntrata ? "green" : "red"}>
+              {isEntrata ? "Entrata" : "Uscita"}
+            </MiniTag>
+            <MiniTag tone={toneForMacro(macroLabelTxt) as any}>
+              {macroLabelTxt}
+            </MiniTag>
+          </div>
+
+          <div className="movTitle" style={noEllipsis}>
+            {title}
+          </div>
+          <div className="movSub" style={noEllipsis}>
+            {sub}
+          </div>
+        </div>
+
+        <div className="movRight">
+          <div className="movAmount">
+            <EuroFmt v={totaleMov(m)} />
+          </div>
+        </div>
+      </label>
+    );
+  };
+
+  // =========================
+  // LOAD PROFILO
+  // =========================
+  const loadTipoEnte = async () => {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return;
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("tipo_ente")
+      .eq("id", userData.user.id)
+      .single();
+
+    if (!error && data?.tipo_ente) setTipoEnte(data.tipo_ente);
+  };
+
+  // LOAD LISTA AIG
+  const loadAigs = async () => {
+    setError(null);
+    if (!annualitaId) return;
+
+    const { data, error } = await supabase
+      .from("aig")
+      .select("id, nome, descrizione")
+      .eq("annualita_id", annualitaId)
+      .order("nome", { ascending: true });
+
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setAigs((data || []) as AigRow[]);
+  };
+
+  // LOAD CG imputati
+  const loadCostiGeneraliMap = async () => {
+    if (!annualitaId) return;
+
+    const { data, error } = await supabase
+      .from("v_costi_generali_imputati")
+      .select("allocated_to_id, costi_generali_imputati")
+      .eq("annualita_id", annualitaId)
+      .eq("allocated_to_type", "AIG");
+
+    if (error) {
+      setError(error.message);
+      return;
+    }
+
+    const m: Record<string, number> = {};
+    for (const r of (data || []) as any[]) {
+      const id = String(r.allocated_to_id || "");
+      if (!id) continue;
+      m[id] = num(r.costi_generali_imputati);
+    }
+    setCgMap(m);
+  };
+
+  useEffect(() => {
+    loadTipoEnte();
+    loadAigs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!annualitaId) return;
+    loadCostiGeneraliMap();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [annualitaId, aigs.length]);
+
+  useEffect(() => {
+    if (!annualitaId) return;
+    if (aigs.length === 0) {
+      setEsitiMap({});
+      return;
+    }
+    loadEsitiAllAigs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aigs, tipoEnte, annualitaId, cgMap]);
+
+  // CREA AIG
+  const openCreate = () => {
+    setError(null);
+    setNewNome("");
+    setNewDescr("");
+    setOpenSheet(true);
+  };
+
+  const createAig = async () => {
+    setError(null);
+    if (!annualitaId) return;
+
+    const nome = newNome.trim();
+    if (!nome) return alert("Nome AIG obbligatorio");
+
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return alert("Utente non autenticato");
+
+    const { error } = await supabase.from("aig").insert({
+      user_id: userData.user.id,
+      annualita_id: annualitaId,
+      nome,
+      descrizione: newDescr.trim() || null,
+    });
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    setNewNome("");
+    setNewDescr("");
+    setOpenSheet(false);
+    loadAigs();
+  };
+
+  // DELETE AIG
+  const deleteAig = async (id: string) => {
+    const ok = confirm(
+      "Vuoi eliminare questa AIG? I movimenti assegnati torneranno disponibili.",
+    );
+    if (!ok) return;
+
+    const { error: unErr } = await supabase.rpc(
+      "unassign_movimenti_for_activity",
+      {
+        p_type: "AIG",
+        p_id: id,
+      },
+    );
+
+    if (unErr) {
+      alert("Errore sblocco movimenti: " + unErr.message);
+      return;
+    }
+
+    const { error } = await supabase.from("aig").delete().eq("id", id);
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    if (activeAig?.id === id) setActiveAig(null);
+    loadAigs();
+  };
+
   const openAig = async (a: AigRow) => {
     setActiveAig(a);
     await loadMovimentiForAig(a.id);
   };
 
-  // =========================
   // ASSEGNA SELEZIONATI
-  // =========================
   const assignSelected = async (kind: "ENTRATA" | "USCITA") => {
     if (!activeAig) return;
 
@@ -764,10 +767,7 @@ export default function Aig() {
     for (const id of selectedIds) {
       const { error } = await supabase
         .from("movimenti")
-        .update({
-          allocated_to_type: "AIG",
-          allocated_to_id: activeAig.id,
-        })
+        .update({ allocated_to_type: "AIG", allocated_to_id: activeAig.id })
         .eq("id", id);
 
       if (error) {
@@ -778,17 +778,14 @@ export default function Aig() {
 
     await loadMovimentiForAig(activeAig.id);
     await loadCostiGeneraliMap();
-    loadEsitiAllAigs();
+    await loadEsitiAllAigs();
   };
 
-  // =========================
-  // ✅ CALCOLI TEST AIG (DETTAGLIO) — SEMPRE LORDO (importo+iva)
-  // =========================
+  // CALCOLI TEST AIG (dettaglio)
   const TE = useMemo(
     () => assEntrate.reduce((s, m) => s + totaleMov(m), 0),
     [assEntrate],
   );
-
   const TU = useMemo(
     () => assUscite.reduce((s, m) => s + totaleMov(m), 0),
     [assUscite],
@@ -809,26 +806,25 @@ export default function Aig() {
   }, [TE, assEntrate, tipoEnte]);
 
   const soglia = useMemo(() => TU_EFF * 1.06, [TU_EFF]);
-
   const esito = useMemo(
     () => (TER > soglia ? "COMMERCIALE" : "NON COMMERCIALE"),
     [TER, soglia],
   );
-
   const esitoTone = esito === "COMMERCIALE" ? "red" : "green";
 
   // =========================
   // UI
   // =========================
   return (
-   <Layout>
+    <Layout>
       <div className="pageHeader" style={{ paddingTop: 15 }}>
         <div>
           <h2 className="pageTitle">AIG</h2>
           <div className="pageHelp">
             Crea le attività di interesse generale svolte dall'Ente, ed assegna
             ad ogni AIG creata le entrate e uscite sostenute per la
-            realizzazione di quella specifica attività. <br />
+            realizzazione di quella specifica attività.
+            <br />
             <br />
             <u>
               N.B. Gli Enti con entrate non superiori a € 300.000,00 possono
@@ -1018,221 +1014,238 @@ export default function Aig() {
                 zIndex: 2,
                 background: "rgba(246, 245, 241)",
                 borderBottom: "1px solid rgba(0,0,0,0.08)",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "16px",
               }}
             >
-              <div className="sheetTitle" style={{ fontWeight: 950 }}>
-                {activeAig.nome}
-              </div>
-
-              <button
-                className="btn"
-                onClick={() => setActiveAig(null)}
-                type="button"
+              <div
+                style={{
+                  maxWidth: 1150,
+                  margin: "0 auto",
+                  padding: "16px 20px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 12,
+                }}
               >
-                Chiudi
-              </button>
+                <div className="sheetTitle" style={{ fontWeight: 950 }}>
+                  {activeAig.nome}
+                </div>
+
+                <button
+                  className="btn"
+                  onClick={() => setActiveAig(null)}
+                  type="button"
+                >
+                  Chiudi
+                </button>
+              </div>
             </div>
 
-            <div style={{ padding: 14 }}>
-              {activeAig.descrizione && (
-                <div style={{ marginTop: 10, ...noEllipsis }}>
-                  {activeAig.descrizione}
+            <div style={modalContainer}>
+              <div style={{ paddingTop: 14, paddingBottom: 24 }}>
+                {activeAig.descrizione && (
+                  <div style={{ marginTop: 10, ...noEllipsis }}>
+                    {activeAig.descrizione}
+                  </div>
+                )}
+
+                <div style={modalSection}>
+                  <Card title="MOVIMENTI NON ASSEGNATI">
+                    <div className="splitGrid">
+                      <div className="panel">
+                        <div className="panelTitle">Entrate da assegnare</div>
+
+                        {availEntrate.length === 0 ? (
+                          <div className="muted" style={{ fontWeight: 800 }}>
+                            Nessuna
+                          </div>
+                        ) : (
+                          <div
+                            className="movList listBox"
+                            style={{ display: "grid", gap: 10 }}
+                          >
+                            {availEntrate.map((m) => (
+                              <AvailableMoveRow
+                                key={m.id}
+                                m={m}
+                                tone="green"
+                                macroLabelTxt="AIG"
+                                checked={!!selEntrate[m.id]}
+                                onToggle={(v) =>
+                                  setSelEntrate((p) => ({ ...p, [m.id]: v }))
+                                }
+                              />
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="panelActions">
+                          <PrimaryButton
+                            onClick={() => assignSelected("ENTRATA")}
+                            className="btn--block"
+                          >
+                            Assegna Entrate selezionate
+                          </PrimaryButton>
+                        </div>
+                      </div>
+
+                      <div className="panel">
+                        <div className="panelTitle">Uscite disponibili</div>
+
+                        {availUscite.length === 0 ? (
+                          <div className="muted" style={{ fontWeight: 800 }}>
+                            Nessuna
+                          </div>
+                        ) : (
+                          <div
+                            className="movList listBox"
+                            style={{ display: "grid", gap: 10 }}
+                          >
+                            {availUscite.map((m) => (
+                              <AvailableMoveRow
+                                key={m.id}
+                                m={m}
+                                tone="red"
+                                macroLabelTxt="AIG"
+                                checked={!!selUscite[m.id]}
+                                onToggle={(v) =>
+                                  setSelUscite((p) => ({ ...p, [m.id]: v }))
+                                }
+                              />
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="panelActions">
+                          <PrimaryButton
+                            onClick={() => assignSelected("USCITA")}
+                            className="btn--block"
+                          >
+                            Assegna Uscite selezionate
+                          </PrimaryButton>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
                 </div>
-              )}
 
-              <div className="mt-3" />
+                <div style={modalSection}>
+                  <Card title="MOVIMENTI ASSEGNATI">
+                    <div className="splitGrid">
+                      <div className="panel">
+                        <div className="panelTitle">Entrate assegnate</div>
 
-              <div style={fullBleed}>
-                <Card title="MOVIMENTI NON ASSEGNATI">
-                  <div className="splitGrid">
-                    <div className="panel">
-                      <div className="panelTitle">Entrate da assegnare</div>
+                        {assEntrate.length === 0 ? (
+                          <div className="muted" style={{ fontWeight: 800 }}>
+                            Nessuna
+                          </div>
+                        ) : (
+                          <div
+                            className="listBox movList"
+                            style={{ display: "grid", gap: 10 }}
+                          >
+                            {assEntrate.map((m) => (
+                              <AssignedMoveRow
+                                key={m.id}
+                                m={m}
+                                tone="green"
+                                macroLabelTxt="AIG"
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
 
-                      {availEntrate.length === 0 ? (
-                        <div className="muted" style={{ fontWeight: 800 }}>
-                          Nessuna
-                        </div>
-                      ) : (
-                        <div className="movList listBox">
-                          {availEntrate.map((m) => (
-                            <AvailableMoveCard
-                              key={m.id}
-                              m={m}
-                              tone="green"
-                              macroLabelTxt="AIG"
-                              checked={!!selEntrate[m.id]}
-                              onToggle={(v) =>
-                                setSelEntrate((p) => ({ ...p, [m.id]: v }))
-                              }
-                            />
-                          ))}
-                        </div>
-                      )}
+                      <div className="panel">
+                        <div className="panelTitle">Uscite assegnate</div>
 
-                      <div className="panelActions">
-                        <PrimaryButton
-                          onClick={() => assignSelected("ENTRATA")}
-                          className="btn--block"
-                        >
-                          Assegna Entrate selezionate
-                        </PrimaryButton>
+                        {assUscite.length === 0 ? (
+                          <div className="muted" style={{ fontWeight: 800 }}>
+                            Nessuna
+                          </div>
+                        ) : (
+                          <div
+                            className="listBox movList"
+                            style={{ display: "grid", gap: 10 }}
+                          >
+                            {assUscite.map((m) => (
+                              <AssignedMoveRow
+                                key={m.id}
+                                m={m}
+                                tone="red"
+                                macroLabelTxt="AIG"
+                              />
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
+                  </Card>
+                </div>
 
-                    <div className="panel">
-                      <div className="panelTitle">Uscite disponibili</div>
-
-                      {availUscite.length === 0 ? (
-                        <div className="muted" style={{ fontWeight: 800 }}>
-                          Nessuna
-                        </div>
-                      ) : (
-                        <div className="movList listBox">
-                          {availUscite.map((m) => (
-                            <AvailableMoveCard
-                              key={m.id}
-                              m={m}
-                              tone="red"
-                              macroLabelTxt="AIG"
-                              checked={!!selUscite[m.id]}
-                              onToggle={(v) =>
-                                setSelUscite((p) => ({ ...p, [m.id]: v }))
-                              }
-                            />
-                          ))}
-                        </div>
-                      )}
-
-                      <div className="panelActions">
-                        <PrimaryButton
-                          onClick={() => assignSelected("USCITA")}
-                          className="btn--block"
-                        >
-                          Assegna Uscite selezionate
-                        </PrimaryButton>
-                      </div>
+                <div style={modalSection}>
+                  <Card
+                    title="Test AIG (6%)"
+                    right={<Badge tone={esitoTone as any}>{esito}</Badge>}
+                  >
+                    <div style={noEllipsis}>
+                      <WrapRowValue
+                        label={
+                          <span style={noEllipsis}>
+                            TOTALE ENTRATE ASSEGNATE
+                          </span>
+                        }
+                        value={<EuroFmt v={TE} />}
+                      />
+                      <WrapRowValue
+                        label={
+                          <span style={noEllipsis}>
+                            TOTALE USCITE ASSEGNATE
+                          </span>
+                        }
+                        value={<EuroFmt v={TU} />}
+                      />
+                      <WrapRowValue
+                        label={
+                          <span style={noEllipsis}>
+                            COSTI GENERALI IMPUTATI
+                          </span>
+                        }
+                        value={<EuroFmt v={CG} />}
+                      />
+                      <WrapRowValue
+                        label={
+                          <span style={noEllipsis}>
+                            TOTALE COSTI EFFETTIVI (TU + CG)
+                          </span>
+                        }
+                        value={<EuroFmt v={TU_EFF} />}
+                      />
+                      <WrapRowValue
+                        label={
+                          <span style={noEllipsis}>
+                            TOTALE ENTRATE RILEVANTI
+                            {tipoEnte === "APS"
+                              ? " – APS: escluse prestazioni a favore di iscritti, soci e fondatori"
+                              : ""}
+                          </span>
+                        }
+                        value={<EuroFmt v={TER} />}
+                      />
+                      <WrapRowValue
+                        label={
+                          <span style={noEllipsis}>
+                            SOGLIA = TOTALE COSTI EFFETTIVI × 1,06
+                          </span>
+                        }
+                        value={<EuroFmt v={soglia} />}
+                      />
                     </div>
-                  </div>
-                </Card>
+                  </Card>
+                </div>
+
+                <div className="mt-3" />
               </div>
-
-              <div className="mt-3" />
-
-              <div style={fullBleed}>
-                <Card title="MOVIMENTI ASSEGNATI">
-                  <div className="splitGrid">
-                    <div className="panel">
-                      <div className="panelTitle">Entrate assegnate</div>
-
-                      {assEntrate.length === 0 ? (
-                        <div className="muted" style={{ fontWeight: 800 }}>
-                          Nessuna
-                        </div>
-                      ) : (
-                        <div className="listBox movList">
-                          {assEntrate.map((m) => (
-                            <AssignedMoveCard
-                              key={m.id}
-                              m={m}
-                              tone="green"
-                              macroLabelTxt="AIG"
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="panel">
-                      <div className="panelTitle">Uscite assegnate</div>
-
-                      {assUscite.length === 0 ? (
-                        <div className="muted" style={{ fontWeight: 800 }}>
-                          Nessuna
-                        </div>
-                      ) : (
-                        <div className="listBox movList">
-                          {assUscite.map((m) => (
-                            <AssignedMoveCard
-                              key={m.id}
-                              m={m}
-                              tone="red"
-                              macroLabelTxt="AIG"
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-              </div>
-
-              <div className="mt-3" />
-
-              <div style={fullBleed}>
-                <Card
-                  title="Test AIG (6%)"
-                  right={<Badge tone={esitoTone as any}>{esito}</Badge>}
-                >
-                  <div style={noEllipsis}>
-                    <WrapRowValue
-                      label={
-                        <span style={noEllipsis}>TOTALE ENTRATE ASSEGNATE</span>
-                      }
-                      value={<EuroFmt v={TE} />}
-                    />
-
-                    <WrapRowValue
-                      label={
-                        <span style={noEllipsis}>TOTALE USCITE ASSEGNATE</span>
-                      }
-                      value={<EuroFmt v={TU} />}
-                    />
-
-                    <WrapRowValue
-                      label={
-                        <span style={noEllipsis}>COSTI GENERALI IMPUTATI</span>
-                      }
-                      value={<EuroFmt v={CG} />}
-                    />
-
-                    <WrapRowValue
-                      label={
-                        <span style={noEllipsis}>
-                          TOTALE COSTI EFFETTIVI (TU + CG)
-                        </span>
-                      }
-                      value={<EuroFmt v={TU_EFF} />}
-                    />
-
-                    <WrapRowValue
-                      label={
-                        <span style={noEllipsis}>
-                          TOTALE ENTRATE RILEVANTI
-                          {tipoEnte === "APS"
-                            ? " – APS: escluse prestazioni a favore di iscritti, soci e fondatori"
-                            : ""}
-                        </span>
-                      }
-                      value={<EuroFmt v={TER} />}
-                    />
-
-                    <WrapRowValue
-                      label={
-                        <span style={noEllipsis}>
-                          SOGLIA = TOTALE COSTI EFFETTIVI × 1,06
-                        </span>
-                      }
-                      value={<EuroFmt v={soglia} />}
-                    />
-                  </div>
-                </Card>
-              </div>
-
-              <div className="mt-3" />
             </div>
           </div>
         </div>
