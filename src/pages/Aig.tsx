@@ -950,12 +950,15 @@ export default function Aig() {
                     }}
                   >
                     <div className="rowMain" style={{ minWidth: 0 }}>
-                      <div
-                        className="rowMeta"
-                        style={{ marginTop: 0, marginBottom: 8 }}
-                      >
-                        <Badge tone={esitoToneList as any}>{esitoTxt}</Badge>
-                      </div>
+                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
+  <MiniTag tone={tone}>
+    {isEntrata ? "Entrata" : "Uscita"}
+  </MiniTag>
+
+  <MiniTag tone="blue">
+    {macroLabelTxt}
+  </MiniTag>
+</div>
 
                       <div className="rowTitle" style={noEllipsis}>
                         {a.nome}
