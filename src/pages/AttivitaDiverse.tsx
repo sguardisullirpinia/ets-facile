@@ -783,7 +783,7 @@ export default function AttivitaDiverse() {
                   </div>
 
                   <div className="rowMeta" style={{ marginTop: 10 }}>
-                    <Badge tone={it.occasionale ? "amber" : "green"}>
+                    <Badge tone={it.occasionale ? "green" : "amber"}>
                       OCCASIONALE: {it.occasionale ? "SI" : "NO"}
                     </Badge>
                   </div>
