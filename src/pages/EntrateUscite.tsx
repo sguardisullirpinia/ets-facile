@@ -202,7 +202,6 @@ function ChevronIcon({ open }: { open: boolean }) {
 }
 
 function FilterIcon({ open }: { open: boolean }) {
-  // icona "sliders"
   return (
     <svg
       width="18"
@@ -270,6 +269,7 @@ function FilterIcon({ open }: { open: boolean }) {
   );
 }
 
+/** ✅ NO doppio bottone: header è un div role=button */
 function AccordionHeader({
   title,
   open,
@@ -317,12 +317,17 @@ function AccordionHeader({
         {title}
       </span>
 
-      {/* area destra: non deve triggerare il toggle */}
+      {/* ✅ area destra: non deve toggle-are l'accordion */}
       <div
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}
-        style={{ justifySelf: "end", display: "flex", alignItems: "center", gap: 10 }}
+        style={{
+          justifySelf: "end",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+        }}
       >
         {right}
       </div>
@@ -700,6 +705,62 @@ export default function EntrateUscite() {
     </span>
   );
 
+  const hasActiveFilters =
+    search.trim().length > 0 ||
+    macroFilter !== "ALL" ||
+    sortBy !== "data" ||
+    sortDir !== "desc";
+
+  const FilterChip = ({
+    active,
+    open,
+    onClick,
+  }: {
+    active: boolean;
+    open: boolean;
+    onClick: () => void;
+  }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      title={open ? "Chiudi filtri" : "Apri filtri"}
+      aria-label="Filtri"
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "8px 10px",
+        borderRadius: 999,
+        border: active
+          ? "1px solid rgba(37,99,235,0.35)"
+          : "1px solid rgba(0,0,0,0.10)",
+        background: active ? "rgba(37,99,235,0.08)" : "#fff",
+        color: "#111827",
+        cursor: "pointer",
+        fontWeight: 900,
+        fontSize: 12,
+        lineHeight: 1,
+      }}
+    >
+      <FilterIcon open={open} />
+      <span>Filtri</span>
+      {(active || open) && (
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 900,
+            padding: "3px 7px",
+            borderRadius: 999,
+            background: "rgba(0,0,0,0.06)",
+            border: "1px solid rgba(0,0,0,0.08)",
+          }}
+        >
+          ON
+        </span>
+      )}
+    </button>
+  );
+
   return (
     <Layout>
       {/* HEADER */}
@@ -783,9 +844,7 @@ export default function EntrateUscite() {
                       </div>
                     </div>
 
-                    <div
-                      style={{ display: "grid", justifyItems: "end", gap: 8 }}
-                    >
+                    <div style={{ display: "grid", justifyItems: "end", gap: 8 }}>
                       <div
                         className="rowAmount"
                         style={{ justifySelf: "end", textAlign: "right" }}
@@ -817,37 +876,20 @@ export default function EntrateUscite() {
           title="Movimenti dell'annualità"
           open={openMovimenti}
           onToggle={() => setOpenMovimenti((s) => !s)}
-          right={<CountPill n={movimentiFilteredSorted.length} />}
+          right={
+            <>
+              <CountPill n={movimentiFilteredSorted.length} />
+              <FilterChip
+                active={hasActiveFilters}
+                open={filtersOpen}
+                onClick={() => setFiltersOpen((s) => !s)}
+              />
+            </>
+          }
         />
 
         {openMovimenti && (
           <div style={{ marginTop: 10 }}>
-            {/* barra filtri richiudibile */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                marginBottom: 8,
-              }}
-            >
-              <button
-                type="button"
-                className="iconBtn"
-                onClick={() => setFiltersOpen((s) => !s)}
-                title={filtersOpen ? "Chiudi filtri" : "Apri filtri"}
-                aria-label="Filtri"
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 14,
-                  border: "1px solid rgba(0,0,0,0.10)",
-                  background: "#fff",
-                }}
-              >
-                <FilterIcon open={filtersOpen} />
-              </button>
-            </div>
-
             {filtersOpen && (
               <div style={filterBar}>
                 <input
@@ -924,8 +966,7 @@ export default function EntrateUscite() {
               ) : (
                 movimentiFilteredSorted.map((m, idx) => {
                   const isEntrata = m.tipologia === "ENTRATA";
-                  const codificata =
-                    (m.descrizione_label || "").trim() || "N/D";
+                  const codificata = (m.descrizione_label || "").trim() || "N/D";
                   const operazione =
                     (m.descrizione_operazione || "").trim() || "—";
                   const { day, mon } = dateParts(m.data);
@@ -938,8 +979,7 @@ export default function EntrateUscite() {
                         tabIndex={0}
                         onClick={() => openEdit(m.id)}
                         onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ")
-                            openEdit(m.id);
+                          if (e.key === "Enter" || e.key === " ") openEdit(m.id);
                         }}
                         className="movRow"
                       >
@@ -1005,7 +1045,6 @@ export default function EntrateUscite() {
           title="Riepilogo"
           open={openRiepilogo}
           onToggle={() => setOpenRiepilogo((s) => !s)}
-          
         />
 
         {openRiepilogo && (
@@ -1153,9 +1192,7 @@ export default function EntrateUscite() {
               type="button"
               onClick={downloadExcel}
               disabled={!list.length}
-              title={
-                !list.length ? "Nessun dato da esportare" : "Scarica Excel"
-              }
+              title={!list.length ? "Nessun dato da esportare" : "Scarica Excel"}
             >
               Scarica Excel
             </button>
