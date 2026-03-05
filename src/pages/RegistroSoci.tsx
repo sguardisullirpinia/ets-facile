@@ -379,7 +379,7 @@ export default function RegistroSoci() {
       "Data cessazione": fmtDate(s.data_cessazione),
       Email: s.email ?? "",
       PEC: s.pec ?? "",
-      "Quota associativa (annualità)": quotaMap[s.id] ? "SI" : "NO",
+      "Quota associativa (annualità)": quotaMap[s.id] === true ? "SI" : "NO",
     }));
 
     const wb = XLSX.utils.book_new();
