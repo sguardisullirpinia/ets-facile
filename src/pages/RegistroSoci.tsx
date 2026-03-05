@@ -27,6 +27,13 @@ type Socio = {
   qualifica: Qualifica | null;
 };
 
+type ProfileHeader = {
+  denominazione: string;
+  cf: string;
+  piva: string;
+  tipoEnte: string;
+};
+
 function fmtDate(d: string | null) {
   if (!d) return "";
   const [y, m, day] = d.split("-");
@@ -59,13 +66,7 @@ function IconButton({
 
 function TrashIcon() {
   return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-    >
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
         d="M3 6h18"
         stroke="currentColor"
@@ -99,21 +100,9 @@ function TrashIcon() {
 }
 
 function PencilBlueIcon() {
-  // stile “icona blu” come nelle card annualità (semplice e pulita)
   return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M12 20h9"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 20h9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
       <path
         d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"
         stroke="currentColor"
@@ -224,10 +213,11 @@ export default function RegistroSoci() {
 
       if (!errQuote) {
         const map: Record<string, boolean> = {};
-        for (const q of quoteData || []) map[(q as any).socio_id] = (q as any).pagata === true;
+        for (const q of quoteData || []) {
+          map[(q as any).socio_id] = (q as any).pagata === true;
+        }
         setQuotaMap(map);
       } else {
-        // non blocco la pagina, ma lo segnalo
         setQuotaMap({});
       }
     } else {
@@ -344,7 +334,6 @@ export default function RegistroSoci() {
     const current = !!quotaMap[s.id];
     const next = !current;
 
-    // upsert (unique socio_id+annualita_id)
     const { error: upErr } = await supabase.from("soci_quote").upsert(
       {
         user_id: userData.user.id,
@@ -363,35 +352,101 @@ export default function RegistroSoci() {
     setQuotaMap((m) => ({ ...m, [s.id]: next }));
   };
 
-  const downloadExcel = () => {
-    const fileYear = annualitaAnno ? `_${annualitaAnno}` : "";
-    const filename = `registro_soci${fileYear}.xlsx`;
-    
+  // ✅ NUOVO: esporta excel con intestazione profilo sopra la tabella
+  const downloadExcel = async () => {
+    try {
+      setError(null);
 
-    const rows = soci.map((s) => {
-  const paid = quotaMap[s.id] === true;
+      const { data: userData, error: userErr } = await supabase.auth.getUser();
+      if (userErr || !userData.user) {
+        setError("Utente non autenticato.");
+        return;
+      }
 
-  return {
-    "N. Socio": s.numero ?? "",
-    Cognome: s.cognome ?? "",
-    Nome: s.nome ?? "",
-    Qualifica: s.qualifica ?? "",
-    "Data nascita": fmtDate(s.data_nascita),
-    "Luogo nascita": s.luogo_nascita ?? "",
-    Residenza: s.residenza ?? "",
-    "Data ammissione": fmtDate(s.data_ammissione),
-    "Data cessazione": fmtDate(s.data_cessazione),
-    Email: s.email ?? "",
-    PEC: s.pec ?? "",
-    "Quota associativa (annualità)": paid ? "SI" : "NO",
-  };
-});
+      // profilo per intestazione
+      const { data: prof, error: profErr } = await supabase
+        .from("profiles")
+        .select("denominazione, cf, piva, tipo_ente")
+        .eq("id", userData.user.id)
+        .single();
 
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(rows);
-    XLSX.utils.book_append_sheet(wb, ws, "Registro Soci");
+      // non blocco se profilo mancante: metto placeholder
+      const header: ProfileHeader = {
+        denominazione: (prof?.denominazione || "").trim(),
+        cf: (prof?.cf || "").trim(),
+        piva: (prof?.piva || "").trim(),
+        tipoEnte: (prof?.tipo_ente || "").trim(),
+      };
 
-    XLSX.writeFile(wb, filename);
+      // tabella soci
+      const tableRows = soci.map((s) => {
+        const paid = quotaMap[s.id] === true;
+
+        return {
+          "N. Socio": s.numero ?? "",
+          Cognome: s.cognome ?? "",
+          Nome: s.nome ?? "",
+          Qualifica: s.qualifica ?? "",
+          "Data nascita": fmtDate(s.data_nascita),
+          "Luogo nascita": s.luogo_nascita ?? "",
+          Residenza: s.residenza ?? "",
+          "Data ammissione": fmtDate(s.data_ammissione),
+          "Data cessazione": fmtDate(s.data_cessazione),
+          Email: s.email ?? "",
+          PEC: s.pec ?? "",
+          "Quota associativa (annualità)": paid ? "SI" : "NO",
+        };
+      });
+
+      const headerAoA: any[][] = [
+        ["REGISTRO SOCI", ""],
+        ["DENOMINAZIONE ENTE", header.denominazione || "—"],
+        ["CODICE FISCALE", header.cf || "—"],
+        ["PARTITA IVA", header.piva || "—"],
+        ["TIPOLOGIA ENTE", header.tipoEnte || "—"],
+        ["ANNUALITÀ", annualitaAnno || "—"],
+        [], // riga vuota
+      ];
+
+      const ws = XLSX.utils.aoa_to_sheet(headerAoA);
+
+      // aggiungo tabella sotto intestazione
+      XLSX.utils.sheet_add_json(ws, tableRows, {
+        origin: { r: headerAoA.length, c: 0 },
+      });
+
+      // larghezze colonne (opzionale)
+      ws["!cols"] = [
+        { wch: 9 },
+        { wch: 18 },
+        { wch: 18 },
+        { wch: 14 },
+        { wch: 12 },
+        { wch: 18 },
+        { wch: 22 },
+        { wch: 13 },
+        { wch: 13 },
+        { wch: 26 },
+        { wch: 26 },
+        { wch: 26 },
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Registro Soci");
+
+      const fileYear = annualitaAnno ? `_${annualitaAnno}` : "";
+      const filename = `registro_soci${fileYear}.xlsx`;
+
+      XLSX.writeFile(wb, filename);
+
+      // opzionale: segnalo profilo mancante (senza bloccare)
+      if (profErr) {
+        // niente setError: excel già creato. Se vuoi, puoi mostrare un warning in UI.
+        // console.warn("Profilo non disponibile:", profErr.message);
+      }
+    } catch (e: any) {
+      setError(e?.message || "Errore durante l'esportazione Excel.");
+    }
   };
 
   const help = useMemo(() => {
@@ -426,7 +481,7 @@ export default function RegistroSoci() {
         onClick={openCreate}
         type="button"
         aria-label="Nuovo socio"
-        style={{ bottom: 86 }} // ✅ evita che finisca sotto la bottom bar
+        style={{ bottom: 86 }}
       >
         +
       </button>
@@ -589,7 +644,7 @@ export default function RegistroSoci() {
             <button
               className="btn"
               type="button"
-              onClick={downloadExcel}
+              onClick={() => downloadExcel()}
               disabled={!soci.length}
               title={!soci.length ? "Nessun dato da esportare" : "Scarica Excel"}
             >
@@ -607,7 +662,7 @@ export default function RegistroSoci() {
             position: "fixed",
             inset: 0,
             background: "rgba(0,0,0,0.40)",
-            zIndex: 20000, // ✅ sopra bottom bar e tutto
+            zIndex: 20000,
             display: "flex",
             alignItems: "flex-end",
             justifyContent: "center",
@@ -739,12 +794,7 @@ export default function RegistroSoci() {
                 </select>
               </div>
 
-              <button
-                className="btn btn--block"
-                type="button"
-                onClick={saveSocio}
-                disabled={saving}
-              >
+              <button className="btn btn--block" type="button" onClick={saveSocio} disabled={saving}>
                 {saving ? "Salvataggio…" : editing ? "Salva modifiche" : "Crea socio"}
               </button>
             </div>
@@ -757,11 +807,7 @@ export default function RegistroSoci() {
                 justifyContent: "flex-end",
               }}
             >
-              <button
-                className="btn"
-                type="button"
-                onClick={() => !saving && setOpenModal(false)}
-              >
+              <button className="btn" type="button" onClick={() => !saving && setOpenModal(false)}>
                 Chiudi
               </button>
             </div>
