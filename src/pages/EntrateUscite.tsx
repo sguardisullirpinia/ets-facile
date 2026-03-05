@@ -282,11 +282,18 @@ function AccordionHeader({
   right?: React.ReactNode;
 }) {
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
+      aria-expanded={open}
       className="accHeader"
       onClick={onToggle}
-      aria-expanded={open}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onToggle();
+        }
+      }}
       style={{
         width: "100%",
         display: "grid",
@@ -297,6 +304,9 @@ function AccordionHeader({
         borderRadius: 14,
         border: "1px solid rgba(0,0,0,0.08)",
         background: "#fff",
+        cursor: "pointer",
+        userSelect: "none",
+        outline: "none",
       }}
     >
       <span style={{ display: "grid", placeItems: "center" }}>
@@ -307,8 +317,16 @@ function AccordionHeader({
         {title}
       </span>
 
-      <span style={{ justifySelf: "end" }}>{right}</span>
-    </button>
+      {/* area destra: non deve triggerare il toggle */}
+      <div
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+        style={{ justifySelf: "end", display: "flex", alignItems: "center", gap: 10 }}
+      >
+        {right}
+      </div>
+    </div>
   );
 }
 
