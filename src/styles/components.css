@@ -902,3 +902,16 @@ textarea {
   border-color: rgba(0, 0, 0, 0.12);
   background: rgba(0, 0, 0, 0.02);
 }
+/* base.css o components.css */
+
+/* placeholder coerente su input e textarea */
+.input::placeholder,
+textarea.input::placeholder {
+  color: rgba(17, 24, 39, 0.40);  /* grigio soft */
+  font-weight: 700;
+}
+
+/* per i browser che applicano opacità default */
+.input::placeholder {
+  opacity: 1;
+}
