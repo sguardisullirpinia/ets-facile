@@ -394,6 +394,7 @@ export default function RegistroSoci() {
           "Data cessazione": fmtDate(s.data_cessazione),
           Email: s.email ?? "",
           PEC: s.pec ?? "",
+          "Quota associativa (annualità)": paid ? "Quota annuale SI" : "Quota annuale NO",
           
         };
       });
