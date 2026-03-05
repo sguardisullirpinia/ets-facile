@@ -26,10 +26,7 @@ type Regime = "FORFETTARIO" | "ORDINARIO";
 // ENTRATE
 const AIG_ENTRATE = [
   { code: 1, label: "Entrate dagli associati per attività mutuali" },
-  {
-    code: 2,
-    label: "Prestazioni e cessioni a iscritti, associati e fondatori",
-  },
+  { code: 2, label: "Prestazioni e cessioni a iscritti, associati e fondatori" },
   { code: 3, label: "Contributi da soggetti privati" },
   { code: 4, label: "Prestazioni e cessioni a terzi" },
   { code: 5, label: "Contributi da enti pubblici" },
@@ -132,6 +129,21 @@ export default function MovimentoEditor() {
   const isRegimeOrdinario = regime === "ORDINARIO";
   const showIvaField = isEntrataOrUscita && isRegimeOrdinario;
 
+  // ✅ layout: 2 colonne come modale Registro Soci
+  const twoCol: React.CSSProperties = {
+    display: "grid",
+    gap: 8,
+    gridTemplateColumns: "1fr 1fr",
+  };
+
+  const field: React.CSSProperties = { display: "grid", gap: 6 };
+
+  const fieldLabel: React.CSSProperties = {
+    fontSize: 12,
+    fontWeight: 900,
+    color: "#374151",
+  };
+
   /* =========================
      LOAD REGIME ANNUALITA
      ========================= */
@@ -199,7 +211,6 @@ export default function MovimentoEditor() {
       setDescrizioneCode(row.descrizione_code);
       setDescrizioneLabel(row.descrizione_label || "");
       setImporto(String(row.importo ?? ""));
-      // IVA: se regime non ordinario, la forza a 0 più sotto
       setIva(String(row.iva ?? 0));
       setDescrOperazione((row.descrizione_operazione ?? "").toString());
 
@@ -246,8 +257,7 @@ export default function MovimentoEditor() {
     if (tipologia === "ENTRATA" && macro === "ATTIVITA_DIVERSE")
       return AD_ENTRATE;
     if (tipologia === "USCITA" && macro === "AIG") return AIG_USCITE;
-    if (tipologia === "USCITA" && macro === "ATTIVITA_DIVERSE")
-      return AD_USCITE;
+    if (tipologia === "USCITA" && macro === "ATTIVITA_DIVERSE") return AD_USCITE;
     return [];
   }, [tipologia, macro, isCostiGenerali]);
 
@@ -326,13 +336,9 @@ export default function MovimentoEditor() {
           : null,
 
       descrizione_code:
-        isAvanzo || isSoloImportoEntrata || isCostiGenerali
-          ? null
-          : descrizioneCode,
+        isAvanzo || isSoloImportoEntrata || isCostiGenerali ? null : descrizioneCode,
       descrizione_label:
-        isAvanzo || isSoloImportoEntrata || isCostiGenerali
-          ? null
-          : descrizioneLabel || null,
+        isAvanzo || isSoloImportoEntrata || isCostiGenerali ? null : descrizioneLabel || null,
 
       importo: Number(importo),
 
@@ -374,184 +380,210 @@ export default function MovimentoEditor() {
             {editId ? "Modifica movimento" : "Nuovo Movimento"}
           </h2>
           <div className="pageHelp">
-            Compila i campi passo-passo. La descrizione dell’operazione è
-            obbligatoria per Entrate/Uscite.
+            Compila i campi. La descrizione dell’operazione è obbligatoria per
+            Entrate/Uscite.
           </div>
         </div>
       </div>
 
-      {/* ✅ (opzionale) puoi anche togliere del tutto questo error in alto.
-          Io lo lascio solo se NON siamo in errore di validazione, ma per semplicità:
-          lo mostro solo quando è loading=false e l'utente non è in fondo?
-          -> Qui lo rimuovo per evitare duplicati: l'errore lo mostriamo vicino ai pulsanti.
-      */}
+      {/* ✅ FORM COMPATTO A 2 COLONNE (come Registro Soci) */}
+      <Card title="">
+        <div style={{ display: "grid", gap: 12 }}>
+          {/* TIPologia */}
+          <div style={field}>
+            <div style={fieldLabel}>Tipologia</div>
+            <select
+              value={tipologia}
+              onChange={(e) => setTipologia(e.target.value as any)}
+              disabled={!!editId}
+              className="input"
+            >
+              <option value="">Seleziona…</option>
+              <option value="ENTRATA">Entrata</option>
+              <option value="USCITA">Uscita</option>
+              <option value="AVANZO_CASSA_T_1">Avanzo cassa t-1</option>
+              <option value="AVANZO_BANCA_T_1">Avanzo banca t-1</option>
+            </select>
+          </div>
 
-      <Card title="1️⃣ Tipologia">
-        <select
-          value={tipologia}
-          onChange={(e) => setTipologia(e.target.value as any)}
-          disabled={!!editId}
-          className="input"
-        >
-          <option value="">Seleziona…</option>
-          <option value="ENTRATA">Entrata</option>
-          <option value="USCITA">Uscita</option>
-          <option value="AVANZO_CASSA_T_1">Avanzo cassa t-1</option>
-          <option value="AVANZO_BANCA_T_1">Avanzo banca t-1</option>
-        </select>
+          {isEntrataOrUscita && (
+            <>
+              {/* Data + Conto */}
+              <div style={twoCol}>
+                <div style={field}>
+                  <div style={fieldLabel}>Data</div>
+                  <input
+                    type="date"
+                    value={data}
+                    onChange={(e) => setData(e.target.value)}
+                    className="input"
+                  />
+                </div>
+
+                <div style={field}>
+                  <div style={fieldLabel}>Banca / Cassa</div>
+                  <select
+                    value={conto}
+                    onChange={(e) => setConto(e.target.value as Conto)}
+                    className="input"
+                  >
+                    <option value="CASSA">Cassa</option>
+                    <option value="BANCA">Banca</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Macro */}
+              <div style={field}>
+                <div style={fieldLabel}>Categoria</div>
+                <select
+                  value={macro}
+                  onChange={(e) => setMacro(e.target.value as any)}
+                  className="input"
+                >
+                  <option value="">Seleziona…</option>
+                  <option value="AIG">AIG</option>
+                  <option value="ATTIVITA_DIVERSE">Attività Diverse</option>
+                  <option value="RACCOLTE_FONDI">Raccolte Fondi</option>
+
+                  {tipologia === "USCITA" && (
+                    <option value="COSTI_GENERALI">Costi generali</option>
+                  )}
+
+                  {tipologia === "ENTRATA" && (
+                    <>
+                      <option value="QUOTE_ASSOCIATIVE">Quote associative</option>
+                      <option value="EROGAZIONI_LIBERALI">Erogazioni liberali</option>
+                      <option value="PROVENTI_5X1000">Proventi 5×1000</option>
+                      <option value="CONTRIBUTI_PA_SENZA_CORRISPETTIVO">
+                        Contributi PA senza corrispettivo
+                      </option>
+                      <option value="ALTRI_PROVENTI_NON_COMMERCIALI">
+                        Altri proventi non commerciali
+                      </option>
+                    </>
+                  )}
+                </select>
+              </div>
+            </>
+          )}
+
+          {isCostiGenerali && (
+            <div
+              style={{
+                padding: 12,
+                borderRadius: 14,
+                border: "1px solid rgba(0,0,0,0.08)",
+                background: "rgba(0,0,0,0.02)",
+                lineHeight: 1.45,
+              }}
+            >
+              <b>Nota (Costi generali)</b>
+              <div style={{ marginTop: 6 }}>
+                Questo movimento è un <b>costo generale unico</b> e resterà visibile
+                nella <b>Prima Nota</b> per poterlo modificare o cancellare.
+                <br />
+                La quota imputata alle singole attività verrà calcolata automaticamente
+                nei riepiloghi (step successivi).
+              </div>
+            </div>
+          )}
+
+          {/* Descrizione codificata */}
+          {(macro === "AIG" || macro === "ATTIVITA_DIVERSE") &&
+            !isSoloImportoEntrata &&
+            !isCostiGenerali && (
+              <div style={field}>
+                <div style={fieldLabel}>Descrizione (codificata)</div>
+                <select
+                  value={descrizioneCode ?? ""}
+                  onChange={(e) => {
+                    const code = Number(e.target.value);
+                    const item = descrizioni.find((x) => x.code === code);
+                    setDescrizioneCode(code);
+                    setDescrizioneLabel(item?.label || "");
+                  }}
+                  className="input"
+                >
+                  <option value="">Seleziona…</option>
+                  {descrizioni.map((v) => (
+                    <option key={v.code} value={v.code}>
+                      {v.code}. {v.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+          {/* Raccolte fondi: descrizione libera */}
+          {macro === "RACCOLTE_FONDI" && !isCostiGenerali && (
+            <div style={field}>
+              <div style={fieldLabel}>Descrizione raccolta fondi</div>
+              <input
+                value={descrizioneLabel}
+                onChange={(e) => setDescrizioneLabel(e.target.value)}
+                className="input"
+                placeholder="Inserisci descrizione…"
+              />
+            </div>
+          )}
+
+          {/* Importo + IVA */}
+          {tipologia && (
+            <>
+              <div style={twoCol}>
+                <div style={field}>
+                  <div style={fieldLabel}>Importo</div>
+                  <input
+                    type="number"
+                    value={importo}
+                    onChange={(e) => setImporto(e.target.value)}
+                    className="input"
+                    placeholder="0,00"
+                    step="0.01"
+                    min={0}
+                  />
+                </div>
+
+                {showIvaField ? (
+                  <div style={field}>
+                    <div style={fieldLabel}>IVA (solo regime ordinario)</div>
+                    <input
+                      type="number"
+                      value={iva}
+                      onChange={(e) => setIva(e.target.value)}
+                      className="input"
+                      placeholder="0,00"
+                      step="0.01"
+                      min={0}
+                    />
+                    <div className="rowSub" style={{ marginTop: 2 }}>
+                      Inserisci <b>0</b> se non prevista.
+                    </div>
+                  </div>
+                ) : (
+                  <div />
+                )}
+              </div>
+
+              {/* Descrizione operazione */}
+              {isEntrataOrUscita && (
+                <div style={field}>
+                  <div style={fieldLabel}>Descrizione operazione (obbligatoria)</div>
+                  <input
+                    value={descrOperazione}
+                    onChange={(e) => setDescrOperazione(e.target.value)}
+                    className="input"
+                    placeholder="Es. Fattura n. X • Cancelleria • Bolletta • ecc."
+                  />
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </Card>
 
-      {isEntrataOrUscita && (
-        <>
-          <Card title="2️⃣ Data">
-            <input
-              type="date"
-              value={data}
-              onChange={(e) => setData(e.target.value)}
-              className="input"
-            />
-          </Card>
-
-          <Card title="3️⃣ Categoria">
-            <select
-              value={macro}
-              onChange={(e) => setMacro(e.target.value as any)}
-              className="input"
-            >
-              <option value="">Seleziona…</option>
-              <option value="AIG">AIG</option>
-              <option value="ATTIVITA_DIVERSE">Attività Diverse</option>
-              <option value="RACCOLTE_FONDI">Raccolte Fondi</option>
-
-              {tipologia === "USCITA" && (
-                <option value="COSTI_GENERALI">Costi generali</option>
-              )}
-
-              {tipologia === "ENTRATA" && (
-                <>
-                  <option value="QUOTE_ASSOCIATIVE">Quote associative</option>
-                  <option value="EROGAZIONI_LIBERALI">
-                    Erogazioni liberali
-                  </option>
-                  <option value="PROVENTI_5X1000">Proventi 5×1000</option>
-                  <option value="CONTRIBUTI_PA_SENZA_CORRISPETTIVO">
-                    Contributi PA senza corrispettivo
-                  </option>
-                  <option value="ALTRI_PROVENTI_NON_COMMERCIALI">
-                    Altri proventi non commerciali
-                  </option>
-                </>
-              )}
-            </select>
-          </Card>
-
-          <Card title="3️⃣ Banca / Cassa">
-            <select
-              value={conto}
-              onChange={(e) => setConto(e.target.value as Conto)}
-              className="input"
-            >
-              <option value="CASSA">Cassa</option>
-              <option value="BANCA">Banca</option>
-            </select>
-          </Card>
-        </>
-      )}
-
-      {isCostiGenerali && (
-        <Card title="ℹ️ Nota (Costi generali)">
-          <div style={{ lineHeight: 1.45 }}>
-            Questo movimento è un <b>costo generale unico</b> e resterà visibile
-            nella <b>Prima Nota</b> per poterlo modificare o cancellare.
-            <br />
-            La quota imputata alle singole attività verrà calcolata
-            automaticamente nei riepiloghi (step successivi).
-          </div>
-        </Card>
-      )}
-
-      {(macro === "AIG" || macro === "ATTIVITA_DIVERSE") &&
-        !isSoloImportoEntrata &&
-        !isCostiGenerali && (
-          <Card title="4️⃣ Descrizione (codificata)">
-            <select
-              value={descrizioneCode ?? ""}
-              onChange={(e) => {
-                const code = Number(e.target.value);
-                const item = descrizioni.find((x) => x.code === code);
-                setDescrizioneCode(code);
-                setDescrizioneLabel(item?.label || "");
-              }}
-              className="input"
-            >
-              <option value="">Seleziona…</option>
-              {descrizioni.map((v) => (
-                <option key={v.code} value={v.code}>
-                  {v.code}. {v.label}
-                </option>
-              ))}
-            </select>
-          </Card>
-        )}
-
-      {macro === "RACCOLTE_FONDI" && !isCostiGenerali && (
-        <Card title="4️⃣ Descrizione raccolta fondi">
-          <input
-            value={descrizioneLabel}
-            onChange={(e) => setDescrizioneLabel(e.target.value)}
-            className="input"
-            placeholder="Inserisci descrizione…"
-          />
-        </Card>
-      )}
-
-      {tipologia && (
-        <>
-          <Card title="5️⃣ Importo">
-            <input
-              type="number"
-              value={importo}
-              onChange={(e) => setImporto(e.target.value)}
-              className="input"
-              placeholder="0,00"
-              step="0.01"
-              min={0}
-            />
-          </Card>
-
-          {/* ✅ 6️⃣ IVA: solo se ORDINARIO */}
-          {showIvaField && (
-            <Card title="6️⃣ IVA (solo regime ordinario)">
-              <input
-                type="number"
-                value={iva}
-                onChange={(e) => setIva(e.target.value)}
-                className="input"
-                placeholder="0,00"
-                step="0.01"
-                min={0}
-              />
-              <div className="rowSub" style={{ marginTop: 8 }}>
-                Inserisci <b>0</b> se l’operazione non prevede IVA.
-              </div>
-            </Card>
-          )}
-
-          {/* ✅ 7️⃣ Descrizione operazione (obbligatoria) */}
-          {isEntrataOrUscita && (
-            <Card title="7️⃣ Descrizione operazione (obbligatoria)">
-              <input
-                value={descrOperazione}
-                onChange={(e) => setDescrOperazione(e.target.value)}
-                className="input"
-                placeholder="Es. Fattura n. X • Cancelleria • Bolletta • ecc."
-              />
-            </Card>
-          )}
-        </>
-      )}
-
-      {/* ✅ ERRORE SPOSTATO QUI (SOPRA I PULSANTI) */}
+      {/* ERRORE (sopra i pulsanti) */}
       {error && (
         <div style={{ marginTop: 14, marginBottom: 10 }}>
           <Badge tone="red">Errore</Badge>
@@ -563,9 +595,7 @@ export default function MovimentoEditor() {
         <PrimaryButton onClick={salva}>
           {editId ? "Salva modifiche" : "Salva"}
         </PrimaryButton>
-        <SecondaryButton onClick={() => history.back()}>
-          Annulla
-        </SecondaryButton>
+        <SecondaryButton onClick={() => history.back()}>Annulla</SecondaryButton>
       </div>
     </Layout>
   );
