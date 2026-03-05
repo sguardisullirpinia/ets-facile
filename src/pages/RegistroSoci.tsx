@@ -366,22 +366,26 @@ export default function RegistroSoci() {
   const downloadExcel = () => {
     const fileYear = annualitaAnno ? `_${annualitaAnno}` : "";
     const filename = `registro_soci${fileYear}.xlsx`;
-    const paid = quotaMap[s.id] === true;
+    
 
-    const rows = soci.map((s) => ({
-      "N. Socio": s.numero ?? "",
-      Cognome: s.cognome ?? "",
-      Nome: s.nome ?? "",
-      Qualifica: s.qualifica ?? "",
-      "Data nascita": fmtDate(s.data_nascita),
-      "Luogo nascita": s.luogo_nascita ?? "",
-      Residenza: s.residenza ?? "",
-      "Data ammissione": fmtDate(s.data_ammissione),
-      "Data cessazione": fmtDate(s.data_cessazione),
-      Email: s.email ?? "",
-      PEC: s.pec ?? "",
-      "Quota associativa (annualità)": paid ? "SI" : "NO",
-    }));
+    const rows = soci.map((s) => {
+  const paid = quotaMap[s.id] === true;
+
+  return {
+    "N. Socio": s.numero ?? "",
+    Cognome: s.cognome ?? "",
+    Nome: s.nome ?? "",
+    Qualifica: s.qualifica ?? "",
+    "Data nascita": fmtDate(s.data_nascita),
+    "Luogo nascita": s.luogo_nascita ?? "",
+    Residenza: s.residenza ?? "",
+    "Data ammissione": fmtDate(s.data_ammissione),
+    "Data cessazione": fmtDate(s.data_cessazione),
+    Email: s.email ?? "",
+    PEC: s.pec ?? "",
+    "Quota associativa (annualità)": paid ? "SI" : "NO",
+  };
+});
 
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(rows);
