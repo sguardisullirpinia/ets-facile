@@ -366,6 +366,7 @@ export default function RegistroSoci() {
   const downloadExcel = () => {
     const fileYear = annualitaAnno ? `_${annualitaAnno}` : "";
     const filename = `registro_soci${fileYear}.xlsx`;
+    const paid = quotaMap[s.id] === true;
 
     const rows = soci.map((s) => ({
       "N. Socio": s.numero ?? "",
