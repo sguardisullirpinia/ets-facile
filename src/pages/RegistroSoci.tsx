@@ -533,7 +533,7 @@ export default function RegistroSoci() {
                       title="Cambia quota associativa (per annualità)"
                       style={{ whiteSpace: "nowrap" }}
                     >
-                      {quota ? "Segna NO" : "Segna SI"}
+                      {quota ? "SI" : "NO"}
                     </button>
 
                     <div style={{ display: "flex", gap: 8 }}>
