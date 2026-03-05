@@ -98,7 +98,9 @@ function MiniTag({
   tone?: "green" | "red" | "blue" | "amber" | "yellow" | "neutral";
 }) {
   return (
-    <span className={`miniTag ${tone ? `miniTag--${tone}` : "miniTag--neutral"}`}>
+    <span
+      className={`miniTag ${tone ? `miniTag--${tone}` : "miniTag--neutral"}`}
+    >
       {children}
     </span>
   );
@@ -136,7 +138,13 @@ function IconButton({
 
 function TrashIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
       <path
         d="M3 6h18"
         stroke="currentColor"
@@ -193,7 +201,7 @@ function ChevronIcon({ open }: { open: boolean }) {
   );
 }
 
-function FilterIcon({ active }: { active: boolean }) {
+function FilterIcon({ open }: { open: boolean }) {
   // icona "sliders"
   return (
     <svg
@@ -202,17 +210,62 @@ function FilterIcon({ active }: { active: boolean }) {
       viewBox="0 0 24 24"
       fill="none"
       aria-hidden="true"
-      style={{ opacity: active ? 1 : 0.85 }}
+      style={{ opacity: open ? 1 : 0.85 }}
     >
-      <path d="M4 21v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M4 10V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M12 21v-9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M12 8V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M20 21v-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M20 12V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M2 14h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M10 8h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M18 16h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path
+        d="M4 21v-7"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M4 10V3"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M12 21v-9"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M12 8V3"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M20 21v-5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M20 12V3"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M2 14h4"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M10 8h4"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M18 16h4"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -250,7 +303,9 @@ function AccordionHeader({
         <ChevronIcon open={open} />
       </span>
 
-      <span style={{ textAlign: "left", fontWeight: 950, letterSpacing: 0.2 }}>{title}</span>
+      <span style={{ textAlign: "left", fontWeight: 950, letterSpacing: 0.2 }}>
+        {title}
+      </span>
 
       <span style={{ justifySelf: "end" }}>{right}</span>
     </button>
@@ -285,7 +340,9 @@ export default function EntrateUscite() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [macroFilter, setMacroFilter] = useState<string>("ALL");
-  const [sortBy, setSortBy] = useState<"data" | "importo" | "descrizione">("data");
+  const [sortBy, setSortBy] = useState<"data" | "importo" | "descrizione">(
+    "data",
+  );
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const HELP_FULL =
@@ -318,17 +375,21 @@ export default function EntrateUscite() {
   const avanzi = useMemo(
     () =>
       list.filter(
-        (m) => m.tipologia === "AVANZO_CASSA_T_1" || m.tipologia === "AVANZO_BANCA_T_1",
+        (m) =>
+          m.tipologia === "AVANZO_CASSA_T_1" ||
+          m.tipologia === "AVANZO_BANCA_T_1",
       ),
     [list],
   );
 
   const movimenti = useMemo(
-    () => list.filter((m) => m.tipologia === "ENTRATA" || m.tipologia === "USCITA"),
+    () =>
+      list.filter((m) => m.tipologia === "ENTRATA" || m.tipologia === "USCITA"),
     [list],
   );
 
-  const macroEff = (m: Movimento) => (m.is_costo_generale ? "COSTI_GENERALI" : m.macro);
+  const macroEff = (m: Movimento) =>
+    m.is_costo_generale ? "COSTI_GENERALI" : m.macro;
 
   const macroOptions = useMemo(() => {
     const present = new Set<string>();
@@ -401,14 +462,6 @@ export default function EntrateUscite() {
     return res;
   }, [movimenti, macroFilter, search, sortBy, sortDir]);
 
-  // ✅ filtri attivi (per badge e stile)
-  const hasActiveFilters =
-    filtersOpen ||
-    search.trim().length > 0 ||
-    macroFilter !== "ALL" ||
-    sortBy !== "data" ||
-    sortDir !== "desc";
-
   // totali generali
   const totEntrate = useMemo(
     () =>
@@ -417,7 +470,6 @@ export default function EntrateUscite() {
         .reduce((s, m) => s + totaleMov(m), 0),
     [movimenti],
   );
-
   const totUscite = useMemo(
     () =>
       movimenti
@@ -433,7 +485,6 @@ export default function EntrateUscite() {
         .reduce((s, m) => s + totaleMov(m), 0),
     [movimenti],
   );
-
   const totEntrateCassa = useMemo(
     () =>
       movimenti
@@ -441,7 +492,6 @@ export default function EntrateUscite() {
         .reduce((s, m) => s + totaleMov(m), 0),
     [movimenti],
   );
-
   const totUsciteBanca = useMemo(
     () =>
       movimenti
@@ -449,7 +499,6 @@ export default function EntrateUscite() {
         .reduce((s, m) => s + totaleMov(m), 0),
     [movimenti],
   );
-
   const totUsciteCassa = useMemo(
     () =>
       movimenti
@@ -459,12 +508,17 @@ export default function EntrateUscite() {
   );
 
   const avanzoBancaT1 = useMemo(
-    () => avanzi.filter((m) => m.tipologia === "AVANZO_BANCA_T_1").reduce((s, m) => s + num(m.importo), 0),
+    () =>
+      avanzi
+        .filter((m) => m.tipologia === "AVANZO_BANCA_T_1")
+        .reduce((s, m) => s + num(m.importo), 0),
     [avanzi],
   );
-
   const avanzoCassaT1 = useMemo(
-    () => avanzi.filter((m) => m.tipologia === "AVANZO_CASSA_T_1").reduce((s, m) => s + num(m.importo), 0),
+    () =>
+      avanzi
+        .filter((m) => m.tipologia === "AVANZO_CASSA_T_1")
+        .reduce((s, m) => s + num(m.importo), 0),
     [avanzi],
   );
 
@@ -472,15 +526,19 @@ export default function EntrateUscite() {
     () => avanzoBancaT1 + totEntrateBanca - totUsciteBanca,
     [avanzoBancaT1, totEntrateBanca, totUsciteBanca],
   );
-
   const disponibilitaCassa = useMemo(
     () => avanzoCassaT1 + totEntrateCassa - totUsciteCassa,
     [avanzoCassaT1, totEntrateCassa, totUsciteCassa],
   );
 
-  const avanzoGestione = useMemo(() => totEntrate - totUscite, [totEntrate, totUscite]);
+  const avanzoGestione = useMemo(
+    () => totEntrate - totUscite,
+    [totEntrate, totUscite],
+  );
 
-  const goNew = (tipologia: "ENTRATA" | "USCITA" | "AVANZO_CASSA_T_1" | "AVANZO_BANCA_T_1") => {
+  const goNew = (
+    tipologia: "ENTRATA" | "USCITA" | "AVANZO_CASSA_T_1" | "AVANZO_BANCA_T_1",
+  ) => {
     localStorage.removeItem("movimento_edit_id");
     localStorage.setItem("movimento_tipologia", tipologia);
     window.location.href = "/movimento";
@@ -522,7 +580,10 @@ export default function EntrateUscite() {
 
     const rowsAvanzi = avanzi.map((m) => ({
       ID: m.id,
-      Tipologia: m.tipologia === "AVANZO_CASSA_T_1" ? "Avanzo cassa (t-1)" : "Avanzo banca (t-1)",
+      Tipologia:
+        m.tipologia === "AVANZO_CASSA_T_1"
+          ? "Avanzo cassa (t-1)"
+          : "Avanzo banca (t-1)",
       "Cassa/Banca": contoLabel(m.conto),
       Importo: num(m.importo),
       IVA: num(m.iva),
@@ -592,7 +653,13 @@ export default function EntrateUscite() {
     fontWeight: 900,
   };
 
-  const WrapRowValue = ({ label, value }: { label: React.ReactNode; value: React.ReactNode }) => (
+  const WrapRowValue = ({
+    label,
+    value,
+  }: {
+    label: React.ReactNode;
+    value: React.ReactNode;
+  }) => (
     <div style={wrapRowBox}>
       <div style={wrapRowLabel}>{label}</div>
       <div style={wrapRowValue}>{value}</div>
@@ -615,55 +682,6 @@ export default function EntrateUscite() {
     </span>
   );
 
-  // ✅ “chip” filtro integrato nella sezione movimenti
-  const FilterChip = ({
-    active,
-    open,
-    onClick,
-  }: {
-    active: boolean;
-    open: boolean;
-    onClick: () => void;
-  }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      title={open ? "Chiudi filtri" : "Apri filtri"}
-      aria-label="Filtri"
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 8,
-        padding: "8px 10px",
-        borderRadius: 999,
-        border: active ? "1px solid rgba(37,99,235,0.35)" : "1px solid rgba(0,0,0,0.10)",
-        background: active ? "rgba(37,99,235,0.08)" : "#fff",
-        color: "#111827",
-        cursor: "pointer",
-        fontWeight: 900,
-        fontSize: 12,
-        lineHeight: 1,
-      }}
-    >
-      <FilterIcon active={active || open} />
-      <span>Filtri</span>
-      {(active || open) && (
-        <span
-          style={{
-            fontSize: 11,
-            fontWeight: 900,
-            padding: "3px 7px",
-            borderRadius: 999,
-            background: "rgba(0,0,0,0.06)",
-            border: "1px solid rgba(0,0,0,0.08)",
-          }}
-        >
-          ON
-        </span>
-      )}
-    </button>
-  );
-
   return (
     <Layout>
       {/* HEADER */}
@@ -684,7 +702,12 @@ export default function EntrateUscite() {
       )}
 
       {/* FAB */}
-      <button className="fab" onClick={() => goNew("ENTRATA")} type="button" aria-label="Nuovo movimento">
+      <button
+        className="fab"
+        onClick={() => goNew("ENTRATA")}
+        type="button"
+        aria-label="Nuovo movimento"
+      >
         +
       </button>
 
@@ -707,7 +730,10 @@ export default function EntrateUscite() {
               </div>
             ) : (
               avanzi.map((m) => {
-                const label = m.tipologia === "AVANZO_CASSA_T_1" ? "Avanzo cassa" : "Avanzo banca";
+                const label =
+                  m.tipologia === "AVANZO_CASSA_T_1"
+                    ? "Avanzo cassa"
+                    : "Avanzo banca";
 
                 return (
                   <div
@@ -739,8 +765,13 @@ export default function EntrateUscite() {
                       </div>
                     </div>
 
-                    <div style={{ display: "grid", justifyItems: "end", gap: 8 }}>
-                      <div className="rowAmount" style={{ justifySelf: "end", textAlign: "right" }}>
+                    <div
+                      style={{ display: "grid", justifyItems: "end", gap: 8 }}
+                    >
+                      <div
+                        className="rowAmount"
+                        style={{ justifySelf: "end", textAlign: "right" }}
+                      >
                         <Euro v={num(m.importo)} />
                       </div>
 
@@ -768,21 +799,37 @@ export default function EntrateUscite() {
           title="Movimenti dell'annualità"
           open={openMovimenti}
           onToggle={() => setOpenMovimenti((s) => !s)}
-          right={
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <CountPill n={movimentiFilteredSorted.length} />
-              {/* ✅ filtro integrato “chip” */}
-              <FilterChip
-                active={hasActiveFilters}
-                open={filtersOpen}
-                onClick={() => setFiltersOpen((s) => !s)}
-              />
-            </div>
-          }
+          right={<CountPill n={movimentiFilteredSorted.length} />}
         />
 
         {openMovimenti && (
           <div style={{ marginTop: 10 }}>
+            {/* barra filtri richiudibile */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                marginBottom: 8,
+              }}
+            >
+              <button
+                type="button"
+                className="iconBtn"
+                onClick={() => setFiltersOpen((s) => !s)}
+                title={filtersOpen ? "Chiudi filtri" : "Apri filtri"}
+                aria-label="Filtri"
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 14,
+                  border: "1px solid rgba(0,0,0,0.10)",
+                  background: "#fff",
+                }}
+              >
+                <FilterIcon open={filtersOpen} />
+              </button>
+            </div>
+
             {filtersOpen && (
               <div style={filterBar}>
                 <input
@@ -793,7 +840,11 @@ export default function EntrateUscite() {
                 />
 
                 <div style={row2}>
-                  <select style={ctrl} value={macroFilter} onChange={(e) => setMacroFilter(e.target.value)}>
+                  <select
+                    style={ctrl}
+                    value={macroFilter}
+                    onChange={(e) => setMacroFilter(e.target.value)}
+                  >
                     <option value="ALL">Tutte le macro</option>
                     {macroOptions.map((m) => (
                       <option key={m} value={m}>
@@ -802,7 +853,11 @@ export default function EntrateUscite() {
                     ))}
                   </select>
 
-                  <select style={ctrl} value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}>
+                  <select
+                    style={ctrl}
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                  >
                     <option value="data">Ordina per: Data</option>
                     <option value="importo">Ordina per: Importo</option>
                     <option value="descrizione">Ordina per: Descrizione</option>
@@ -810,7 +865,11 @@ export default function EntrateUscite() {
                 </div>
 
                 <div style={row2}>
-                  <select style={ctrl} value={sortDir} onChange={(e) => setSortDir(e.target.value as any)}>
+                  <select
+                    style={ctrl}
+                    value={sortDir}
+                    onChange={(e) => setSortDir(e.target.value as any)}
+                  >
                     <option value="desc">Decrescente</option>
                     <option value="asc">Crescente</option>
                   </select>
@@ -830,7 +889,8 @@ export default function EntrateUscite() {
                 </div>
 
                 <div className="rowSub" style={{ marginTop: -2 }}>
-                  Visualizzati: <b>{movimentiFilteredSorted.length}</b> / {movimenti.length}
+                  Visualizzati: <b>{movimentiFilteredSorted.length}</b> /{" "}
+                  {movimenti.length}
                 </div>
               </div>
             )}
@@ -846,8 +906,10 @@ export default function EntrateUscite() {
               ) : (
                 movimentiFilteredSorted.map((m, idx) => {
                   const isEntrata = m.tipologia === "ENTRATA";
-                  const codificata = (m.descrizione_label || "").trim() || "N/D";
-                  const operazione = (m.descrizione_operazione || "").trim() || "—";
+                  const codificata =
+                    (m.descrizione_label || "").trim() || "N/D";
+                  const operazione =
+                    (m.descrizione_operazione || "").trim() || "—";
                   const { day, mon } = dateParts(m.data);
                   const me = macroEff(m);
 
@@ -858,7 +920,8 @@ export default function EntrateUscite() {
                         tabIndex={0}
                         onClick={() => openEdit(m.id)}
                         onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") openEdit(m.id);
+                          if (e.key === "Enter" || e.key === " ")
+                            openEdit(m.id);
                         }}
                         className="movRow"
                       >
@@ -873,8 +936,14 @@ export default function EntrateUscite() {
                               <MiniTag tone={isEntrata ? "green" : "red"}>
                                 {isEntrata ? "Entrata" : "Uscita"}
                               </MiniTag>
-                              <MiniTag tone={toneForMacro(me) as any}>{macroLabel(me)}</MiniTag>
-                              {m.conto ? <MiniTag tone="neutral">{contoLabel(m.conto)}</MiniTag> : null}
+                              <MiniTag tone={toneForMacro(me) as any}>
+                                {macroLabel(me)}
+                              </MiniTag>
+                              {m.conto ? (
+                                <MiniTag tone="neutral">
+                                  {contoLabel(m.conto)}
+                                </MiniTag>
+                              ) : null}
                             </div>
                           </div>
 
@@ -900,7 +969,9 @@ export default function EntrateUscite() {
                         </div>
                       </div>
 
-                      {idx !== movimentiFilteredSorted.length - 1 && <div style={{ height: 10 }} />}
+                      {idx !== movimentiFilteredSorted.length - 1 && (
+                        <div style={{ height: 10 }} />
+                      )}
                     </div>
                   );
                 })
@@ -912,38 +983,92 @@ export default function EntrateUscite() {
 
       {/* ===== ACCORDION: RIEPILOGO ===== */}
       <div className="section">
-        <AccordionHeader title="Riepilogo" open={openRiepilogo} onToggle={() => setOpenRiepilogo((s) => !s)} />
+        <AccordionHeader
+          title="Riepilogo"
+          open={openRiepilogo}
+          onToggle={() => setOpenRiepilogo((s) => !s)}
+          
+        />
 
         {openRiepilogo && (
           <div style={{ marginTop: 10 }} className="listBox">
             <div className="listRow">
               <div className="rowMain" style={{ display: "grid", gap: 10 }}>
-                <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 0.4, opacity: 0.7, textTransform: "uppercase" }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    letterSpacing: 0.4,
+                    opacity: 0.7,
+                    textTransform: "uppercase",
+                  }}
+                >
                   Entrate
                 </div>
-                <WrapRowValue label="Totale entrate banca" value={<Euro v={totEntrateBanca} />} />
-                <WrapRowValue label="Totale entrate cassa" value={<Euro v={totEntrateCassa} />} />
-                <WrapRowValue label="Totale entrate" value={<Euro v={totEntrate} />} />
+                <WrapRowValue
+                  label="Totale entrate banca"
+                  value={<Euro v={totEntrateBanca} />}
+                />
+                <WrapRowValue
+                  label="Totale entrate cassa"
+                  value={<Euro v={totEntrateCassa} />}
+                />
+                <WrapRowValue
+                  label="Totale entrate"
+                  value={<Euro v={totEntrate} />}
+                />
               </div>
             </div>
 
             <div className="listRow">
               <div className="rowMain" style={{ display: "grid", gap: 10 }}>
-                <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 0.4, opacity: 0.7, textTransform: "uppercase" }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    letterSpacing: 0.4,
+                    opacity: 0.7,
+                    textTransform: "uppercase",
+                  }}
+                >
                   Uscite
                 </div>
-                <WrapRowValue label="Totale uscite banca" value={<Euro v={totUsciteBanca} />} />
-                <WrapRowValue label="Totale uscite cassa" value={<Euro v={totUsciteCassa} />} />
-                <WrapRowValue label="Totale uscite" value={<Euro v={totUscite} />} />
+                <WrapRowValue
+                  label="Totale uscite banca"
+                  value={<Euro v={totUsciteBanca} />}
+                />
+                <WrapRowValue
+                  label="Totale uscite cassa"
+                  value={<Euro v={totUsciteCassa} />}
+                />
+                <WrapRowValue
+                  label="Totale uscite"
+                  value={<Euro v={totUscite} />}
+                />
               </div>
             </div>
 
             <div className="listRow">
               <div className="rowMain" style={{ display: "grid", gap: 10 }}>
-                <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 0.4, opacity: 0.7, textTransform: "uppercase" }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    letterSpacing: 0.4,
+                    opacity: 0.7,
+                    textTransform: "uppercase",
+                  }}
+                >
                   Disponibilità
                 </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 2 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 8,
+                    marginTop: 2,
+                  }}
+                >
                   <Badge tone="neutral">
                     Avanzo banca (t-1):{" "}
                     <b>
@@ -957,17 +1082,34 @@ export default function EntrateUscite() {
                     </b>
                   </Badge>
                 </div>
-                <WrapRowValue label="Disponibilità banca" value={<Euro v={disponibilitaBanca} />} />
-                <WrapRowValue label="Disponibilità cassa" value={<Euro v={disponibilitaCassa} />} />
+                <WrapRowValue
+                  label="Disponibilità banca"
+                  value={<Euro v={disponibilitaBanca} />}
+                />
+                <WrapRowValue
+                  label="Disponibilità cassa"
+                  value={<Euro v={disponibilitaCassa} />}
+                />
               </div>
             </div>
 
             <div className="listRow">
               <div className="rowMain" style={{ display: "grid", gap: 8 }}>
-                <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 0.4, opacity: 0.7, textTransform: "uppercase" }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    letterSpacing: 0.4,
+                    opacity: 0.7,
+                    textTransform: "uppercase",
+                  }}
+                >
                   Risultato di gestione
                 </div>
-                <WrapRowValue label="Avanzo / disavanzo di gestione" value={<Euro v={avanzoGestione} />} />
+                <WrapRowValue
+                  label="Avanzo / disavanzo di gestione"
+                  value={<Euro v={avanzoGestione} />}
+                />
                 <div className="rowSub">(Totale entrate − Totale uscite)</div>
               </div>
             </div>
@@ -982,7 +1124,10 @@ export default function EntrateUscite() {
           <div className="listRow">
             <div className="rowMain">
               <div className="rowTitle">Scarica Entrate/Uscite in Excel</div>
-              <div className="rowSub">Include movimenti e avanzi (in due fogli separati) + colonna Cassa/Banca.</div>
+              <div className="rowSub">
+                Include movimenti e avanzi (in due fogli separati) + colonna
+                Cassa/Banca.
+              </div>
             </div>
 
             <button
@@ -990,7 +1135,9 @@ export default function EntrateUscite() {
               type="button"
               onClick={downloadExcel}
               disabled={!list.length}
-              title={!list.length ? "Nessun dato da esportare" : "Scarica Excel"}
+              title={
+                !list.length ? "Nessun dato da esportare" : "Scarica Excel"
+              }
             >
               Scarica Excel
             </button>
