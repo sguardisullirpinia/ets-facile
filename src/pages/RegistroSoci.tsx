@@ -577,7 +577,7 @@ export default function RegistroSoci() {
                       </div>
 
                       <div style={{ marginTop: 4 }}>
-                        <Badge tone={quota ? "green" : "neutral"}>
+                        <Badge tone={quota ? "green" : "amber"}>
                           Quota {annualitaAnno ? annualitaAnno : ""}:{" "}
                           <b>{quota ? "Quota annuale SI" : "Quota annuale NO"}</b>
                         </Badge>
