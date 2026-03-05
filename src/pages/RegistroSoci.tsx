@@ -394,7 +394,7 @@ export default function RegistroSoci() {
           "Data cessazione": fmtDate(s.data_cessazione),
           Email: s.email ?? "",
           PEC: s.pec ?? "",
-          "Quota associativa (annualità)": paid ? "SI" : "NO",
+          "Quota associativa (annualità)": paid ? "Quota annuale SI" : "Quota annuale NO",
         };
       });
 
@@ -578,7 +578,7 @@ export default function RegistroSoci() {
                       <div style={{ marginTop: 4 }}>
                         <Badge tone={quota ? "green" : "neutral"}>
                           Quota {annualitaAnno ? annualitaAnno : ""}:{" "}
-                          <b>{quota ? "SI" : "NO"}</b>
+                          <b>{quota ? "Quota annuale SI" : "Quota annuale NO"}</b>
                         </Badge>
                       </div>
                     </div>
@@ -593,7 +593,7 @@ export default function RegistroSoci() {
                       title="Cambia quota associativa (per annualità)"
                       style={{ whiteSpace: "nowrap" }}
                     >
-                      {quota ? "SI" : "NO"}
+                      {quota ? "Quota annuale SI" : " Quota annuale NO"}
                     </button>
 
                     <div style={{ display: "flex", gap: 8 }}>
