@@ -224,7 +224,7 @@ export default function RegistroSoci() {
 
       if (!errQuote) {
         const map: Record<string, boolean> = {};
-        for (const q of quoteData || []) map[(q as any).socio_id] = !!(q as any).pagata;
+        for (const q of quoteData || []) map[(q as any).socio_id] = (q as any).pagata === true;
         setQuotaMap(map);
       } else {
         // non blocco la pagina, ma lo segnalo
