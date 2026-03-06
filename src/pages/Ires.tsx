@@ -524,22 +524,23 @@ export default function Ires() {
       {/* REGIME: mostra quello scelto in Annualità + postilla */}
       <Card title="REGIME">
         <WrapRow
-          label="Regime (da Annualità)"
+          label="Regime Prescelto"
           value={<strong>{regimeDaAnnualita}</strong>}
         />
 
-        <div
-          className="muted"
-          style={{ marginTop: 10, fontSize: 12, lineHeight: 1.4 }}
-        >
-          Nota: per modificare il regime, intervenire dalla pagina{" "}
-          <b>Annualità</b>.
-        </div>
+        
          <div style={{ marginTop: 8 }}>
           <WrapRow
             label="Ricavi annualità precedente (valore inserito in Annualità)"
             value={<Euro v={ricaviPrec} />}
           />
+        </div>
+        <div
+          className="muted"
+          style={{ marginTop: 10, fontSize: 12, lineHeight: 1.4 }}
+        >
+          Nota: per modificare il regime intervenire dalla pagina{" "}
+          <b>Annualità</b>.
         </div>
            <div style={{ marginTop: 10 }}>
           <div
