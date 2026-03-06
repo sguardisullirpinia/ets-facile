@@ -520,14 +520,7 @@ export default function Ires() {
           <div className="errorText">{error}</div>
         </div>
       )}
-       <div style={{ marginTop: 8 }}>
-          <WrapRow
-            label="Ricavi annualità precedente (valore inserito in Annualità)"
-            value={<Euro v={ricaviPrec} />}
-          />
-        </div>
-      </Card>
-
+    
       {/* REGIME: mostra quello scelto in Annualità + postilla */}
       <Card title="REGIME">
         <WrapRow
@@ -542,6 +535,13 @@ export default function Ires() {
           Nota: per modificare il regime, intervenire dalla pagina{" "}
           <b>Annualità</b>.
         </div>
+         <div style={{ marginTop: 8 }}>
+          <WrapRow
+            label="Ricavi annualità precedente (valore inserito in Annualità)"
+            value={<Euro v={ricaviPrec} />}
+          />
+        </div>
+      </Card>
 
         <div style={{ marginTop: 10 }}>
           <div
