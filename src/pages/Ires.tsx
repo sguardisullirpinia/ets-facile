@@ -520,6 +520,13 @@ export default function Ires() {
           <div className="errorText">{error}</div>
         </div>
       )}
+       <div style={{ marginTop: 8 }}>
+          <WrapRow
+            label="Ricavi annualità precedente (valore inserito in Annualità)"
+            value={<Euro v={ricaviPrec} />}
+          />
+        </div>
+      </Card>
 
       {/* REGIME: mostra quello scelto in Annualità + postilla */}
       <Card title="REGIME">
@@ -537,36 +544,28 @@ export default function Ires() {
         </div>
 
         <div style={{ marginTop: 10 }}>
-  <div
-    style={{
-      display: "block",
-      width: "100%",
-      boxSizing: "border-box",
-      padding: "10px 12px",
-      borderRadius: 999,
-      border: "1px solid rgba(37,99,235,0.55)",
-      background: "rgba(37,99,235,0.06)",
-      color: "#1d4ed8",
-      fontWeight: 900,
-      fontSize: "clamp(12px, 3.2vw, 14px)",
-      lineHeight: 1.2,
-      whiteSpace: "normal",
-      overflowWrap: "anywhere",
-      wordBreak: "break-word",
-      textAlign: "center",
-    }}
-  >
-    {casoLabel}
-  </div>
-</div>
-
-        <div style={{ marginTop: 8 }}>
-          <WrapRow
-            label="Ricavi annualità precedente (valore inserito in Annualità)"
-            value={<Euro v={ricaviPrec} />}
-          />
+          <div
+            style={{
+              display: "block",
+              width: "100%",
+              boxSizing: "border-box",
+              padding: "10px 12px",
+              borderRadius: 999,
+              border: "1px solid rgba(37,99,235,0.55)",
+              background: "rgba(37,99,235,0.06)",
+              color: "#1d4ed8",
+              fontWeight: 900,
+              fontSize: "clamp(12px, 3.2vw, 14px)",
+              lineHeight: 1.2,
+              whiteSpace: "normal",
+              overflowWrap: "anywhere",
+              wordBreak: "break-word",
+              textAlign: "center",
+            }}
+          >
+            {casoLabel}
+          </div>
         </div>
-      </Card>
 
       <Card title="Calcolo IRES">
         {/* RIEPILOGO FORMULA */}
