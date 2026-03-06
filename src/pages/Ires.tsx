@@ -541,9 +541,7 @@ export default function Ires() {
             value={<Euro v={ricaviPrec} />}
           />
         </div>
-      </Card>
-
-        <div style={{ marginTop: 10 }}>
+           <div style={{ marginTop: 10 }}>
           <div
             style={{
               display: "block",
@@ -565,6 +563,9 @@ export default function Ires() {
           >
             {casoLabel}
           </div>
+      </Card>
+
+     
         </div>
 
       <Card title="Calcolo IRES">
