@@ -563,10 +563,11 @@ export default function Ires() {
           >
             {casoLabel}
           </div>
+         </div>
       </Card>
 
      
-        </div>
+       
 
       <Card title="Calcolo IRES">
         {/* RIEPILOGO FORMULA */}
