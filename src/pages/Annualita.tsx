@@ -11,6 +11,7 @@ type Annualita = {
   anno: number;
   ricavi_annualita_precedente: number;
   regime: Regime;
+  aig_unica_sotto_300k: boolean;
 };
 
 function numEuro(v: any) {
@@ -39,12 +40,13 @@ export default function Annualita() {
   const [anno, setAnno] = useState<number>(new Date().getFullYear());
   const [ricaviPrec, setRicaviPrec] = useState<string>("");
   const [regime, setRegime] = useState<Regime>("ORDINARIO");
+  const [aigUnicaSotto300k, setAigUnicaSotto300k] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ stato edit
+  // stato edit
   const [editing, setEditing] = useState<Annualita | null>(null);
 
   const [openCreate, setOpenCreate] = useState(false);
@@ -61,7 +63,6 @@ export default function Annualita() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ricaviPrec]);
 
-  // 🔹 Carica annualità
   const loadAnnualita = async () => {
     setError(null);
     setLoading(true);
@@ -74,7 +75,9 @@ export default function Annualita() {
 
     const { data, error } = await supabase
       .from("annualita")
-      .select("id, anno, ricavi_annualita_precedente, regime")
+      .select(
+        "id, anno, ricavi_annualita_precedente, regime, aig_unica_sotto_300k",
+      )
       .order("anno", { ascending: false });
 
     if (error) {
@@ -92,7 +95,7 @@ export default function Annualita() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ✅ quando entro in modalità modifica, precompilo i campi
+  // quando entro in modalità modifica, precompilo i campi
   useEffect(() => {
     if (!openCreate) return;
 
@@ -100,10 +103,16 @@ export default function Annualita() {
       setAnno(editing.anno);
       setRicaviPrec(String(editing.ricavi_annualita_precedente ?? 0));
       setRegime(editing.regime);
+      setAigUnicaSotto300k(!!editing.aig_unica_sotto_300k);
+      return;
     }
+
+    setAnno(new Date().getFullYear());
+    setRicaviPrec("");
+    setRegime("ORDINARIO");
+    setAigUnicaSotto300k(false);
   }, [openCreate, editing]);
 
-  // ✅ Salva annualità (CREATE o UPDATE)
   const saveAnnualita = async () => {
     setError(null);
 
@@ -133,13 +142,13 @@ export default function Annualita() {
     }
 
     if (editing) {
-      // ✅ UPDATE
       const { error: updErr } = await supabase
         .from("annualita")
         .update({
           anno,
           ricavi_annualita_precedente,
           regime: regimeFinale,
+          aig_unica_sotto_300k: aigUnicaSotto300k,
         })
         .eq("id", editing.id);
 
@@ -149,7 +158,6 @@ export default function Annualita() {
         return;
       }
 
-      // opzionale: se vuoi tenere allineata anche la tabella ires
       await supabase
         .from("ires")
         .update({ ricavi_precedente: ricavi_annualita_precedente })
@@ -162,7 +170,6 @@ export default function Annualita() {
       return;
     }
 
-    // ✅ CREATE
     const { data: inserted, error: insErr } = await supabase
       .from("annualita")
       .insert({
@@ -170,6 +177,7 @@ export default function Annualita() {
         anno,
         ricavi_annualita_precedente,
         regime: regimeFinale,
+        aig_unica_sotto_300k: aigUnicaSotto300k,
       })
       .select("id")
       .single();
@@ -180,7 +188,6 @@ export default function Annualita() {
       return;
     }
 
-    // ✅ crea riga ires collegata (se ti serve sempre)
     if (inserted?.id) {
       await supabase.from("ires").insert({
         annualita_id: inserted.id,
@@ -190,21 +197,24 @@ export default function Annualita() {
 
     setCreating(false);
     setOpenCreate(false);
+    setEditing(null);
     await loadAnnualita();
   };
 
-  // ✅ Seleziona annualità (apri workspace)
   const selectAnnualita = (a: Annualita) => {
     localStorage.setItem("annualita_id", a.id);
     localStorage.setItem("annualita_anno", String(a.anno));
     localStorage.setItem("annualita_regime", a.regime);
+    localStorage.setItem(
+      "annualita_aig_unica_sotto_300k",
+      a.aig_unica_sotto_300k ? "true" : "false",
+    );
     localStorage.removeItem("movimento_edit_id");
     localStorage.removeItem("movimento_tipologia");
 
     window.location.href = "/EntrateUscite";
   };
 
-  // 🔹 Elimina annualità
   const deleteAnnualita = async (a: Annualita) => {
     const ok = window.confirm(
       `Vuoi eliminare l'annualità ${a.anno}? Questa azione non è reversibile.`,
@@ -222,7 +232,6 @@ export default function Annualita() {
     await loadAnnualita();
   };
 
-  // 🔹 Logout
   const logout = async () => {
     await supabase.auth.signOut();
     localStorage.clear();
@@ -242,7 +251,6 @@ export default function Annualita() {
     color: "#111827",
   };
 
-  // FAB +
   const fabStyle: React.CSSProperties = {
     position: "fixed",
     right: 16,
@@ -301,7 +309,6 @@ export default function Annualita() {
         overflow: "hidden",
       }}
     >
-      {/* BACKGROUND LOGO */}
       <div
         style={{
           position: "absolute",
@@ -318,7 +325,6 @@ export default function Annualita() {
       />
 
       <div style={{ position: "relative", zIndex: 1 }}>
-        {/* HEADER */}
         <div
           style={{
             maxWidth: 920,
@@ -376,7 +382,6 @@ export default function Annualita() {
             </div>
           )}
 
-          {/* LISTA */}
           <Card title="Le tue annualità">
             {loading ? (
               <div style={{ color: "#6b7280", fontWeight: 700 }}>
@@ -422,14 +427,42 @@ export default function Annualita() {
                             fontSize: 12,
                             color: "#6b7280",
                             fontWeight: 700,
-                            marginTop: 2,
+                            marginTop: 4,
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 6,
+                          }}
+                        >
+                          {a.aig_unica_sotto_300k && (
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                padding: "4px 8px",
+                                borderRadius: 999,
+                                background: "#eff6ff",
+                                color: "#1d4ed8",
+                                fontWeight: 900,
+                                border: "1px solid #bfdbfe",
+                              }}
+                            >
+                              AIG unica sotto € 300.000
+                            </span>
+                          )}
+                        </div>
+
+                        <div
+                          style={{
+                            fontSize: 12,
+                            color: "#6b7280",
+                            fontWeight: 700,
+                            marginTop: 6,
                           }}
                         >
                           Tocca per aprire il workspace
                         </div>
                       </div>
 
-                      {/* ✅ azioni: Modifica + Elimina */}
                       <div style={{ display: "flex", gap: 8 }}>
                         <button
                           type="button"
@@ -468,7 +501,6 @@ export default function Annualita() {
           </Card>
         </div>
 
-        {/* FAB + */}
         {!openCreate && (
           <button
             style={fabStyle}
@@ -477,6 +509,7 @@ export default function Annualita() {
               setAnno(new Date().getFullYear());
               setRicaviPrec("");
               setRegime("ORDINARIO");
+              setAigUnicaSotto300k(false);
               setOpenCreate(true);
             }}
             type="button"
@@ -486,7 +519,6 @@ export default function Annualita() {
           </button>
         )}
 
-        {/* MODALE CREATE/EDIT */}
         {openCreate && (
           <div
             onClick={() => !creating && setOpenCreate(false)}
@@ -522,8 +554,9 @@ export default function Annualita() {
                   {editing ? "Modifica annualità" : "Nuova annualità"}
                 </div>
                 <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>
-                  Inserisci anno, ricavi dell’anno precedente e seleziona il
-                  regime (se consentito).
+                  Inserisci anno, ricavi dell’anno precedente, seleziona il
+                  regime fiscale e indica se l’annualità rientra nella modalità
+                  AIG unica sotto € 300.000.
                 </div>
               </div>
 
@@ -571,7 +604,6 @@ export default function Annualita() {
                   aria-label="Anno"
                 />
 
-                {/* Ricavi annualità precedente */}
                 <div style={{ display: "grid", gap: 6 }}>
                   <div
                     style={{ fontSize: 12, color: "#374151", fontWeight: 900 }}
@@ -602,7 +634,6 @@ export default function Annualita() {
                   </div>
                 </div>
 
-                {/* Regime: condizionale */}
                 {under85k ? (
                   <div style={{ display: "grid", gap: 10 }}>
                     <div
@@ -615,7 +646,6 @@ export default function Annualita() {
                       Regime fiscale
                     </div>
 
-                    {/* Opzione FORFETTARIO */}
                     <button
                       type="button"
                       onClick={() => setRegime("FORFETTARIO")}
@@ -660,7 +690,6 @@ export default function Annualita() {
                       />
                     </button>
 
-                    {/* Opzione ORDINARIO */}
                     <button
                       type="button"
                       onClick={() => setRegime("ORDINARIO")}
@@ -729,6 +758,51 @@ export default function Annualita() {
                     </div>
                   </div>
                 )}
+
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 10,
+                    padding: "12px",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 14,
+                    background: "#fff",
+                    cursor: "pointer",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={aigUnicaSotto300k}
+                    onChange={(e) => setAigUnicaSotto300k(e.target.checked)}
+                    style={{
+                      width: 18,
+                      height: 18,
+                      cursor: "pointer",
+                      marginTop: 2,
+                    }}
+                    aria-label="Entrate T-1 non superiore a 300.000 euro"
+                  />
+
+                  <div style={{ display: "grid", gap: 4 }}>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        color: "#111827",
+                        fontWeight: 900,
+                      }}
+                    >
+                      Se i ricavi dell'annualità precedente sono non superiori a
+                      € 300.000 puoi considerare le diverse attività di
+                      interesse generale eventualmente svolte come un’unica
+                      attività
+                    </div>
+                    <div style={{ fontSize: 12, color: "#6b7280" }}>
+                      Circolare N.1/E Agenzia delle Entrate del 19 febbraio
+                      2026.
+                    </div>
+                  </div>
+                </label>
 
                 <PrimaryButton onClick={saveAnnualita} disabled={creating}>
                   {creating
