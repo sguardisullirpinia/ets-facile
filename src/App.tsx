@@ -11,8 +11,8 @@ import Iva from "./pages/Iva";
 import Ires from "./pages/Ires";
 import RegistroSoci from "./pages/RegistroSoci";
 import MovimentoEditor from "./pages/MovimentoEditor";
+import Rendiconto from "./pages/Rendiconto";
 import Profilo from "./pages/Profilo"; // ✅ NUOVO
-
 
 export default function App() {
   return (
@@ -31,6 +31,7 @@ export default function App() {
       <Route path="/registro-soci" element={<RegistroSoci />} />
       <Route path="/movimento" element={<MovimentoEditor />} />
       <Route path="*" element={<Navigate to="/login" />} />
+      <Route path="/rendiconto" element={<Rendiconto />} />
     </Routes>
   );
 }

@@ -1,9 +1,23 @@
 // RaccolteFondi.tsx
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import { supabase } from "../lib/supabase";
 import { Badge, Card, PrimaryButton, Euro } from "../components/ui";
+import {
+  AlignmentType,
+  BorderStyle,
+  Document,
+  Packer,
+  Paragraph,
+  Table,
+  TableCell,
+  TableRow,
+  TextRun,
+  WidthType,
+} from "docx";
+import { saveAs } from "file-saver";
 
 type RfRow = {
   id: string;
@@ -19,15 +33,18 @@ type Movimento = {
   macro: string;
   descrizione_code: number | null;
   descrizione_label: string | null;
-
   descrizione_operazione?: string | null;
   descrizione_libera?: string | null;
-
   importo: any;
   iva: any;
 };
 
-/** ✅ robusto IT/EN */
+type ProfileDocData = {
+  denominazione: string | null;
+  cf: string | null;
+};
+
+/** robusto IT/EN */
 function num(v: any) {
   if (v === null || v === undefined) return 0;
   if (typeof v === "number") return Number.isFinite(v) ? v : 0;
@@ -36,14 +53,17 @@ function num(v: any) {
   if (!s) return 0;
 
   s = s.replace(/[^\d,.\-]/g, "");
-  if (s.includes(",") && s.includes(".")) s = s.replace(/\./g, "").replace(",", ".");
-  else if (s.includes(",")) s = s.replace(",", ".");
+  if (s.includes(",") && s.includes(".")) {
+    s = s.replace(/\./g, "").replace(",", ".");
+  } else if (s.includes(",")) {
+    s = s.replace(",", ".");
+  }
 
   const n = Number(s);
   return Number.isFinite(n) ? n : 0;
 }
 
-/** ✅ totale movimento LORDO = importo + iva */
+/** totale movimento LORDO = importo + iva */
 function totaleMov(m: Movimento) {
   return num(m.importo) + num(m.iva);
 }
@@ -55,13 +75,139 @@ function fmtDate(d: string | null) {
   return `${day}/${m}/${y}`;
 }
 
-/** ✅ come Attività Diverse */
 function dateParts(d: string | null) {
   if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return { day: "—", mon: "" };
   const [, m, day] = d.split("-");
-  const months = ["GEN", "FEB", "MAR", "APR", "MAG", "GIU", "LUG", "AGO", "SET", "OTT", "NOV", "DIC"];
+  const months = [
+    "GEN",
+    "FEB",
+    "MAR",
+    "APR",
+    "MAG",
+    "GIU",
+    "LUG",
+    "AGO",
+    "SET",
+    "OTT",
+    "NOV",
+    "DIC",
+  ];
   const mi = Math.max(1, Math.min(12, Number(m))) - 1;
   return { day, mon: months[mi] };
+}
+
+function euroText(v: number) {
+  return new Intl.NumberFormat("it-IT", {
+    style: "currency",
+    currency: "EUR",
+  }).format(num(v));
+}
+
+function euroPlain(v: number) {
+  return new Intl.NumberFormat("it-IT", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(num(v));
+}
+
+function safeText(v?: string | null, fallback = "—") {
+  const s = (v || "").trim();
+  return s || fallback;
+}
+
+function fileSafeName(v: string) {
+  return (v || "raccolta-fondi")
+    .trim()
+    .replace(/[\\/:*?"<>|]/g, "")
+    .replace(/\s+/g, "-");
+}
+
+function getRfEntrateBreakdown(movimenti: Movimento[]) {
+  let liberalitaMonetarie = 0;
+  let liberalitaNonMonetarie = 0;
+  let altriProventi = 0;
+
+  for (const m of movimenti) {
+    const val = totaleMov(m);
+    const label = (m.descrizione_label || "").trim();
+
+    if (label === "Liberalità monetarie") liberalitaMonetarie += val;
+    else if (label === "Valore di mercato liberalità non monetarie")
+      liberalitaNonMonetarie += val;
+    else if (label === "Altri proventi") altriProventi += val;
+  }
+
+  return {
+    liberalitaMonetarie,
+    liberalitaNonMonetarie,
+    altriProventi,
+    totale: liberalitaMonetarie + liberalitaNonMonetarie + altriProventi,
+  };
+}
+
+function getRfUsciteBreakdown(movimenti: Movimento[]) {
+  let acquistoBeni = 0;
+  let acquistoServizi = 0;
+  let noleggiAffittiAttrezzature = 0;
+  let promozionali = 0;
+  let lavoro = 0;
+  let rimborsiVolontari = 0;
+  let altriOneri = 0;
+
+  for (const m of movimenti) {
+    const val = totaleMov(m);
+    const label = (m.descrizione_label || "").trim();
+
+    if (label === "Oneri per acquisto beni") acquistoBeni += val;
+    else if (label === "Oneri per acquisto servizi") acquistoServizi += val;
+    else if (label === "Oneri per noleggi, affitti o utilizzo attrezzature")
+      noleggiAffittiAttrezzature += val;
+    else if (label === "Oneri promozionali per la raccolta")
+      promozionali += val;
+    else if (label === "Oneri per lavoro dipendente o autonomo") lavoro += val;
+    else if (label === "Oneri per rimborsi a volontari")
+      rimborsiVolontari += val;
+    else if (label === "Altri oneri") altriOneri += val;
+  }
+
+  return {
+    acquistoBeni,
+    acquistoServizi,
+    noleggiAffittiAttrezzature,
+    promozionali,
+    lavoro,
+    rimborsiVolontari,
+    altriOneri,
+    totale:
+      acquistoBeni +
+      acquistoServizi +
+      noleggiAffittiAttrezzature +
+      promozionali +
+      lavoro +
+      rimborsiVolontari +
+      altriOneri,
+  };
+}
+
+function cellText(
+  text: string,
+  bold = false,
+  align: "left" | "right" | "center" = "left",
+) {
+  return new TableCell({
+    width: { size: 50, type: WidthType.PERCENTAGE },
+    children: [
+      new Paragraph({
+        alignment:
+          align === "right"
+            ? AlignmentType.RIGHT
+            : align === "center"
+              ? AlignmentType.CENTER
+              : AlignmentType.LEFT,
+        children: [new TextRun({ text, bold })],
+      }),
+    ],
+  });
 }
 
 function MiniTag({
@@ -72,7 +218,9 @@ function MiniTag({
   tone?: "green" | "red" | "blue" | "amber" | "yellow" | "neutral";
 }) {
   return (
-    <span className={`miniTag ${tone ? `miniTag--${tone}` : "miniTag--neutral"}`}>
+    <span
+      className={`miniTag ${tone ? `miniTag--${tone}` : "miniTag--neutral"}`}
+    >
       {children}
     </span>
   );
@@ -88,11 +236,41 @@ function getDescrPair(m: Movimento) {
 
 function TrashIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M3 6h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M8 6V4h8v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M19 6l-1 14H6L5 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M10 11v6M14 11v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M3 6h18"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M8 6V4h8v2"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M19 6l-1 14H6L5 6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M10 11v6M14 11v6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -114,12 +292,12 @@ function IconButton({
 }
 
 export default function RaccolteFondi() {
+  const nav = useNavigate();
   const annualitaId = localStorage.getItem("annualita_id");
 
   const [error, setError] = useState<string | null>(null);
   const [items, setItems] = useState<RfRow[]>([]);
 
-  // sheet create/edit
   const [openModal, setOpenModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -128,7 +306,6 @@ export default function RaccolteFondi() {
   const [descr, setDescr] = useState("");
   const [rfData, setRfData] = useState("");
 
-  // dettaglio fullscreen
   const [active, setActive] = useState<RfRow | null>(null);
 
   const [availEntrate, setAvailEntrate] = useState<Movimento[]>([]);
@@ -140,8 +317,8 @@ export default function RaccolteFondi() {
   const [selUscite, setSelUscite] = useState<Record<string, boolean>>({});
 
   const [cgMap, setCgMap] = useState<Record<string, number>>({});
+  const [downloadingDoc, setDownloadingDoc] = useState(false);
 
-  // ====== utility style ======
   const noEllipsis: React.CSSProperties = {
     whiteSpace: "normal",
     overflow: "visible",
@@ -158,7 +335,6 @@ export default function RaccolteFondi() {
     columnGap: 12,
   };
 
-  // ====== modale fullscreen ======
   const fullModalOverlay: React.CSSProperties = {
     position: "fixed",
     inset: 0,
@@ -186,7 +362,6 @@ export default function RaccolteFondi() {
     padding: "0 20px",
   };
 
-  // blocca scroll body
   useEffect(() => {
     if (active) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "";
@@ -195,9 +370,13 @@ export default function RaccolteFondi() {
     };
   }, [active]);
 
-  // =========================
-  // ✅ MOV ROW (UGUALE ad Attività Diverse)
-  // =========================
+  const openMovimentoEdit = (m: Movimento) => {
+    localStorage.setItem("movimento_edit_id", m.id);
+    localStorage.setItem("movimento_tipologia", m.tipologia);
+    setActive(null);
+    nav("/movimento");
+  };
+
   const AvailableMoveCard = ({
     m,
     checked,
@@ -270,9 +449,11 @@ export default function RaccolteFondi() {
   const AssignedMoveCard = ({
     m,
     onUnassign,
+    onEdit,
   }: {
     m: Movimento;
     onUnassign: (id: string) => void;
+    onEdit: (m: Movimento) => void;
   }) => {
     const isEntrata = m.tipologia === "ENTRATA";
     const title = (m.descrizione_label || "").trim() || getDescrPair(m).cod;
@@ -284,7 +465,19 @@ export default function RaccolteFondi() {
     const { day, mon } = dateParts(m.data);
 
     return (
-      <div className="movRow">
+      <div
+        className="movRow"
+        role="button"
+        tabIndex={0}
+        onClick={() => onEdit(m)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onEdit(m);
+          }
+        }}
+        style={{ cursor: "pointer" }}
+      >
         <div className="movDate">
           <div className="movDay">{day}</div>
           <div className="movMon">{mon}</div>
@@ -313,7 +506,10 @@ export default function RaccolteFondi() {
             className="iconBtn iconBtn--sm"
             type="button"
             title="Rimuovi assegnazione (torna tra disponibili)"
-            onClick={() => onUnassign(m.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onUnassign(m.id);
+            }}
             aria-label="Rimuovi assegnazione"
           >
             <TrashIcon />
@@ -323,7 +519,6 @@ export default function RaccolteFondi() {
     );
   };
 
-  // ====== riepilogo stile AIG/AttDiv ======
   const wrapRowBox: React.CSSProperties = {
     display: "flex",
     flexWrap: "wrap",
@@ -351,14 +546,19 @@ export default function RaccolteFondi() {
     fontWeight: 950,
   };
 
-  const WrapRowValue = ({ label, value }: { label: React.ReactNode; value: React.ReactNode }) => (
+  const WrapRowValue = ({
+    label,
+    value,
+  }: {
+    label: React.ReactNode;
+    value: React.ReactNode;
+  }) => (
     <div style={wrapRowBox}>
       <div style={wrapRowLabel}>{label}</div>
       <div style={wrapRowValue}>{value}</div>
     </div>
   );
 
-  // ====== load lista ======
   const loadItems = async () => {
     setError(null);
     if (!annualitaId) return;
@@ -396,16 +596,13 @@ export default function RaccolteFondi() {
 
   useEffect(() => {
     loadItems();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (!annualitaId) return;
     loadCostiGeneraliMap();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [annualitaId, items.length]);
 
-  // ====== create/edit sheet ======
   const openCreate = () => {
     setError(null);
     setEditMode(false);
@@ -453,7 +650,9 @@ export default function RaccolteFondi() {
       if (error) return alert(error.message);
 
       setActive((p) =>
-        p && p.id === editingId ? { ...p, nome: n, descrizione: descr.trim() || null, data: rfData } : p,
+        p && p.id === editingId
+          ? { ...p, nome: n, descrizione: descr.trim() || null, data: rfData }
+          : p,
       );
     }
 
@@ -463,16 +662,24 @@ export default function RaccolteFondi() {
   };
 
   const deleteItem = async (id: string) => {
-    const ok = confirm("Vuoi eliminare questa Raccolta Fondi? I movimenti assegnati torneranno disponibili.");
+    const ok = confirm(
+      "Vuoi eliminare questa Raccolta Fondi? I movimenti assegnati torneranno disponibili.",
+    );
     if (!ok) return;
 
-    const { error: unErr } = await supabase.rpc("unassign_movimenti_for_activity", {
-      p_type: "RACCOLTE_FONDI",
-      p_id: id,
-    });
+    const { error: unErr } = await supabase.rpc(
+      "unassign_movimenti_for_activity",
+      {
+        p_type: "RACCOLTE_FONDI",
+        p_id: id,
+      },
+    );
     if (unErr) return alert("Errore sblocco movimenti: " + unErr.message);
 
-    const { error } = await supabase.from("raccolte_fondi").delete().eq("id", id);
+    const { error } = await supabase
+      .from("raccolte_fondi")
+      .delete()
+      .eq("id", id);
     if (error) return alert(error.message);
 
     if (active?.id === id) setActive(null);
@@ -480,7 +687,6 @@ export default function RaccolteFondi() {
     await loadCostiGeneraliMap();
   };
 
-  // ====== dettaglio: movimenti ======
   const loadMovimentiForItem = async (rfId: string) => {
     setError(null);
     if (!annualitaId) return;
@@ -540,16 +746,11 @@ export default function RaccolteFondi() {
 
   const openItem = (it: RfRow) => {
     setError(null);
-
-    // chiudi eventuale sheet
     setOpenModal(false);
     setEditMode(false);
     setEditingId(null);
-
-    // apri subito
     setActive(it);
 
-    // carica dopo
     void (async () => {
       await loadMovimentiForItem(it.id);
       await loadCostiGeneraliMap();
@@ -578,7 +779,9 @@ export default function RaccolteFondi() {
   const assignSelected = async (kind: "ENTRATA" | "USCITA") => {
     if (!active) return;
 
-    const selectedIds = Object.entries(kind === "ENTRATA" ? selEntrate : selUscite)
+    const selectedIds = Object.entries(
+      kind === "ENTRATA" ? selEntrate : selUscite,
+    )
       .filter(([, v]) => v)
       .map(([id]) => id);
 
@@ -587,7 +790,10 @@ export default function RaccolteFondi() {
     for (const id of selectedIds) {
       const { error } = await supabase
         .from("movimenti")
-        .update({ allocated_to_type: "RACCOLTE_FONDI", allocated_to_id: active.id })
+        .update({
+          allocated_to_type: "RACCOLTE_FONDI",
+          allocated_to_id: active.id,
+        })
         .eq("id", id);
 
       if (error) return alert(error.message);
@@ -597,16 +803,367 @@ export default function RaccolteFondi() {
     await loadCostiGeneraliMap();
   };
 
-  // ====== totali ======
-  const totEntrate = useMemo(() => assEntrate.reduce((s, m) => s + totaleMov(m), 0), [assEntrate]);
-  const totUscite = useMemo(() => assUscite.reduce((s, m) => s + totaleMov(m), 0), [assUscite]);
+  const downloadRendicontoDoc = async () => {
+    if (!active) return;
+
+    try {
+      setDownloadingDoc(true);
+      setError(null);
+
+      const { data: userData, error: userErr } = await supabase.auth.getUser();
+      if (userErr || !userData.user) {
+        alert("Utente non autenticato");
+        return;
+      }
+
+      const { data: prof, error: profErr } = await supabase
+        .from("profiles")
+        .select("denominazione, cf")
+        .eq("id", userData.user.id)
+        .single();
+
+      if (profErr) {
+        alert(profErr.message);
+        return;
+      }
+
+      const profile = (prof || {}) as ProfileDocData;
+
+      const entrate = getRfEntrateBreakdown(assEntrate);
+      const uscite = getRfUsciteBreakdown(assUscite);
+
+      const totaleA = entrate.totale;
+      const totaleB = uscite.totale;
+      const risultato = totaleA - totaleB;
+
+      const denominazione = safeText(profile.denominazione);
+      const cf = safeText(profile.cf);
+      const evento = safeText(active.nome);
+      const dataEvento = fmtDate(active.data);
+      const dataStampa = new Date().toLocaleDateString("it-IT");
+      const relazioneSpacing = { line: 360 };
+
+      const doc = new Document({
+        sections: [
+          {
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { after: 240 },
+                children: [
+                  new TextRun({
+                    text: "RENDICONTO DELLA SINGOLA RACCOLTA PUBBLICA DI FONDI OCCASIONALE REDATTO AI SENSI DELL’ART.87 CO. 6 E DELL’ART. 79 CO.4 LETT.A DEL D.LGS 3 AGO 2017 N.117",
+                    bold: true,
+                  }),
+                ],
+              }),
+
+              new Paragraph({
+                children: [new TextRun({ text: denominazione, bold: true })],
+              }),
+              new Paragraph({
+                text: cf,
+              }),
+
+              new Paragraph({ text: "" }),
+
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { after: 180 },
+                children: [
+                  new TextRun({
+                    text: "RENDICONTO DELLA SINGOLA RACCOLTA FONDI OCCASIONALE",
+                    bold: true,
+                  }),
+                ],
+              }),
+
+              new Paragraph({
+                text: `dell’evento ${evento}`,
+              }),
+              new Paragraph({
+                text: `Durata della raccolta fondi: dal ${dataEvento} al _______________________`,
+              }),
+
+              new Paragraph({ text: "" }),
+
+              new Paragraph({
+                spacing: { after: 120 },
+                children: [
+                  new TextRun({
+                    text: "a) Proventi/entrate della raccolta fondi occasionale",
+                    bold: true,
+                  }),
+                ],
+              }),
+
+              new Table({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                borders: {
+                  top: { style: BorderStyle.SINGLE, size: 1, color: "999999" },
+                  bottom: {
+                    style: BorderStyle.SINGLE,
+                    size: 1,
+                    color: "999999",
+                  },
+                  left: { style: BorderStyle.SINGLE, size: 1, color: "999999" },
+                  right: {
+                    style: BorderStyle.SINGLE,
+                    size: 1,
+                    color: "999999",
+                  },
+                  insideHorizontal: {
+                    style: BorderStyle.SINGLE,
+                    size: 1,
+                    color: "dddddd",
+                  },
+                  insideVertical: {
+                    style: BorderStyle.SINGLE,
+                    size: 1,
+                    color: "dddddd",
+                  },
+                },
+                rows: [
+                  new TableRow({
+                    children: [
+                      cellText("- liberalità monetarie"),
+                      cellText(
+                        euroText(entrate.liberalitaMonetarie),
+                        false,
+                        "right",
+                      ),
+                    ],
+                  }),
+                  new TableRow({
+                    children: [
+                      cellText("- valore di mercato liberalità non monetarie"),
+                      cellText(
+                        euroText(entrate.liberalitaNonMonetarie),
+                        false,
+                        "right",
+                      ),
+                    ],
+                  }),
+                  new TableRow({
+                    children: [
+                      cellText("- altri proventi"),
+                      cellText(euroText(entrate.altriProventi), false, "right"),
+                    ],
+                  }),
+                  new TableRow({
+                    children: [
+                      cellText("Totale a)", true),
+                      cellText(euroText(totaleA), true, "right"),
+                    ],
+                  }),
+                ],
+              }),
+
+              new Paragraph({ text: "" }),
+
+              new Paragraph({
+                spacing: { after: 120 },
+                children: [
+                  new TextRun({
+                    text: "b) Oneri/uscite per la raccolta fondi occasionale",
+                    bold: true,
+                  }),
+                ],
+              }),
+
+              new Table({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                borders: {
+                  top: { style: BorderStyle.SINGLE, size: 1, color: "999999" },
+                  bottom: {
+                    style: BorderStyle.SINGLE,
+                    size: 1,
+                    color: "999999",
+                  },
+                  left: { style: BorderStyle.SINGLE, size: 1, color: "999999" },
+                  right: {
+                    style: BorderStyle.SINGLE,
+                    size: 1,
+                    color: "999999",
+                  },
+                  insideHorizontal: {
+                    style: BorderStyle.SINGLE,
+                    size: 1,
+                    color: "dddddd",
+                  },
+                  insideVertical: {
+                    style: BorderStyle.SINGLE,
+                    size: 1,
+                    color: "dddddd",
+                  },
+                },
+                rows: [
+                  new TableRow({
+                    children: [
+                      cellText("- oneri per acquisto beni"),
+                      cellText(euroText(uscite.acquistoBeni), false, "right"),
+                    ],
+                  }),
+                  new TableRow({
+                    children: [
+                      cellText("- oneri per acquisto servizi"),
+                      cellText(
+                        euroText(uscite.acquistoServizi),
+                        false,
+                        "right",
+                      ),
+                    ],
+                  }),
+                  new TableRow({
+                    children: [
+                      cellText(
+                        "- oneri per noleggi, affitti o utilizzo attrezzature",
+                      ),
+                      cellText(
+                        euroText(uscite.noleggiAffittiAttrezzature),
+                        false,
+                        "right",
+                      ),
+                    ],
+                  }),
+                  new TableRow({
+                    children: [
+                      cellText("- oneri promozionali per la raccolta"),
+                      cellText(euroText(uscite.promozionali), false, "right"),
+                    ],
+                  }),
+                  new TableRow({
+                    children: [
+                      cellText("- oneri per lavoro dipendente o autonomo"),
+                      cellText(euroText(uscite.lavoro), false, "right"),
+                    ],
+                  }),
+                  new TableRow({
+                    children: [
+                      cellText("- oneri per rimborsi a volontari"),
+                      cellText(
+                        euroText(uscite.rimborsiVolontari),
+                        false,
+                        "right",
+                      ),
+                    ],
+                  }),
+                  new TableRow({
+                    children: [
+                      cellText("- altri oneri"),
+                      cellText(euroText(uscite.altriOneri), false, "right"),
+                    ],
+                  }),
+                  new TableRow({
+                    children: [
+                      cellText("Totale b)", true),
+                      cellText(euroText(totaleB), true, "right"),
+                    ],
+                  }),
+                  new TableRow({
+                    children: [
+                      cellText(
+                        "Risultato della singola raccolta fondi (a-b)",
+                        true,
+                      ),
+                      cellText(euroText(risultato), true, "right"),
+                    ],
+                  }),
+                ],
+              }),
+
+              new Paragraph({ text: "" }),
+              new Paragraph({ text: "" }),
+
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { after: 180 },
+                children: [
+                  new TextRun({
+                    text: "RELAZIONE ILLUSTRATIVA DELLA SINGOLA INIZIATIVA DI RACCOLTA FONDI OCCASIONALE",
+                    bold: true,
+                  }),
+                ],
+              }),
+
+              new Paragraph({
+                spacing: { after: 120 },
+                children: [
+                  new TextRun({
+                    text: "Descrizione dell’iniziativa",
+                    bold: true,
+                  }),
+                ],
+              }),
+
+              new Paragraph({
+                spacing: relazioneSpacing,
+                text: `${denominazione} nei giorni dal ${dataEvento} al _______________________ ha realizzato l’evento denominato ${evento}`,
+              }),
+              new Paragraph({
+                spacing: relazioneSpacing,
+                text: `La raccolta fondi si è svolta mediante ______________________`,
+              }),
+              new Paragraph({
+                spacing: relazioneSpacing,
+                text: `Per la realizzazione della Raccolta Fondi sono stati sostenuti costi per un totale di € ${euroPlain(totaleB)}, così composti _______________________`,
+              }),
+              new Paragraph({
+                spacing: relazioneSpacing,
+                text: `Sono stati raccolti fondi in denaro per un totale di Euro ${euroText(totaleA)} così composti ____________________________`,
+              }),
+              new Paragraph({
+                spacing: relazioneSpacing,
+                text: `I fondi raccolti al netto del totale delle spese sostenute sono pari a ${euroText(risultato)}.`,
+              }),
+              new Paragraph({
+                spacing: relazioneSpacing,
+                text: `La somma verrà impiegata per ____________________________________`,
+              }),
+
+              new Paragraph({ text: "" }),
+              new Paragraph({ text: `_____________________, ${dataStampa}` }),
+              new Paragraph({ text: "" }),
+              new Paragraph({ text: "" }),
+              new Paragraph({ text: "IL SEGRETARIO" }),
+              new Paragraph({ text: "" }),
+              new Paragraph({ text: "" }),
+              new Paragraph({ text: "IL PRESIDENTE" }),
+            ],
+          },
+        ],
+      });
+
+      const blob = await Packer.toBlob(doc);
+      saveAs(
+        blob,
+        `rendiconto-raccolta-fondi-${fileSafeName(active.nome)}.docx`,
+      );
+    } catch (err: any) {
+      alert(err?.message || "Errore nella generazione del documento");
+    } finally {
+      setDownloadingDoc(false);
+    }
+  };
+
+  const totEntrate = useMemo(
+    () => assEntrate.reduce((s, m) => s + totaleMov(m), 0),
+    [assEntrate],
+  );
+  const totUscite = useMemo(
+    () => assUscite.reduce((s, m) => s + totaleMov(m), 0),
+    [assUscite],
+  );
 
   const cgImputati = useMemo(() => {
     if (!active) return 0;
     return num(cgMap[active.id] ?? 0);
   }, [active, cgMap]);
 
-  const totUsciteEff = useMemo(() => totUscite + cgImputati, [totUscite, cgImputati]);
+  const totUsciteEff = useMemo(
+    () => totUscite + cgImputati,
+    [totUscite, cgImputati],
+  );
 
   return (
     <Layout>
@@ -614,7 +1171,8 @@ export default function RaccolteFondi() {
         <div>
           <h2 className="pageTitle">RACCOLTE FONDI</h2>
           <div className="pageHelp">
-            Crea le Raccolte Fondi e assegna a ciascuna le entrate e le uscite sostenute per realizzarla.
+            Crea le Raccolte Fondi e assegna a ciascuna le entrate e le uscite
+            sostenute per realizzarla.
           </div>
         </div>
       </div>
@@ -626,18 +1184,24 @@ export default function RaccolteFondi() {
         </div>
       )}
 
-      <button className="fab" onClick={openCreate} type="button" aria-label="Nuova raccolta fondi">
+      <button
+        className="fab"
+        onClick={openCreate}
+        type="button"
+        aria-label="Nuova raccolta fondi"
+      >
         +
       </button>
 
-      {/* SHEET create/edit */}
       {openModal && (
         <div className="sheetOverlay" onClick={closeModal}>
           <div className="sheet" onClick={(e) => e.stopPropagation()}>
             <div className="sheetHandle" />
 
             <div className="sheetHeader">
-              <div className="sheetTitle">{editMode ? "Modifica Raccolta Fondi" : "Crea Raccolta Fondi"}</div>
+              <div className="sheetTitle">
+                {editMode ? "Modifica Raccolta Fondi" : "Crea Raccolta Fondi"}
+              </div>
               <button className="btn" type="button" onClick={closeModal}>
                 Chiudi
               </button>
@@ -645,7 +1209,9 @@ export default function RaccolteFondi() {
 
             <div className="sheetGrid" style={{ gap: 12 }}>
               <div>
-                <div style={{ fontWeight: 950, marginBottom: 6 }}>Nome (obbligatorio)</div>
+                <div style={{ fontWeight: 950, marginBottom: 6 }}>
+                  Nome (obbligatorio)
+                </div>
                 <input
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
@@ -655,15 +1221,24 @@ export default function RaccolteFondi() {
               </div>
 
               <div>
-                <div style={{ fontWeight: 950, marginBottom: 6 }}>Data (obbligatoria)</div>
-                <input type="date" value={rfData} onChange={(e) => setRfData(e.target.value)} className="input" />
+                <div style={{ fontWeight: 950, marginBottom: 6 }}>
+                  Data (obbligatoria)
+                </div>
+                <input
+                  type="date"
+                  value={rfData}
+                  onChange={(e) => setRfData(e.target.value)}
+                  className="input"
+                />
                 <div className="rowSub" style={{ marginTop: 6 }}>
                   Verrà mostrata nell’elenco generale.
                 </div>
               </div>
 
               <div>
-                <div style={{ fontWeight: 950, marginBottom: 6 }}>Descrizione</div>
+                <div style={{ fontWeight: 950, marginBottom: 6 }}>
+                  Descrizione
+                </div>
                 <input
                   value={descr}
                   onChange={(e) => setDescr(e.target.value)}
@@ -672,7 +1247,11 @@ export default function RaccolteFondi() {
                 />
               </div>
 
-              <button className="btn btn--primary btn--block" type="button" onClick={saveItem}>
+              <button
+                className="btn btn--primary btn--block"
+                type="button"
+                onClick={saveItem}
+              >
                 {editMode ? "Salva modifiche" : "Salva"}
               </button>
             </div>
@@ -680,7 +1259,6 @@ export default function RaccolteFondi() {
         </div>
       )}
 
-      {/* ELENCO */}
       <div className="section">
         <div className="sectionTitle">ELENCO RACCOLTE FONDI</div>
 
@@ -705,7 +1283,15 @@ export default function RaccolteFondi() {
                 }}
               >
                 <div className="rowMain" style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 850, opacity: 0.7, marginBottom: 8, ...noEllipsis }}>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 850,
+                      opacity: 0.7,
+                      marginBottom: 8,
+                      ...noEllipsis,
+                    }}
+                  >
                     {fmtDate(it.data)}
                   </div>
 
@@ -713,7 +1299,10 @@ export default function RaccolteFondi() {
                     {it.nome}
                   </div>
 
-                  <div className="rowSub" style={{ marginTop: 6, ...noEllipsis }}>
+                  <div
+                    className="rowSub"
+                    style={{ marginTop: 6, ...noEllipsis }}
+                  >
                     {it.descrizione || "—"}
                   </div>
                 </div>
@@ -735,7 +1324,6 @@ export default function RaccolteFondi() {
         </div>
       </div>
 
-      {/* DETTAGLIO FULLSCREEN */}
       {active && (
         <div
           className="sheetOverlay"
@@ -749,7 +1337,6 @@ export default function RaccolteFondi() {
             style={{ ...fullModalSheet, maxWidth: "none", margin: 0 }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* header sticky: come Attività Diverse */}
             <div
               className="sheetHeader"
               style={{
@@ -785,7 +1372,11 @@ export default function RaccolteFondi() {
                   {active.nome}
                 </div>
 
-                <button className="btn" onClick={() => setActive(null)} type="button">
+                <button
+                  className="btn"
+                  onClick={() => setActive(null)}
+                  type="button"
+                >
                   Chiudi
                 </button>
               </div>
@@ -797,11 +1388,14 @@ export default function RaccolteFondi() {
                   <Badge tone="neutral">DATA: {fmtDate(active.data)}</Badge>
                 </div>
 
-                {active.descrizione && <div style={{ marginTop: 10, ...noEllipsis }}>{active.descrizione}</div>}
+                {active.descrizione && (
+                  <div style={{ marginTop: 10, ...noEllipsis }}>
+                    {active.descrizione}
+                  </div>
+                )}
 
                 <div className="mt-3" />
 
-                {/* MOVIMENTI DISPONIBILI */}
                 <Card title="Movimenti disponibili (non assegnati)">
                   <div className="splitGrid">
                     <div className="panel">
@@ -818,14 +1412,19 @@ export default function RaccolteFondi() {
                               key={m.id}
                               m={m}
                               checked={!!selEntrate[m.id]}
-                              onToggle={(v) => setSelEntrate((p) => ({ ...p, [m.id]: v }))}
+                              onToggle={(v) =>
+                                setSelEntrate((p) => ({ ...p, [m.id]: v }))
+                              }
                             />
                           ))}
                         </div>
                       )}
 
                       <div className="panelActions">
-                        <PrimaryButton onClick={() => assignSelected("ENTRATA")} className="btn--block">
+                        <PrimaryButton
+                          onClick={() => assignSelected("ENTRATA")}
+                          className="btn--block"
+                        >
                           Assegna Entrate selezionate
                         </PrimaryButton>
                       </div>
@@ -845,14 +1444,19 @@ export default function RaccolteFondi() {
                               key={m.id}
                               m={m}
                               checked={!!selUscite[m.id]}
-                              onToggle={(v) => setSelUscite((p) => ({ ...p, [m.id]: v }))}
+                              onToggle={(v) =>
+                                setSelUscite((p) => ({ ...p, [m.id]: v }))
+                              }
                             />
                           ))}
                         </div>
                       )}
 
                       <div className="panelActions">
-                        <PrimaryButton onClick={() => assignSelected("USCITA")} className="btn--block">
+                        <PrimaryButton
+                          onClick={() => assignSelected("USCITA")}
+                          className="btn--block"
+                        >
                           Assegna Uscite selezionate
                         </PrimaryButton>
                       </div>
@@ -862,7 +1466,6 @@ export default function RaccolteFondi() {
 
                 <div className="mt-3" />
 
-                {/* MOVIMENTI ASSEGNATI */}
                 <Card title="Movimenti assegnati">
                   <div className="splitGrid">
                     <div className="panel">
@@ -875,7 +1478,12 @@ export default function RaccolteFondi() {
                       ) : (
                         <div className="listBox movList">
                           {assEntrate.map((m) => (
-                            <AssignedMoveCard key={m.id} m={m} onUnassign={unassignMovimento} />
+                            <AssignedMoveCard
+                              key={m.id}
+                              m={m}
+                              onUnassign={unassignMovimento}
+                              onEdit={openMovimentoEdit}
+                            />
                           ))}
                         </div>
                       )}
@@ -891,7 +1499,12 @@ export default function RaccolteFondi() {
                       ) : (
                         <div className="listBox movList">
                           {assUscite.map((m) => (
-                            <AssignedMoveCard key={m.id} m={m} onUnassign={unassignMovimento} />
+                            <AssignedMoveCard
+                              key={m.id}
+                              m={m}
+                              onUnassign={unassignMovimento}
+                              onEdit={openMovimentoEdit}
+                            />
                           ))}
                         </div>
                       )}
@@ -901,18 +1514,48 @@ export default function RaccolteFondi() {
 
                 <div className="mt-3" />
 
-                {/* TOTALI */}
                 <Card title="TOTALE RACCOLTA FONDI">
                   <div style={noEllipsis}>
-                    <WrapRowValue label={<span style={noEllipsis}>Totale entrate assegnate</span>} value={<Euro v={totEntrate} />} />
-                    <WrapRowValue label={<span style={noEllipsis}>Totale uscite assegnate</span>} value={<Euro v={totUscite} />} />
-                    <WrapRowValue label={<span style={noEllipsis}>Costi generali imputati</span>} value={<Euro v={cgImputati} />} />
                     <WrapRowValue
-                      label={<span style={noEllipsis}>Totale uscite effettive (incl. costi generali)</span>}
+                      label={
+                        <span style={noEllipsis}>Totale entrate assegnate</span>
+                      }
+                      value={<Euro v={totEntrate} />}
+                    />
+                    <WrapRowValue
+                      label={
+                        <span style={noEllipsis}>Totale uscite assegnate</span>
+                      }
+                      value={<Euro v={totUscite} />}
+                    />
+                    <WrapRowValue
+                      label={
+                        <span style={noEllipsis}>Costi generali imputati</span>
+                      }
+                      value={<Euro v={cgImputati} />}
+                    />
+                    <WrapRowValue
+                      label={
+                        <span style={noEllipsis}>
+                          Totale uscite effettive (incl. costi generali)
+                        </span>
+                      }
                       value={<Euro v={totUsciteEff} />}
                     />
                   </div>
                 </Card>
+
+                <div style={{ marginTop: 12 }}>
+                  <PrimaryButton
+                    onClick={downloadRendicontoDoc}
+                    className="btn--block"
+                    disabled={downloadingDoc}
+                  >
+                    {downloadingDoc
+                      ? "Generazione documento..."
+                      : "Scarica rendiconto raccolta fondi"}
+                  </PrimaryButton>
+                </div>
 
                 <div className="mt-3" />
               </div>

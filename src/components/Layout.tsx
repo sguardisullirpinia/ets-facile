@@ -39,6 +39,7 @@ function pageLabel(pathname: string) {
   if (p.startsWith("/test")) return "Test";
   if (p.startsWith("/iva")) return "Iva";
   if (p.startsWith("/ires")) return "IRES";
+  if (p.startsWith("/rendiconto")) return "Rendiconto";
   if (p.startsWith("/annualita")) return "Annualità";
   if (p.startsWith("/registro-soci")) return "Registro Soci";
   if (p.startsWith("/profilo")) return "Profilo";
@@ -66,7 +67,7 @@ function SidebarMenu({
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: 8,
+        gap: 6,
       }}
     >
       {items
@@ -83,27 +84,30 @@ function SidebarMenu({
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 10,
+                gap: 8,
                 width: "100%",
-                padding: "12px 14px",
-                borderRadius: 14,
+                padding: "9px 10px",
+                borderRadius: 10,
                 border: active
                   ? "1px solid rgba(37,99,235,0.18)"
                   : "1px solid rgba(0,0,0,0.08)",
                 background: active ? "rgba(37,99,235,0.08)" : "#fff",
                 color: active ? "#1d4ed8" : "#111827",
                 fontWeight: active ? 800 : 600,
+                fontSize: 13,
+                lineHeight: 1.2,
                 cursor: "pointer",
                 textAlign: "left",
                 boxShadow: active ? "0 1px 2px rgba(0,0,0,0.04)" : "none",
+                minHeight: 38,
               }}
             >
               <span
                 style={{
                   display: "grid",
                   placeItems: "center",
-                  width: 20,
-                  height: 20,
+                  width: 16,
+                  height: 16,
                   flexShrink: 0,
                   opacity: active ? 1 : 0.85,
                 }}
@@ -216,22 +220,22 @@ export default function Layout({ children }: { children: ReactNode }) {
     {
       label: "Prima Nota",
       path: "/EntrateUscite",
-      icon: <Home size={18} strokeWidth={2} />,
+      icon: <Home size={16} strokeWidth={2} />,
     },
     {
       label: "AIG",
       path: "/aig",
-      icon: <BookOpen size={18} strokeWidth={2} />,
+      icon: <BookOpen size={16} strokeWidth={2} />,
     },
     {
       label: "A. Diverse",
       path: "/attivita-diverse",
-      icon: <Shapes size={18} strokeWidth={2} />,
+      icon: <Shapes size={16} strokeWidth={2} />,
     },
     {
       label: "R. Fondi",
       path: "/raccolte-fondi",
-      icon: <Target size={18} strokeWidth={2} />,
+      icon: <Target size={16} strokeWidth={2} />,
     },
   ];
 
@@ -239,22 +243,27 @@ export default function Layout({ children }: { children: ReactNode }) {
     {
       label: "Registro Soci",
       path: "/registro-soci",
-      icon: <Users size={18} strokeWidth={2} />,
+      icon: <Users size={16} strokeWidth={2} />,
     },
     {
       label: "Test",
       path: "/test",
-      icon: <FlaskConical size={18} strokeWidth={2} />,
+      icon: <FlaskConical size={16} strokeWidth={2} />,
     },
     {
       label: "Ires",
       path: "/ires",
-      icon: <Receipt size={18} strokeWidth={2} />,
+      icon: <Receipt size={16} strokeWidth={2} />,
+    },
+    {
+      label: "Rendiconto",
+      path: "/rendiconto",
+      icon: <FileText size={16} strokeWidth={2} />,
     },
     {
       label: "Liquidazione IVA",
       path: "/Iva",
-      icon: <FileText size={18} strokeWidth={2} />,
+      icon: <FileText size={16} strokeWidth={2} />,
       show: isRegimeOrdinario,
     },
   ];
@@ -267,7 +276,6 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <>
       <div className="layoutShell">
-        {/* SIDEBAR DESKTOP */}
         <aside className="layoutSidebar">
           <div className="layoutSidebarInner">
             <div
@@ -302,7 +310,6 @@ export default function Layout({ children }: { children: ReactNode }) {
           </div>
         </aside>
 
-        {/* AREA DESTRA */}
         <div className="layoutMainArea">
           <header className="appHeader">
             <div className="layoutTopbar">
@@ -387,12 +394,10 @@ export default function Layout({ children }: { children: ReactNode }) {
         </div>
       </div>
 
-      {/* BOTTOM BAR SOLO MOBILE */}
       <div className="bottomBarMobileOnly">
         <BottomBar />
       </div>
 
-      {/* DRAWER MOBILE */}
       {openMenu && (
         <div className="mobileDrawerOverlay" onClick={() => setOpenMenu(false)}>
           <div
@@ -441,44 +446,47 @@ export default function Layout({ children }: { children: ReactNode }) {
           .layoutShell {
             min-height: 100vh;
             display: grid;
-            grid-template-columns: 280px minmax(0, 1fr);
+            grid-template-columns: 220px minmax(0, 1fr);
             background: #f3f4f6;
           }
 
           .layoutSidebar {
             background: #ffffff;
             border-right: 1px solid rgba(0,0,0,0.08);
-            min-height: 100vh;
+            height: 100vh;
             position: sticky;
             top: 0;
             align-self: start;
+            overflow: hidden;
           }
 
           .layoutSidebarInner {
-            padding: 18px 16px;
+            height: 100%;
+            padding: 14px 12px;
             display: flex;
             flex-direction: column;
-            gap: 18px;
+            gap: 14px;
+            overflow-y: auto;
           }
 
           .layoutBrand {
             cursor: pointer;
-            font-size: 30px;
+            font-size: 22px;
             font-weight: 900;
             letter-spacing: -0.02em;
             line-height: 1;
-            padding-bottom: 14px;
+            padding-bottom: 10px;
             border-bottom: 1px solid rgba(0,0,0,0.08);
           }
 
           .layoutSidebarSection {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
           }
 
           .layoutSidebarSectionTitle {
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 800;
             letter-spacing: 0.08em;
             text-transform: uppercase;
@@ -546,7 +554,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           }
 
           .mobileDrawerPanel {
-            width: 300px;
+            width: 280px;
             max-width: 88vw;
             height: 100%;
             background: #fff;
