@@ -94,6 +94,23 @@ export default function Annualita() {
     loadAnnualita();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  useEffect(() => {
+    if (loading) return;
+    if (!list.length) return;
+
+    const editId = localStorage.getItem("annualita_edit_id");
+    if (!editId) return;
+
+    const found = list.find((a) => a.id === editId);
+    if (!found) {
+      localStorage.removeItem("annualita_edit_id");
+      return;
+    }
+
+    setEditing(found);
+    setOpenCreate(true);
+    localStorage.removeItem("annualita_edit_id");
+  }, [loading, list]);
 
   // quando entro in modalità modifica, precompilo i campi
   useEffect(() => {
