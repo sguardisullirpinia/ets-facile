@@ -941,8 +941,8 @@ export default function Aig() {
 
         <div className="pageHelp" style={{ marginTop: 10, fontWeight: 800 }}>
           {aigUnicaSotto300k
-            ? `N.B. Se l'Ente ha entrate superiori a € 300.000 devi considerare le diverse AIG singolarmente.`
-            : `N.B. Se l'Ente ha avuto entrate non superiori a € 300.000 puoi considerare le diverse attività di interesse generale (AIG) svolte come se fossero un'unica attività ai fini della verifica del test di non commercialità.`}
+            ? `N.B. Se l'Ente ha realizzato nell'annualità precedente Entrate superiori a € 300.000 devi considerare le diverse AIG singolarmente.`
+            : `N.B. Se l'Ente ha realizzato nell'annualità precedente Entrate non superiori a € 300.000 puoi considerare le diverse attività di interesse generale (AIG) svolte come se fossero un'unica attività ai fini della verifica del test di non commercialità.`}
         </div>
 
         <div style={{ marginTop: 12 }}>
