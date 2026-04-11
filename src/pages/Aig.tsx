@@ -927,7 +927,7 @@ export default function Aig() {
       <div className="mt-3">
         <div className="pageHelp" style={{ marginTop: 0 }}>
           {aigUnicaSotto300k
-            ? `Per questa annualità è attiva l'opzione “Entrate T-1 non superiore a € 300.000”. È quindi consentita una sola AIG e tutti i movimenti con macro AIG vengono assegnati automaticamente a tale attività.`
+            ? `Per questa annualità è attiva l'opzione “Entrate T-1 non superiore a € 300.000”. È quindi consentita la creazione di una sola AIG in cui confluiranno tutti i movimenti "Entrate e Uscite" con categoria AIG.`
             : `Per questa annualità hai indicato che le Entrate T-1 sono state superiori a € 300.000, quindi devi creare tante AIG quante sono quelle effettivamente svolte.`}
         </div>
 
