@@ -914,19 +914,6 @@ export default function Aig() {
       <div className="pageHeader" style={{ paddingTop: 15 }}>
         <div>
           <h2 className="pageTitle">AIG</h2>
-          <div className="pageHelp">
-            Crea le attività di interesse generale svolte dall'Ente, ed assegna
-            ad ogni AIG creata le entrate e uscite sostenute per la
-            realizzazione di quella specifica attività.
-            <br />
-            <br />
-            <u>
-              N.B. Gli Enti con entrate non superiori a € 300.000,00 possono
-              considerare le diverse attività di interesse generale (AIG) svolte
-              come se fossero un'unica attività ai fini della verifica del test
-              di non commercialità.
-            </u>
-          </div>
         </div>
       </div>
 
@@ -937,16 +924,39 @@ export default function Aig() {
         </div>
       )}
 
-      {aigUnicaSotto300k && (
-        <div className="mt-3">
-          <Badge tone="blue">Modalità AIG unica attiva</Badge>
-          <div className="pageHelp" style={{ marginTop: 8 }}>
-            Per questa annualità è attiva l'opzione “Entrate T-1 non superiore a
-            € 300.000”. È quindi consentita una sola AIG e tutti i movimenti con
-            macro AIG vengono assegnati automaticamente a tale attività.
-          </div>
+      <div className="mt-3">
+        <div className="pageHelp" style={{ marginTop: 0 }}>
+          {aigUnicaSotto300k
+            ? `Per questa annualità è attiva l'opzione “Entrate T-1 non superiore a € 300.000”. È quindi consentita una sola AIG e tutti i movimenti con macro AIG vengono assegnati automaticamente a tale attività.`
+            : `Per questa annualità hai indicato che le Entrate T-1 sono state superiori a € 300.000, quindi devi creare tante AIG quante sono quelle effettivamente svolte.`}
         </div>
-      )}
+
+        <div style={{ marginTop: 10 }}>
+          <Badge tone={aigUnicaSotto300k ? "green" : "red"}>
+            {aigUnicaSotto300k
+              ? "Modalità AIG unica attiva"
+              : "Modalità AIG unica non attiva"}
+          </Badge>
+        </div>
+
+        <div className="pageHelp" style={{ marginTop: 10, fontWeight: 800 }}>
+          {aigUnicaSotto300k
+            ? `N.B. Se l'Ente ha entrate superiori a € 300.000 devi considerare le diverse AIG singolarmente.`
+            : `N.B. Se l'Ente ha avuto entrate non superiori a € 300.000 puoi considerare le diverse attività di interesse generale (AIG) svolte come se fossero un'unica attività ai fini della verifica del test di non commercialità.`}
+        </div>
+
+        <div style={{ marginTop: 12 }}>
+          <PrimaryButton
+            onClick={() => {
+              if (!annualitaId) return;
+              localStorage.setItem("annualita_edit_id", annualitaId);
+              window.location.href = "/annualita";
+            }}
+          >
+            Ravvedimento
+          </PrimaryButton>
+        </div>
+      </div>
 
       <button
         className="fab"
