@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import { supabase } from "../lib/supabase";
-import { Badge, Card, Euro, PrimaryButton } from "../components/ui";
+import { Badge, Card, Euro } from "../components/ui";
 
 type AigRow = { id: string };
 type AttDivRow = { id: string; occasionale: boolean };
@@ -305,20 +305,21 @@ export default function Test() {
   // TEST COMMERCIALITÀ ENTE
   // -------------------------
   const A = useMemo(
-    () =>
-      aigEsiti
-        .filter((x) => x.esito === "COMMERCIALE")
-        .reduce((s, x) => s + x.TER, 0),
-    [aigEsiti],
-  );
+  () =>
+    aigEsiti
+      .filter((x) => x.esito === "COMMERCIALE")
+      .reduce((s, x) => s + x.TE, 0),
+  [aigEsiti],
+);
 
-  const C = useMemo(
-    () =>
-      aigEsiti
-        .filter((x) => x.esito === "NON COMMERCIALE")
-        .reduce((s, x) => s + x.TER, 0),
-    [aigEsiti],
-  );
+// ✅ C: somma delle ENTRATE TOTALI assegnate alle AIG (TE) che risultano NON COMMERCIALI dal test 6%
+const C = useMemo(
+  () =>
+    aigEsiti
+      .filter((x) => x.esito === "NON COMMERCIALE")
+      .reduce((s, x) => s + x.TE, 0),
+  [aigEsiti],
+);
 
   // ✅ B: solo entrate AD allocati + esclusione sponsorizzazioni (code=6)
   // + esclusione se allocata a AD occasionale
@@ -408,8 +409,8 @@ export default function Test() {
   // -------------------------
   return (
     <Layout>
-      <div className="pageTopbar">
-        <h2 className="pageTitle">Test</h2>
+      <div className="pageTopbar" style={{ marginBottom: 14, paddingTop: 15 }}>
+        <h2 className="pageTitle">TEST</h2>
         <div className="pageHelp">
           In questa sezione si verifica la natura Commerciale o Non Commericiale
           dell'intero Ente, nonché la verifica di secondarietà delle attività
@@ -598,12 +599,6 @@ export default function Test() {
       </Card>
 
       <div className="mt-3" />
-
-      <div style={{ textAlign: "center" }}>
-        <PrimaryButton onClick={() => navigate("/ires")}>
-          Vai al calcolo IRES →
-        </PrimaryButton>
-      </div>
     </Layout>
   );
 }

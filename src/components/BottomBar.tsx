@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, BookOpen, Shapes, Target, Calculator } from "lucide-react";
+import { Home, BookOpen, Shapes, Target } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 type Tab = {
@@ -13,7 +13,7 @@ const tabs: Tab[] = [
   { label: "AIG", path: "/aig", Icon: BookOpen },
   { label: "A. Diverse", path: "/attivita-diverse", Icon: Shapes },
   { label: "R. Fondi", path: "/raccolte-fondi", Icon: Target },
-  { label: "Test", path: "/test", Icon: Calculator },
+  // ❌ Test rimosso
 ];
 
 export default function BottomBar() {

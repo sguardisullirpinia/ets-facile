@@ -86,9 +86,8 @@ export default function Login() {
             ETS-FACILE
           </div>
           <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>
-            Accedi per gestire la prima nota, le Attività di Interesse Generale
-            ex art. 5, le Attività Diverse ex art. 6, le Raccolte Fondi e i test
-            di commercialità e secondarietà previsti dal codice.
+            Accedi per gestire la PRIMA NOTA, le ATTIVITÀ DI INTERESSE GENERALE, le ATTIVITÀ DIVERSE, le RACCOLTE FONDI e i TEST DI COMMERCIALITÀ e SECONDARIETÀ.
+            L'app gestisce i REGIMI FISCALI per la liquidazione IRES e IVA. 
           </div>
         </div>
 

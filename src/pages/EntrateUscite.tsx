@@ -1,3 +1,4 @@
+// EntrateUscite.tsx
 import { useEffect, useMemo, useState } from "react";
 import Layout from "../components/Layout";
 import { supabase } from "../lib/supabase";
@@ -9,19 +10,21 @@ type Movimento = {
   tipologia: string;
   data: string | null;
   macro: string | null;
-  conto: string | null; // ✅ CASSA / BANCA
+  conto: string | null; // CASSA / BANCA
   descrizione_label: string | null;
   descrizione_operazione: string | null;
   importo: number;
   iva: number;
-
-  // ✅ nuovo
   is_costo_generale?: boolean;
 };
 
 function num(v: any) {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
+}
+
+function totaleMov(m: Movimento) {
+  return num(m.importo) + num(m.iva);
 }
 
 function macroLabel(m: string | null) {
@@ -66,8 +69,7 @@ function fmtDate(d: string | null) {
   return `${day}/${m}/${y}`;
 }
 
-// ✅ chip data: giorno + mese (es. 09 FEB)
-function dateChipParts(d: string | null) {
+function dateParts(d: string | null) {
   if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return { day: "—", mon: "" };
   const [, m, day] = d.split("-");
   const months = [
@@ -88,17 +90,47 @@ function dateChipParts(d: string | null) {
   return { day, mon: months[mi] };
 }
 
+function MiniTag({
+  children,
+  tone,
+}: {
+  children: React.ReactNode;
+  tone?: "green" | "red" | "blue" | "amber" | "yellow" | "neutral";
+}) {
+  return (
+    <span
+      className={`miniTag ${tone ? `miniTag--${tone}` : "miniTag--neutral"}`}
+    >
+      {children}
+    </span>
+  );
+}
+
+function toneForMacro(m: string | null) {
+  if (m === "AIG") return "blue";
+  if (m === "RACCOLTE_FONDI") return "yellow";
+  if (m === "ATTIVITA_DIVERSE") return "amber";
+  return "neutral";
+}
+
 function IconButton({
   title,
   onClick,
   children,
+  className,
 }: {
   title: string;
   onClick: (e: React.MouseEvent) => void;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <button title={title} onClick={onClick} className="iconBtn" type="button">
+    <button
+      title={title}
+      onClick={onClick}
+      className={className ? `iconBtn ${className}` : "iconBtn"}
+      type="button"
+    >
       {children}
     </button>
   );
@@ -145,7 +177,164 @@ function TrashIcon() {
   );
 }
 
-/** Ordine fisso delle macro per il filtro */
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      style={{
+        transform: open ? "rotate(90deg)" : "rotate(0deg)",
+        transition: "transform .18s ease",
+      }}
+    >
+      <path
+        d="M9 18l6-6-6-6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function FilterIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      style={{ opacity: open ? 1 : 0.85 }}
+    >
+      <path
+        d="M4 21v-7"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M4 10V3"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M12 21v-9"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M12 8V3"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M20 21v-5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M20 12V3"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M2 14h4"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M10 8h4"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M18 16h4"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/** ✅ NO doppio bottone: header è un div role=button */
+function AccordionHeader({
+  title,
+  open,
+  onToggle,
+  right,
+}: {
+  title: string;
+  open: boolean;
+  onToggle: () => void;
+  right?: React.ReactNode;
+}) {
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      aria-expanded={open}
+      className="accHeader"
+      onClick={onToggle}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onToggle();
+        }
+      }}
+      style={{
+        width: "100%",
+        display: "grid",
+        gridTemplateColumns: "auto 1fr auto",
+        alignItems: "center",
+        gap: 10,
+        padding: "10px 12px",
+        borderRadius: 14,
+        border: "1px solid rgba(0,0,0,0.08)",
+        background: "#fff",
+        cursor: "pointer",
+        userSelect: "none",
+        outline: "none",
+      }}
+    >
+      <span style={{ display: "grid", placeItems: "center" }}>
+        <ChevronIcon open={open} />
+      </span>
+
+      <span style={{ textAlign: "left", fontWeight: 950, letterSpacing: 0.2 }}>
+        {title}
+      </span>
+
+      {/* ✅ area destra: non deve toggle-are l'accordion */}
+      <div
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+        style={{
+          justifySelf: "end",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+        }}
+      >
+        {right}
+      </div>
+    </div>
+  );
+}
+
 const MACRO_ORDER = [
   "COSTI_GENERALI",
   "AIG",
@@ -165,7 +354,13 @@ export default function EntrateUscite() {
   const [error, setError] = useState<string | null>(null);
   const [list, setList] = useState<Movimento[]>([]);
 
-  // ✅ FILTRI/ORDINAMENTO
+  // ✅ accordion
+  const [openAvanzi, setOpenAvanzi] = useState(false);
+  const [openMovimenti, setOpenMovimenti] = useState(true);
+  const [openRiepilogo, setOpenRiepilogo] = useState(false);
+
+  // ✅ filtri
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [macroFilter, setMacroFilter] = useState<string>("ALL");
   const [sortBy, setSortBy] = useState<"data" | "importo" | "descrizione">(
@@ -174,8 +369,7 @@ export default function EntrateUscite() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const HELP_FULL =
-    "Inserisci le entrate e le uscite dell’anno, distinguendo tra movimenti di banca e di cassa. \nIndividua sempre una macro-categoria a cui assegnare la posta attiva o passiva, tra AIG (attività di Interesse Generale), Attività diverse, Raccolte Fondi, Quote Associative, Erogazioni Liberali, Proventi 5/1000, Contributi PA senza corrispettivo.\n\nN.B. I Costi Generali che incidono su tutte le attività dell'Ente [es. affitto struttura, luce, acqua, ecc.] vengono dal sistema automaticamente imputati alle varie attività in relazione all'ammontare delle entrate";
-
+    "Inserisci le entrate e le uscite dell’anno, distinguendo tra movimenti di banca e di cassa. \nIndividua sempre una macro-categoria a cui assegnare la posta attiva o passiva.\n\nN.B. I Costi Generali, cioè quelli che incidono su tutte le attività dell'Ente [es. affitto struttura, luce, acqua, ecc.], vanno registrate nell'apposita categoria Costi Generali e saranno dal sistema automaticamente imputati alle varie attività svolte dall'Ente, in relazione all'ammontare delle entrate";
   const load = async () => {
     setError(null);
     if (!annualitaId) return;
@@ -216,17 +410,14 @@ export default function EntrateUscite() {
     [list],
   );
 
-  // ✅ macro “effettiva”
   const macroEff = (m: Movimento) =>
     m.is_costo_generale ? "COSTI_GENERALI" : m.macro;
 
-  // ✅ opzioni macro sempre complete
   const macroOptions = useMemo(() => {
     const present = new Set<string>();
     for (const m of movimenti) present.add(macroEff(m) || "—");
 
     const ordered = MACRO_ORDER.slice().map(String);
-
     const extras = Array.from(present).filter((x) => !ordered.includes(x));
     extras.sort((a, b) => macroLabel(a).localeCompare(macroLabel(b)));
 
@@ -269,8 +460,8 @@ export default function EntrateUscite() {
       }
 
       if (sortBy === "importo") {
-        const av = num(a.importo);
-        const bv = num(b.importo);
+        const av = totaleMov(a);
+        const bv = totaleMov(b);
         if (av === bv) return ymdKey(b.data).localeCompare(ymdKey(a.data));
         return (av - bv) * dir;
       }
@@ -293,57 +484,51 @@ export default function EntrateUscite() {
     return res;
   }, [movimenti, macroFilter, search, sortBy, sortDir]);
 
-  // ✅ TOTALI GENERALI
+  // totali generali
   const totEntrate = useMemo(
     () =>
       movimenti
         .filter((m) => m.tipologia === "ENTRATA")
-        .reduce((s, m) => s + num(m.importo), 0),
+        .reduce((s, m) => s + totaleMov(m), 0),
     [movimenti],
   );
-
   const totUscite = useMemo(
     () =>
       movimenti
         .filter((m) => m.tipologia === "USCITA")
-        .reduce((s, m) => s + num(m.importo), 0),
+        .reduce((s, m) => s + totaleMov(m), 0),
     [movimenti],
   );
 
-  // ✅ TOTALI PER CONTO
   const totEntrateBanca = useMemo(
     () =>
       movimenti
         .filter((m) => m.tipologia === "ENTRATA" && m.conto === "BANCA")
-        .reduce((s, m) => s + num(m.importo), 0),
+        .reduce((s, m) => s + totaleMov(m), 0),
     [movimenti],
   );
-
   const totEntrateCassa = useMemo(
     () =>
       movimenti
         .filter((m) => m.tipologia === "ENTRATA" && m.conto === "CASSA")
-        .reduce((s, m) => s + num(m.importo), 0),
+        .reduce((s, m) => s + totaleMov(m), 0),
     [movimenti],
   );
-
   const totUsciteBanca = useMemo(
     () =>
       movimenti
         .filter((m) => m.tipologia === "USCITA" && m.conto === "BANCA")
-        .reduce((s, m) => s + num(m.importo), 0),
+        .reduce((s, m) => s + totaleMov(m), 0),
     [movimenti],
   );
-
   const totUsciteCassa = useMemo(
     () =>
       movimenti
         .filter((m) => m.tipologia === "USCITA" && m.conto === "CASSA")
-        .reduce((s, m) => s + num(m.importo), 0),
+        .reduce((s, m) => s + totaleMov(m), 0),
     [movimenti],
   );
 
-  // ✅ AVANZI T-1
   const avanzoBancaT1 = useMemo(
     () =>
       avanzi
@@ -351,7 +536,6 @@ export default function EntrateUscite() {
         .reduce((s, m) => s + num(m.importo), 0),
     [avanzi],
   );
-
   const avanzoCassaT1 = useMemo(
     () =>
       avanzi
@@ -360,18 +544,15 @@ export default function EntrateUscite() {
     [avanzi],
   );
 
-  // ✅ DISPONIBILITÀ
   const disponibilitaBanca = useMemo(
     () => avanzoBancaT1 + totEntrateBanca - totUsciteBanca,
     [avanzoBancaT1, totEntrateBanca, totUsciteBanca],
   );
-
   const disponibilitaCassa = useMemo(
     () => avanzoCassaT1 + totEntrateCassa - totUsciteCassa,
     [avanzoCassaT1, totEntrateCassa, totUsciteCassa],
   );
 
-  // ✅ AVANZO / DISAVANZO DI GESTIONE
   const avanzoGestione = useMemo(
     () => totEntrate - totUscite,
     [totEntrate, totUscite],
@@ -402,7 +583,6 @@ export default function EntrateUscite() {
     load();
   };
 
-  // ✅ EXPORT EXCEL
   const downloadExcel = () => {
     const fileYear = annualitaAnno ? `_${annualitaAnno}` : "";
     const filename = `entrate_uscite${fileYear}.xlsx`;
@@ -417,6 +597,7 @@ export default function EntrateUscite() {
       "Descrizione operazione": m.descrizione_operazione || "",
       Importo: num(m.importo),
       IVA: num(m.iva),
+      Totale: totaleMov(m),
     }));
 
     const rowsAvanzi = avanzi.map((m) => ({
@@ -428,38 +609,16 @@ export default function EntrateUscite() {
       "Cassa/Banca": contoLabel(m.conto),
       Importo: num(m.importo),
       IVA: num(m.iva),
+      Totale: totaleMov(m),
     }));
 
     const wb = XLSX.utils.book_new();
-
     const ws1 = XLSX.utils.json_to_sheet(rowsMov);
     XLSX.utils.book_append_sheet(wb, ws1, "Movimenti");
-
     const ws2 = XLSX.utils.json_to_sheet(rowsAvanzi);
     XLSX.utils.book_append_sheet(wb, ws2, "Avanzi");
 
     XLSX.writeFile(wb, filename);
-  };
-
-  // ✅ layout righe (movimenti)
-  const rowLayout: React.CSSProperties = {
-    display: "grid",
-    gridTemplateColumns: "auto 1fr auto",
-    alignItems: "start",
-    columnGap: 12,
-  };
-
-  const chipStyle: React.CSSProperties = {
-    width: 44,
-    minWidth: 44,
-    height: 44,
-    borderRadius: 14,
-    display: "grid",
-    placeItems: "center",
-    border: "1px solid rgba(0,0,0,0.10)",
-    background: "rgba(0,0,0,0.02)",
-    lineHeight: 1,
-    marginTop: 2,
   };
 
   // UI filtri
@@ -470,7 +629,6 @@ export default function EntrateUscite() {
     padding: "12px 14px",
     borderRadius: 14,
     background: "var(--card, rgba(0,0,0,0.03))",
-    marginBottom: 12,
   };
 
   const row2: React.CSSProperties = {
@@ -489,45 +647,125 @@ export default function EntrateUscite() {
     outline: "none",
   };
 
-  const sumRowStyle: React.CSSProperties = {
-    display: "grid",
-    gridTemplateColumns: "1fr auto",
-    alignItems: "start",
-    columnGap: 12,
-  };
-
-  const dividerStyle: React.CSSProperties = {
-    height: 1,
-    background: "rgba(0,0,0,0.07)",
-    margin: "0 14px",
-  };
-
-  const blockTitleStyle: React.CSSProperties = {
-    fontSize: 12,
-    fontWeight: 800,
-    letterSpacing: 0.4,
-    opacity: 0.7,
-    textTransform: "uppercase",
-  };
-
-  const amountBoxStyle: React.CSSProperties = {
-    justifySelf: "end",
-    textAlign: "right",
-  };
-
-  const badgeStackStyle: React.CSSProperties = {
+  // riepilogo
+  const wrapRowBox: React.CSSProperties = {
     display: "flex",
     flexWrap: "wrap",
-    gap: 8,
-    marginTop: 2,
+    gap: 10,
+    alignItems: "flex-start",
+    padding: "10px 0",
+    borderBottom: "1px solid rgba(0,0,0,0.08)",
   };
+
+  const wrapRowLabel: React.CSSProperties = {
+    flex: "1 1 240px",
+    minWidth: 0,
+    whiteSpace: "normal",
+    overflowWrap: "anywhere",
+    lineHeight: 1.25,
+    textTransform: "uppercase",
+    fontWeight: 400,
+  };
+
+  const wrapRowValue: React.CSSProperties = {
+    flex: "0 0 auto",
+    marginLeft: "auto",
+    textAlign: "right",
+    whiteSpace: "nowrap",
+    fontWeight: 900,
+  };
+
+  const WrapRowValue = ({
+    label,
+    value,
+  }: {
+    label: React.ReactNode;
+    value: React.ReactNode;
+  }) => (
+    <div style={wrapRowBox}>
+      <div style={wrapRowLabel}>{label}</div>
+      <div style={wrapRowValue}>{value}</div>
+    </div>
+  );
+
+  // badge conteggio
+  const CountPill = ({ n }: { n: number }) => (
+    <span
+      style={{
+        fontSize: 12,
+        fontWeight: 900,
+        padding: "5px 10px",
+        borderRadius: 999,
+        border: "1px solid rgba(0,0,0,0.10)",
+        background: "rgba(0,0,0,0.03)",
+      }}
+    >
+      {n}
+    </span>
+  );
+
+  const hasActiveFilters =
+    search.trim().length > 0 ||
+    macroFilter !== "ALL" ||
+    sortBy !== "data" ||
+    sortDir !== "desc";
+
+  const FilterChip = ({
+    active,
+    open,
+    onClick,
+  }: {
+    active: boolean;
+    open: boolean;
+    onClick: () => void;
+  }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      title={open ? "Chiudi filtri" : "Apri filtri"}
+      aria-label="Filtri"
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "8px 10px",
+        borderRadius: 999,
+        border: active
+          ? "1px solid rgba(37,99,235,0.35)"
+          : "1px solid rgba(0,0,0,0.10)",
+        background: active ? "rgba(37,99,235,0.08)" : "#fff",
+        color: "#111827",
+        cursor: "pointer",
+        fontWeight: 900,
+        fontSize: 12,
+        lineHeight: 1,
+      }}
+    >
+      <FilterIcon open={open} />
+      <span>Filtri</span>
+      {(active || open) && (
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 900,
+            padding: "3px 7px",
+            borderRadius: 999,
+            background: "rgba(0,0,0,0.06)",
+            border: "1px solid rgba(0,0,0,0.08)",
+          }}
+        >
+          ON
+        </span>
+      )}
+    </button>
+  );
 
   return (
     <Layout>
       {/* HEADER */}
-      <div className="pageHeader" style={{ paddingTop: 10 }}>
+      <div className="pageHeader" style={{ paddingTop: 15 }}>
         <div>
-          <h2 className="pageTitle">Prima Nota</h2>
+          <h2 className="pageTitle">PRIMA NOTA</h2>
           <div className="pageHelp" style={{ whiteSpace: "pre-line" }}>
             {HELP_FULL}
           </div>
@@ -541,7 +779,7 @@ export default function EntrateUscite() {
         </div>
       )}
 
-      {/* ✅ FAB */}
+      {/* FAB */}
       <button
         className="fab"
         onClick={() => goNew("ENTRATA")}
@@ -551,166 +789,33 @@ export default function EntrateUscite() {
         +
       </button>
 
-      {/* AVANZI */}
+      {/* ===== ACCORDION: AVANZI ===== */}
       <div className="section">
-        <div className="sectionTitle">Avanzi da esercizio precedente (t-1)</div>
+        <AccordionHeader
+          title="Avanzi da esercizio precedente (T-1)"
+          open={openAvanzi}
+          onToggle={() => setOpenAvanzi((s) => !s)}
+          right={<CountPill n={avanzi.length} />}
+        />
 
-        <div className="listBox">
-          {avanzi.length === 0 ? (
-            <div className="listRow">
-              <div className="rowMain">
-                <div className="rowSub">Nessun avanzo inserito</div>
-              </div>
-            </div>
-          ) : (
-            avanzi.map((m) => {
-              const label =
-                m.tipologia === "AVANZO_CASSA_T_1"
-                  ? "Avanzo cassa"
-                  : "Avanzo banca";
-
-              return (
-                <div
-                  key={m.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => openEdit(m.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") openEdit(m.id);
-                  }}
-                  className="listRow"
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr auto",
-                    alignItems: "start",
-                    columnGap: 12,
-                  }}
-                >
-                  <div className="rowMain">
-                    <div className="rowTitle">{label}</div>
-                    <div className="rowSub">
-                      Esercizio precedente
-                      {m.conto ? (
-                        <>
-                          {" "}
-                          • <b>{contoLabel(m.conto)}</b>
-                        </>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  <div style={{ display: "grid", justifyItems: "end", gap: 8 }}>
-                    <div className="rowAmount" style={amountBoxStyle}>
-                      <Euro v={m.importo} />
-                    </div>
-
-                    <IconButton
-                      title="Elimina"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        elimina(m.id);
-                      }}
-                    >
-                      <TrashIcon />
-                    </IconButton>
-                  </div>
+        {openAvanzi && (
+          <div style={{ marginTop: 10 }} className="listBox">
+            {avanzi.length === 0 ? (
+              <div className="listRow">
+                <div className="rowMain">
+                  <div className="rowSub">Nessun avanzo inserito</div>
                 </div>
-              );
-            })
-          )}
-        </div>
-      </div>
-
-      {/* MOVIMENTI */}
-      <div className="section">
-        <div className="sectionTitle">Movimenti dell’annualità</div>
-
-        <div style={filterBar}>
-          <input
-            style={ctrl}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cerca (descrizione, operazione, macro, cassa/banca)..."
-          />
-
-          <div style={row2}>
-            <select
-              style={ctrl}
-              value={macroFilter}
-              onChange={(e) => setMacroFilter(e.target.value)}
-            >
-              <option value="ALL">Tutte le macro</option>
-              {macroOptions.map((m) => (
-                <option key={m} value={m}>
-                  {macroLabel(m)}
-                </option>
-              ))}
-            </select>
-
-            <select
-              style={ctrl}
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
-            >
-              <option value="data">Ordina per: Data</option>
-              <option value="importo">Ordina per: Importo</option>
-              <option value="descrizione">Ordina per: Descrizione</option>
-            </select>
-          </div>
-
-          <div style={row2}>
-            <select
-              style={ctrl}
-              value={sortDir}
-              onChange={(e) => setSortDir(e.target.value as any)}
-            >
-              <option value="desc">Decrescente</option>
-              <option value="asc">Crescente</option>
-            </select>
-
-            <button
-              className="btn btn--block"
-              type="button"
-              onClick={() => {
-                setSearch("");
-                setMacroFilter("ALL");
-                setSortBy("data");
-                setSortDir("desc");
-              }}
-            >
-              Reset filtri
-            </button>
-          </div>
-
-          <div className="rowSub" style={{ marginTop: -2 }}>
-            Visualizzati: <b>{movimentiFilteredSorted.length}</b> /{" "}
-            {movimenti.length}
-          </div>
-        </div>
-
-        <div className="listBox">
-          {movimentiFilteredSorted.length === 0 ? (
-            <div className="listRow">
-              <div className="rowMain">
-                <div className="rowSub">Nessun movimento trovato</div>
               </div>
-            </div>
-          ) : (
-            movimentiFilteredSorted.map((m, idx) => {
-              const isEntrata = m.tipologia === "ENTRATA";
-              const tone = isEntrata ? "green" : "red";
+            ) : (
+              avanzi.map((m) => {
+                const label =
+                  m.tipologia === "AVANZO_CASSA_T_1"
+                    ? "Avanzo cassa"
+                    : "Avanzo banca";
 
-              const codificata = (m.descrizione_label || "").trim() || "N/D";
-              const operazione = (m.descrizione_operazione || "").trim() || "—";
-
-              const { day, mon } = dateChipParts(m.data);
-              const dataFull = fmtDate(m.data);
-
-              const me = macroEff(m);
-
-              return (
-                <div key={m.id}>
+                return (
                   <div
+                    key={m.id}
                     role="button"
                     tabIndex={0}
                     onClick={() => openEdit(m.id)}
@@ -718,55 +823,32 @@ export default function EntrateUscite() {
                       if (e.key === "Enter" || e.key === " ") openEdit(m.id);
                     }}
                     className="listRow"
-                    style={rowLayout}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr auto",
+                      alignItems: "start",
+                      columnGap: 12,
+                    }}
                   >
-                    {/* ✅ CHIP DATA */}
-                    <div style={chipStyle} aria-label={`Data: ${dataFull}`}>
-                      <div style={{ fontSize: 16, fontWeight: 800 }}>{day}</div>
-                      <div
-                        style={{ fontSize: 10, fontWeight: 800, opacity: 0.75 }}
-                      >
-                        {mon}
-                      </div>
-                    </div>
-
-                    {/* CONTENUTO */}
-                    <div className="rowMain" style={{ minWidth: 0 }}>
-                      <div
-                        className="rowMeta"
-                        style={{ marginTop: 0, marginBottom: 8 }}
-                      >
-                        <Badge tone={tone}>
-                          {isEntrata ? "Entrata" : "Uscita"}
-                        </Badge>
-                        <Badge tone="neutral">{macroLabel(me)}</Badge>
+                    <div className="rowMain">
+                      <div className="rowTitle">{label}</div>
+                      <div className="rowSub">
+                        Esercizio precedente
                         {m.conto ? (
-                          <Badge tone="neutral">{contoLabel(m.conto)}</Badge>
+                          <>
+                            {" "}
+                            • <b>{contoLabel(m.conto)}</b>
+                          </>
                         ) : null}
                       </div>
-
-                      <div
-                        className="rowTitle"
-                        style={{ whiteSpace: "normal" }}
-                      >
-                        {codificata}
-                      </div>
-
-                      <div className="rowSub" style={{ whiteSpace: "normal" }}>
-                        {operazione}
-                      </div>
-
-                      <div style={{ fontSize: 12, opacity: 0.6, marginTop: 6 }}>
-                        {dataFull}
-                      </div>
                     </div>
 
-                    {/* IMPORTO + AZIONI */}
-                    <div
-                      style={{ display: "grid", justifyItems: "end", gap: 8 }}
-                    >
-                      <div className="rowAmount" style={amountBoxStyle}>
-                        <Euro v={m.importo} />
+                    <div style={{ display: "grid", justifyItems: "end", gap: 8 }}>
+                      <div
+                        className="rowAmount"
+                        style={{ justifySelf: "end", textAlign: "right" }}
+                      >
+                        <Euro v={num(m.importo)} />
                       </div>
 
                       <IconButton
@@ -780,158 +862,320 @@ export default function EntrateUscite() {
                       </IconButton>
                     </div>
                   </div>
-
-                  {idx !== movimentiFilteredSorted.length - 1 && (
-                    <div style={dividerStyle} />
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
+                );
+              })
+            )}
+          </div>
+        )}
       </div>
 
-      {/* ✅ RIEPILOGO */}
+      {/* ===== ACCORDION: MOVIMENTI ===== */}
       <div className="section">
-        <div className="sectionTitle">Riepilogo</div>
+        <AccordionHeader
+          title="Movimenti dell'annualità"
+          open={openMovimenti}
+          onToggle={() => setOpenMovimenti((s) => !s)}
+          right={
+            <>
+              <CountPill n={movimentiFilteredSorted.length} />
+              <FilterChip
+                active={hasActiveFilters}
+                open={filtersOpen}
+                onClick={() => setFiltersOpen((s) => !s)}
+              />
+            </>
+          }
+        />
 
-        <div className="listBox">
-          {/* ENTRATE */}
-          <div className="listRow">
-            <div className="rowMain" style={{ display: "grid", gap: 10 }}>
-              <div style={blockTitleStyle}>Entrate</div>
+        {openMovimenti && (
+          <div style={{ marginTop: 10 }}>
+            {filtersOpen && (
+              <div style={filterBar}>
+                <input
+                  style={ctrl}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Cerca (descrizione, operazione, macro, cassa/banca)..."
+                />
 
-              <div style={sumRowStyle}>
-                <div className="rowTitle">Totale entrate banca</div>
-                <div className="rowAmount" style={amountBoxStyle}>
-                  <Euro v={totEntrateBanca} />
+                <div style={row2}>
+                  <select
+                    style={ctrl}
+                    value={macroFilter}
+                    onChange={(e) => setMacroFilter(e.target.value)}
+                  >
+                    <option value="ALL">Tutte le macro</option>
+                    {macroOptions.map((m) => (
+                      <option key={m} value={m}>
+                        {macroLabel(m)}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    style={ctrl}
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                  >
+                    <option value="data">Ordina per: Data</option>
+                    <option value="importo">Ordina per: Importo</option>
+                    <option value="descrizione">Ordina per: Descrizione</option>
+                  </select>
+                </div>
+
+                <div style={row2}>
+                  <select
+                    style={ctrl}
+                    value={sortDir}
+                    onChange={(e) => setSortDir(e.target.value as any)}
+                  >
+                    <option value="desc">Decrescente</option>
+                    <option value="asc">Crescente</option>
+                  </select>
+
+                  <button
+                    className="btn btn--block"
+                    type="button"
+                    onClick={() => {
+                      setSearch("");
+                      setMacroFilter("ALL");
+                      setSortBy("data");
+                      setSortDir("desc");
+                    }}
+                  >
+                    Reset filtri
+                  </button>
+                </div>
+
+                <div className="rowSub" style={{ marginTop: -2 }}>
+                  Visualizzati: <b>{movimentiFilteredSorted.length}</b> /{" "}
+                  {movimenti.length}
                 </div>
               </div>
+            )}
 
-              <div style={sumRowStyle}>
-                <div className="rowTitle">Totale entrate cassa</div>
-                <div className="rowAmount" style={amountBoxStyle}>
-                  <Euro v={totEntrateCassa} />
+            {/* lista movimenti */}
+            <div className="listBox">
+              {movimentiFilteredSorted.length === 0 ? (
+                <div className="listRow">
+                  <div className="rowMain">
+                    <div className="rowSub">Nessun movimento trovato</div>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                movimentiFilteredSorted.map((m, idx) => {
+                  const isEntrata = m.tipologia === "ENTRATA";
+                  const codificata = (m.descrizione_label || "").trim() || "N/D";
+                  const operazione =
+                    (m.descrizione_operazione || "").trim() || "—";
+                  const { day, mon } = dateParts(m.data);
+                  const me = macroEff(m);
 
-              <div style={dividerStyle} />
+                  return (
+                    <div key={m.id}>
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => openEdit(m.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") openEdit(m.id);
+                        }}
+                        className="movRow"
+                      >
+                        <div className="movDate">
+                          <div className="movDay">{day}</div>
+                          <div className="movMon">{mon}</div>
+                        </div>
 
-              <div style={sumRowStyle}>
-                <div className="rowTitle" style={{ fontWeight: 800 }}>
-                  TOTALE ENTRATE
-                </div>
-                <div
-                  className="rowAmount"
-                  style={{ ...amountBoxStyle, fontWeight: 800 }}
-                >
-                  <Euro v={totEntrate} />
-                </div>
-              </div>
+                        <div className="movMain">
+                          <div className="movTop">
+                            <div className="movTags">
+                              <MiniTag tone={isEntrata ? "green" : "red"}>
+                                {isEntrata ? "Entrata" : "Uscita"}
+                              </MiniTag>
+                              <MiniTag tone={toneForMacro(me) as any}>
+                                {macroLabel(me)}
+                              </MiniTag>
+                              {m.conto ? (
+                                <MiniTag tone="neutral">
+                                  {contoLabel(m.conto)}
+                                </MiniTag>
+                              ) : null}
+                            </div>
+                          </div>
+
+                          <div className="movTitle">{codificata}</div>
+                          <div className="movSub">{operazione}</div>
+                        </div>
+
+                        <div className="movRight">
+                          <div className="movAmount">
+                            <Euro v={totaleMov(m)} />
+                          </div>
+
+                          <IconButton
+                            title="Elimina"
+                            className="iconBtn--sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              elimina(m.id);
+                            }}
+                          >
+                            <TrashIcon />
+                          </IconButton>
+                        </div>
+                      </div>
+
+                      {idx !== movimentiFilteredSorted.length - 1 && (
+                        <div style={{ height: 10 }} />
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
-
-          {/* USCITE */}
-          <div className="listRow">
-            <div className="rowMain" style={{ display: "grid", gap: 10 }}>
-              <div style={blockTitleStyle}>Uscite</div>
-
-              <div style={sumRowStyle}>
-                <div className="rowTitle">Totale uscite banca</div>
-                <div className="rowAmount" style={amountBoxStyle}>
-                  <Euro v={totUsciteBanca} />
-                </div>
-              </div>
-
-              <div style={sumRowStyle}>
-                <div className="rowTitle">Totale uscite cassa</div>
-                <div className="rowAmount" style={amountBoxStyle}>
-                  <Euro v={totUsciteCassa} />
-                </div>
-              </div>
-
-              <div style={dividerStyle} />
-
-              <div style={sumRowStyle}>
-                <div className="rowTitle" style={{ fontWeight: 800 }}>
-                  TOTALE USCITE
-                </div>
-                <div
-                  className="rowAmount"
-                  style={{ ...amountBoxStyle, fontWeight: 800 }}
-                >
-                  <Euro v={totUscite} />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* DISPONIBILITÀ */}
-          <div className="listRow">
-            <div className="rowMain" style={{ display: "grid", gap: 10 }}>
-              <div style={blockTitleStyle}>Disponibilità</div>
-
-              <div style={badgeStackStyle}>
-                <Badge tone="neutral">
-                  Avanzo banca (t-1):{" "}
-                  <b>
-                    <Euro v={avanzoBancaT1} />
-                  </b>
-                </Badge>
-                <Badge tone="neutral">
-                  Avanzo cassa (t-1):{" "}
-                  <b>
-                    <Euro v={avanzoCassaT1} />
-                  </b>
-                </Badge>
-              </div>
-
-              <div style={sumRowStyle}>
-                <div className="rowTitle">DISPONIBILITÀ BANCA</div>
-                <div
-                  className="rowAmount"
-                  style={{ ...amountBoxStyle, fontWeight: 800 }}
-                >
-                  <Euro v={disponibilitaBanca} />
-                </div>
-              </div>
-
-              <div style={sumRowStyle}>
-                <div className="rowTitle">DISPONIBILITÀ CASSA</div>
-                <div
-                  className="rowAmount"
-                  style={{ ...amountBoxStyle, fontWeight: 800 }}
-                >
-                  <Euro v={disponibilitaCassa} />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* AVANZO / DISAVANZO */}
-          <div className="listRow">
-            <div className="rowMain" style={{ display: "grid", gap: 8 }}>
-              <div style={blockTitleStyle}>Risultato di gestione</div>
-
-              <div style={sumRowStyle}>
-                <div className="rowTitle">AVANZO / DISAVANZO DI GESTIONE</div>
-                <div
-                  className="rowAmount"
-                  style={{ ...amountBoxStyle, fontWeight: 900 }}
-                >
-                  <Euro v={avanzoGestione} />
-                </div>
-              </div>
-
-              <div className="rowSub">(Totale entrate − Totale uscite)</div>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* ✅ EXPORT EXCEL */}
+      {/* ===== ACCORDION: RIEPILOGO ===== */}
+      <div className="section">
+        <AccordionHeader
+          title="Riepilogo"
+          open={openRiepilogo}
+          onToggle={() => setOpenRiepilogo((s) => !s)}
+        />
+
+        {openRiepilogo && (
+          <div style={{ marginTop: 10 }} className="listBox">
+            <div className="listRow">
+              <div className="rowMain" style={{ display: "grid", gap: 10 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    letterSpacing: 0.4,
+                    opacity: 0.7,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Entrate
+                </div>
+                <WrapRowValue
+                  label="Totale entrate banca"
+                  value={<Euro v={totEntrateBanca} />}
+                />
+                <WrapRowValue
+                  label="Totale entrate cassa"
+                  value={<Euro v={totEntrateCassa} />}
+                />
+                <WrapRowValue
+                  label="Totale entrate"
+                  value={<Euro v={totEntrate} />}
+                />
+              </div>
+            </div>
+
+            <div className="listRow">
+              <div className="rowMain" style={{ display: "grid", gap: 10 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    letterSpacing: 0.4,
+                    opacity: 0.7,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Uscite
+                </div>
+                <WrapRowValue
+                  label="Totale uscite banca"
+                  value={<Euro v={totUsciteBanca} />}
+                />
+                <WrapRowValue
+                  label="Totale uscite cassa"
+                  value={<Euro v={totUsciteCassa} />}
+                />
+                <WrapRowValue
+                  label="Totale uscite"
+                  value={<Euro v={totUscite} />}
+                />
+              </div>
+            </div>
+
+            <div className="listRow">
+              <div className="rowMain" style={{ display: "grid", gap: 10 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    letterSpacing: 0.4,
+                    opacity: 0.7,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Disponibilità
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 8,
+                    marginTop: 2,
+                  }}
+                >
+                  <Badge tone="neutral">
+                    Avanzo banca (t-1):{" "}
+                    <b>
+                      <Euro v={avanzoBancaT1} />
+                    </b>
+                  </Badge>
+                  <Badge tone="neutral">
+                    Avanzo cassa (t-1):{" "}
+                    <b>
+                      <Euro v={avanzoCassaT1} />
+                    </b>
+                  </Badge>
+                </div>
+                <WrapRowValue
+                  label="Disponibilità banca"
+                  value={<Euro v={disponibilitaBanca} />}
+                />
+                <WrapRowValue
+                  label="Disponibilità cassa"
+                  value={<Euro v={disponibilitaCassa} />}
+                />
+              </div>
+            </div>
+
+            <div className="listRow">
+              <div className="rowMain" style={{ display: "grid", gap: 8 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    letterSpacing: 0.4,
+                    opacity: 0.7,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Risultato di gestione
+                </div>
+                <WrapRowValue
+                  label="Avanzo / disavanzo di gestione"
+                  value={<Euro v={avanzoGestione} />}
+                />
+                <div className="rowSub">(Totale entrate − Totale uscite)</div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* EXPORT */}
       <div className="section" style={{ paddingBottom: 90 }}>
-        <div className="sectionTitle">Esporta</div>
+        <div className="sectionTitle">ESPORTA</div>
         <div className="listBox">
           <div className="listRow">
             <div className="rowMain">
@@ -947,9 +1191,7 @@ export default function EntrateUscite() {
               type="button"
               onClick={downloadExcel}
               disabled={!list.length}
-              title={
-                !list.length ? "Nessun dato da esportare" : "Scarica Excel"
-              }
+              title={!list.length ? "Nessun dato da esportare" : "Scarica Excel"}
             >
               Scarica Excel
             </button>

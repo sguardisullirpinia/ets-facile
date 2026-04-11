@@ -7,9 +7,12 @@ import Aig from "./pages/Aig";
 import AttivitaDiverse from "./pages/AttivitaDiverse";
 import RaccolteFondi from "./pages/RaccolteFondi";
 import Test from "./pages/Test";
+import Iva from "./pages/Iva";
 import Ires from "./pages/Ires";
+import RegistroSoci from "./pages/RegistroSoci";
 import MovimentoEditor from "./pages/MovimentoEditor";
 import Profilo from "./pages/Profilo"; // ✅ NUOVO
+
 
 export default function App() {
   return (
@@ -24,6 +27,8 @@ export default function App() {
       <Route path="/attivita-diverse" element={<AttivitaDiverse />} />
       <Route path="/raccolte-fondi" element={<RaccolteFondi />} />
       <Route path="/test" element={<Test />} />
+      <Route path="/Iva" element={<Iva />} />
+      <Route path="/registro-soci" element={<RegistroSoci />} />
       <Route path="/movimento" element={<MovimentoEditor />} />
       <Route path="*" element={<Navigate to="/login" />} />
     </Routes>

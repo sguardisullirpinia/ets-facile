@@ -14,10 +14,11 @@ type Macro =
   | "PROVENTI_5X1000"
   | "CONTRIBUTI_PA_SENZA_CORRISPETTIVO"
   | "ALTRI_PROVENTI_NON_COMMERCIALI"
-  // ✅ Step 1: costo generale master (solo in USCITA)
   | "COSTI_GENERALI";
 
 type Conto = "CASSA" | "BANCA";
+
+type Regime = "FORFETTARIO" | "ORDINARIO";
 
 /* =========================
    DESCRIZIONI CODIFICATE
@@ -69,9 +70,33 @@ const AD_USCITE = [
   { code: 5, label: "Uscite diverse" },
 ];
 
+// ✅ RACCOLTE FONDI - ENTRATE
+const RF_ENTRATE = [
+  "Liberalità monetarie",
+  "Valore di mercato liberalità non monetarie",
+  "Altri proventi",
+];
+
+// ✅ RACCOLTE FONDI - USCITE
+const RF_USCITE = [
+  "Oneri per acquisto beni",
+  "Oneri per acquisto servizi",
+  "Oneri per noleggi, affitti o utilizzo attrezzature",
+  "Oneri promozionali per la raccolta",
+  "Oneri per lavoro dipendente o autonomo",
+  "Oneri per rimborsi a volontari",
+  "Altri oneri",
+];
+
 function isValidMoney(v: string) {
   const n = Number(v);
   return Number.isFinite(n) && n > 0;
+}
+
+// ✅ IVA può essere 0 o positiva
+function isValidIva(v: string) {
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0;
 }
 
 export default function MovimentoEditor() {
@@ -87,15 +112,14 @@ export default function MovimentoEditor() {
   const [data, setData] = useState("");
   const [macro, setMacro] = useState<Macro | "">("");
 
-  // ✅ Banca/Cassa
   const [conto, setConto] = useState<Conto>("CASSA");
 
   const [descrizioneCode, setDescrizioneCode] = useState<number | null>(null);
   const [descrizioneLabel, setDescrizioneLabel] = useState("");
   const [importo, setImporto] = useState("");
-
-  // ✅ obbligatoria per ENTRATA/USCITA
+  const [iva, setIva] = useState("0");
   const [descrOperazione, setDescrOperazione] = useState("");
+  const [regime, setRegime] = useState<Regime>("ORDINARIO");
 
   /* =========================
      FLAGS
@@ -112,8 +136,46 @@ export default function MovimentoEditor() {
       macro === "CONTRIBUTI_PA_SENZA_CORRISPETTIVO" ||
       macro === "ALTRI_PROVENTI_NON_COMMERCIALI");
 
-  // ✅ STEP 1: riconosco il master
   const isCostiGenerali = tipologia === "USCITA" && macro === "COSTI_GENERALI";
+  const isRaccolteFondi = macro === "RACCOLTE_FONDI";
+
+  const isRegimeOrdinario = regime === "ORDINARIO";
+  const showIvaField = isEntrataOrUscita && isRegimeOrdinario;
+
+  /* =========================
+     LOAD REGIME ANNUALITA
+     ========================= */
+  useEffect(() => {
+    const loadRegime = async () => {
+      const ls = localStorage.getItem("annualita_regime") as Regime | null;
+      if (ls === "FORFETTARIO" || ls === "ORDINARIO") {
+        setRegime(ls);
+        return;
+      }
+
+      if (!annualitaId) return;
+
+      const { data, error } = await supabase
+        .from("annualita")
+        .select("regime")
+        .eq("id", annualitaId)
+        .single();
+
+      if (
+        !error &&
+        (data?.regime === "FORFETTARIO" || data?.regime === "ORDINARIO")
+      ) {
+        setRegime(data.regime);
+        localStorage.setItem("annualita_regime", data.regime);
+      }
+    };
+
+    loadRegime();
+  }, [annualitaId]);
+
+  useEffect(() => {
+    if (!showIvaField) setIva("0");
+  }, [showIvaField]);
 
   /* =========================
      LOAD MOVIMENTO (EDIT)
@@ -142,6 +204,7 @@ export default function MovimentoEditor() {
       setDescrizioneCode(row.descrizione_code);
       setDescrizioneLabel(row.descrizione_label || "");
       setImporto(String(row.importo ?? ""));
+      setIva(String(row.iva ?? 0));
       setDescrOperazione((row.descrizione_operazione ?? "").toString());
 
       setLoading(false);
@@ -161,13 +224,13 @@ export default function MovimentoEditor() {
     setDescrizioneCode(null);
     setDescrizioneLabel("");
     setImporto("");
+    setIva("0");
     setDescrOperazione("");
   }, [tipologia, editId]);
 
   useEffect(() => {
     if (editId) return;
 
-    // se scelgo COSTI_GENERALI: azzero descrizione (non serve)
     if (tipologia === "USCITA" && macro === "COSTI_GENERALI") {
       setDescrizioneCode(null);
       setDescrizioneLabel("");
@@ -192,6 +255,13 @@ export default function MovimentoEditor() {
     return [];
   }, [tipologia, macro, isCostiGenerali]);
 
+  const raccolteFondiOptions = useMemo(() => {
+    if (!isRaccolteFondi) return [];
+    if (tipologia === "ENTRATA") return RF_ENTRATE;
+    if (tipologia === "USCITA") return RF_USCITE;
+    return [];
+  }, [isRaccolteFondi, tipologia]);
+
   /* =========================
      SALVA (INSERT / UPDATE)
      ========================= */
@@ -205,9 +275,13 @@ export default function MovimentoEditor() {
 
     if (!tipologia) return setError("Seleziona la tipologia");
 
-    // ✅ Obbligatoria per ENTRATA/USCITA
     if (isEntrataOrUscita && !descrOperazione.trim()) {
       setError("Inserisci la descrizione dell’operazione (obbligatoria)");
+      return;
+    }
+
+    if (showIvaField && !isValidIva(iva)) {
+      setError("IVA non valida");
       return;
     }
 
@@ -217,7 +291,6 @@ export default function MovimentoEditor() {
         return;
       }
 
-      // ✅ Se COSTI_GENERALI: nessuna descrizione codificata/libera richiesta
       if (!isCostiGenerali) {
         if (
           (macro === "AIG" || macro === "ATTIVITA_DIVERSE") &&
@@ -229,7 +302,7 @@ export default function MovimentoEditor() {
         }
 
         if (macro === "RACCOLTE_FONDI" && !descrizioneLabel.trim()) {
-          setError("Inserisci la descrizione");
+          setError("Seleziona la descrizione della raccolta fondi");
           return;
         }
       }
@@ -240,7 +313,6 @@ export default function MovimentoEditor() {
       }
     }
 
-    // ✅ DESCRIZIONE OPERAZIONE: mai null (DB NOT NULL)
     const descrOperazioneFinale = isAvanzo
       ? tipologia === "AVANZO_CASSA_T_1"
         ? "Avanzo cassa t-1"
@@ -254,7 +326,6 @@ export default function MovimentoEditor() {
       data: isAvanzo ? null : data || null,
       macro: isAvanzo ? null : macro || null,
 
-      // ✅ CONTO: sugli avanzi lo imposto automaticamente
       conto: isAvanzo
         ? tipologia === "AVANZO_CASSA_T_1"
           ? "CASSA"
@@ -263,24 +334,19 @@ export default function MovimentoEditor() {
           ? conto
           : null,
 
-      // ✅ COSTI_GENERALI: descrizioni nulle
       descrizione_code:
-        isAvanzo || isSoloImportoEntrata || isCostiGenerali
+        isAvanzo || isSoloImportoEntrata || isCostiGenerali || isRaccolteFondi
           ? null
           : descrizioneCode,
+
       descrizione_label:
         isAvanzo || isSoloImportoEntrata || isCostiGenerali
           ? null
           : descrizioneLabel || null,
 
       importo: Number(importo),
-
+      iva: showIvaField ? Number(iva || 0) : 0,
       descrizione_operazione: descrOperazioneFinale,
-
-      iva: 0,
-
-      // ✅ IMPORTANTISSIMO: niente allocazione per COSTI_GENERALI (master)
-      // (qui non valorizziamo allocated_to_type/id, quindi rimangono null)
     };
 
     const q = editId
@@ -308,7 +374,6 @@ export default function MovimentoEditor() {
 
   return (
     <Layout>
-      {/* HEADER */}
       <div className="pageHeader" style={{ paddingTop: 15 }}>
         <div>
           <h2 className="pageTitle">
@@ -320,13 +385,6 @@ export default function MovimentoEditor() {
           </div>
         </div>
       </div>
-
-      {error && (
-        <div className="mt-3">
-          <Badge tone="red">Errore</Badge>
-          <div className="errorText">{error}</div>
-        </div>
-      )}
 
       <Card title="1️⃣ Tipologia">
         <select
@@ -365,7 +423,6 @@ export default function MovimentoEditor() {
               <option value="ATTIVITA_DIVERSE">Attività Diverse</option>
               <option value="RACCOLTE_FONDI">Raccolte Fondi</option>
 
-              {/* ✅ Step 1: costo generale master */}
               {tipologia === "USCITA" && (
                 <option value="COSTI_GENERALI">Costi generali</option>
               )}
@@ -388,8 +445,7 @@ export default function MovimentoEditor() {
             </select>
           </Card>
 
-          {/* ✅ BANCA/CASSA */}
-          <Card title="3️⃣B Banca / Cassa">
+          <Card title="3️⃣ Banca / Cassa">
             <select
               value={conto}
               onChange={(e) => setConto(e.target.value as Conto)}
@@ -402,7 +458,6 @@ export default function MovimentoEditor() {
         </>
       )}
 
-      {/* ✅ Info box per COSTI_GENERALI */}
       {isCostiGenerali && (
         <Card title="ℹ️ Nota (Costi generali)">
           <div style={{ lineHeight: 1.45 }}>
@@ -441,12 +496,18 @@ export default function MovimentoEditor() {
 
       {macro === "RACCOLTE_FONDI" && !isCostiGenerali && (
         <Card title="4️⃣ Descrizione raccolta fondi">
-          <input
+          <select
             value={descrizioneLabel}
             onChange={(e) => setDescrizioneLabel(e.target.value)}
             className="input"
-            placeholder="Inserisci descrizione…"
-          />
+          >
+            <option value="">Seleziona…</option>
+            {raccolteFondiOptions.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
         </Card>
       )}
 
@@ -459,20 +520,46 @@ export default function MovimentoEditor() {
               onChange={(e) => setImporto(e.target.value)}
               className="input"
               placeholder="0,00"
+              step="0.01"
+              min={0}
             />
           </Card>
 
+          {showIvaField && (
+            <Card title="6️⃣ IVA (solo regime ordinario)">
+              <input
+                type="number"
+                value={iva}
+                onChange={(e) => setIva(e.target.value)}
+                className="input"
+                placeholder="0,00"
+                step="0.01"
+                min={0}
+              />
+              <div className="rowSub" style={{ marginTop: 8 }}>
+                Inserisci <b>0</b> se l’operazione non prevede IVA.
+              </div>
+            </Card>
+          )}
+
           {isEntrataOrUscita && (
-            <Card title="6️⃣ Descrizione operazione (obbligatoria)">
+            <Card title="7️⃣ Descrizione operazione (obbligatoria)">
               <input
                 value={descrOperazione}
                 onChange={(e) => setDescrOperazione(e.target.value)}
                 className="input"
-                placeholder="Es. Bollette • Assicurazione • Canone software • 'Costi generali'…"
+                placeholder="Es. Fattura n. X • Cancelleria • Bolletta • ecc."
               />
             </Card>
           )}
         </>
+      )}
+
+      {error && (
+        <div style={{ marginTop: 14, marginBottom: 10 }}>
+          <Badge tone="red">Errore</Badge>
+          <div className="errorText">{error}</div>
+        </div>
       )}
 
       <div className="formActions">
