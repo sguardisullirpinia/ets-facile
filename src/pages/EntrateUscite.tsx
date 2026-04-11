@@ -369,7 +369,7 @@ export default function EntrateUscite() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const HELP_FULL =
-    "Inserisci le entrate e le uscite dell’anno, distinguendo tra movimenti di banca e di cassa. \nIndividua sempre una macro-categoria a cui assegnare la posta attiva o passiva.\n\nN.B. I Costi Generali che incidono su tutte le attività dell'Ente [es. affitto struttura, luce, acqua, ecc.] vengono dal sistema automaticamente imputati alle varie attività in relazione all'ammontare delle entrate";
+    "Inserisci le entrate e le uscite dell’anno, distinguendo tra movimenti di banca e di cassa. \nIndividua sempre una macro-categoria a cui assegnare la posta attiva o passiva.\n\nN.B. I Costi Generali, cioè quelli che incidono su tutte le attività dell'Ente [es. affitto struttura, luce, acqua, ecc.], vanno registrate nell'apposita categoria Costi Generali e saranno dal sistema automaticamente imputati alle varie attività svolte dall'Ente, in relazione all'ammontare delle entrate";
   const load = async () => {
     setError(null);
     if (!annualitaId) return;
