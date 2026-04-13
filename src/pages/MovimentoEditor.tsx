@@ -16,7 +16,8 @@ type Macro =
   | "ATTIVITA_FINANZIARIA_PATRIMONIALE"
   | "SUPPORTO_GENERALE"
   | "INVESTIMENTO_DISINVESTIMENTO"
-  | "IMPOSTE";
+  | "IMPOSTE"
+  | "COSTI_GENERALI";
 
 type Conto = "CASSA" | "BANCA";
 type Regime = "FORFETTARIO" | "ORDINARIO";
@@ -29,12 +30,8 @@ type OptionItem = {
 type NestedConfig = {
   primary: OptionItem[];
   secondary?: Record<number, string[]>;
-  forceTextAfterPrimary?: number[];
-  forceTextAfterSecondary?: Array<{
-    primaryCode: number;
-    secondaryValues: string[];
-  }>;
   hideSecondary?: boolean;
+  textOnlyAfterPrimary?: number[];
 };
 
 function isValidMoney(v: string) {
@@ -47,11 +44,29 @@ function isValidIva(v: string) {
   return Number.isFinite(n) && n >= 0;
 }
 
+function withAltro(items: string[]) {
+  const cleaned = items
+    .map((x) => String(x || "").trim())
+    .filter(Boolean);
+
+  const hasAltro = cleaned.some((x) => x.toLowerCase() === "altro");
+  return hasAltro ? cleaned : [...cleaned, "Altro"];
+}
+
+function normalizeText(v: string) {
+  return String(v || "").trim();
+}
+
+function optionExists(options: string[], value: string) {
+  const a = normalizeText(value).toLowerCase();
+  return options.some((x) => normalizeText(x).toLowerCase() === a);
+}
+
 /* =========================
    LISTE BASE COMUNI
 ========================= */
 
-const USCITE_MATERIE_PRIME = [
+const USCITE_MATERIE_PRIME = withAltro([
   "acquisti di beni",
   "cancelleria e stampati",
   "carburanti e lubrificanti",
@@ -73,9 +88,9 @@ const USCITE_MATERIE_PRIME = [
   "Dispositivi di protezione individuale",
   "Attrezzature e macchinari di costo inferiore a € 517",
   "indumenti da lavoro, divise",
-];
+]);
 
-const USCITE_SERVIZI = [
+const USCITE_SERVIZI = withAltro([
   "Aggiornamento e formazione",
   "Altri servizi resi da banche ed imprese finanziarie non collegati ad operazioni di finanziamento",
   "Assicurazioni varie",
@@ -122,9 +137,10 @@ const USCITE_SERVIZI = [
   "Lavoro autonomo e occasionale Costo lordo (comprensivo di ritenuta d’acconto, IRAP)",
   "Contratti collaborazione occasionale",
   "Parcelle liberi professionisti",
-];
+  "Canone sito web, PEC, firma digitale, licenze software",
+]);
 
-const USCITE_GODIMENTO_TERZI = [
+const USCITE_GODIMENTO_TERZI = withAltro([
   "Affitti e locazioni",
   "Canoni corrisposti per usufrutto, enfiteusi e diritto di superficie",
   "Diritto d’autore",
@@ -138,9 +154,9 @@ const USCITE_GODIMENTO_TERZI = [
   "Noleggio sale e attrezzature",
   "Leasing",
   "Diritti per utilizzo di opere dell’ingegno, diritti d’autore, licenze e marchi (SIAE)",
-];
+]);
 
-const USCITE_PERSONALE = [
+const USCITE_PERSONALE = withAltro([
   "Retribuzione in denaro",
   "Retribuzione in natura",
   "Premi ed altri elementi simili",
@@ -155,9 +171,9 @@ const USCITE_PERSONALE = [
   "Borse di studio a favore dei dipendenti e loro familiari",
   "Omaggi a dipendenti",
   "Incentivi all’esodo",
-];
+]);
 
-const USCITE_DIVERSE_GESTIONE = [
+const USCITE_DIVERSE_GESTIONE = withAltro([
   "Imposte e tasse relative al reddito imponibile dell’esercizio",
   "Imposte sostitutive",
   "Imposte di bollo",
@@ -189,10 +205,10 @@ const USCITE_DIVERSE_GESTIONE = [
   "Erogazione di denaro a sostegno di persone svantaggiate",
   "Erogazione di denaro a ETS che svolgono attività a sostegno di persone svantaggiate",
   "Acquisto beni e servizi da donare",
-];
+]);
 
 /* =========================
-   CONFIGURAZIONE GERARCHICA
+   CONFIGURAZIONI
 ========================= */
 
 const USCITE_AIG_CONFIG: NestedConfig = {
@@ -202,6 +218,7 @@ const USCITE_AIG_CONFIG: NestedConfig = {
     { code: 3, label: "Godimento beni di terzi" },
     { code: 4, label: "Personale" },
     { code: 5, label: "Uscite diverse di gestione" },
+    { code: 99, label: "Altro" },
   ],
   secondary: {
     1: USCITE_MATERIE_PRIME,
@@ -209,6 +226,7 @@ const USCITE_AIG_CONFIG: NestedConfig = {
     3: USCITE_GODIMENTO_TERZI,
     4: USCITE_PERSONALE,
     5: USCITE_DIVERSE_GESTIONE,
+    99: withAltro([]),
   },
 };
 
@@ -219,6 +237,7 @@ const USCITE_AD_CONFIG: NestedConfig = {
     { code: 3, label: "Godimento beni di terzi" },
     { code: 4, label: "Personale" },
     { code: 5, label: "Uscite diverse di gestione" },
+    { code: 99, label: "Altro" },
   ],
   secondary: {
     1: USCITE_MATERIE_PRIME,
@@ -226,6 +245,7 @@ const USCITE_AD_CONFIG: NestedConfig = {
     3: USCITE_GODIMENTO_TERZI,
     4: USCITE_PERSONALE,
     5: USCITE_DIVERSE_GESTIONE,
+    99: withAltro([]),
   },
 };
 
@@ -234,9 +254,9 @@ const USCITE_RF_CONFIG: NestedConfig = {
     { code: 1, label: "Uscite per raccolte fondi abituali" },
     { code: 2, label: "Uscite per raccolte fondi occasionali" },
     { code: 3, label: "Altre uscite" },
+    { code: 99, label: "Altro" },
   ],
   hideSecondary: true,
-  forceTextAfterPrimary: [1, 2, 3],
 };
 
 const USCITE_AFP_CONFIG: NestedConfig = {
@@ -246,29 +266,29 @@ const USCITE_AFP_CONFIG: NestedConfig = {
     { code: 3, label: "Su patrimonio edilizio" },
     { code: 4, label: "Su altri beni patrimoniali" },
     { code: 5, label: "Altre uscite" },
+    { code: 99, label: "Altro" },
   ],
   secondary: {
-    1: [
+    1: withAltro([
       "costi fissi bancari o postali",
       "Commissioni bancarie o postali",
       "interessi passivi",
       "imposte",
-      "Altro",
-    ],
-    2: [
+    ]),
+    2: withAltro([
       "Interessi su finanziamenti ottenuti da banche ed altri istituti di credito",
       "Commissioni passive su finanziamenti",
       "Interessi passivi su dilazioni ottenute da fornitori ed interessi di mora",
-      "Altro",
-    ],
-    3: [
+    ]),
+    3: withAltro([
       "Manutenzioni straordinarie sul patrimonio edilizio",
       "IMU",
       "Spese condominiali",
-      "Altro",
-    ],
+    ]),
+    4: withAltro([]),
+    5: withAltro([]),
+    99: withAltro([]),
   },
-  forceTextAfterPrimary: [4, 5],
 };
 
 const USCITE_SUPPORTO_GENERALE_CONFIG: NestedConfig = {
@@ -278,9 +298,9 @@ const USCITE_SUPPORTO_GENERALE_CONFIG: NestedConfig = {
     { code: 3, label: "Godimento beni di terzi" },
     { code: 4, label: "Personale" },
     { code: 5, label: "Altre uscite" },
+    { code: 99, label: "Altro" },
   ],
   hideSecondary: true,
-  forceTextAfterPrimary: [1, 2, 3, 4, 5],
 };
 
 const USCITE_INVESTIMENTI_CONFIG: NestedConfig = {
@@ -295,12 +315,14 @@ const USCITE_INVESTIMENTI_CONFIG: NestedConfig = {
     },
     { code: 3, label: "Investimenti in attività finanziarie e patrimoniali" },
     { code: 4, label: "Rimborso di finanziamenti per quota capitale e di prestiti" },
+    { code: 99, label: "Altro" },
   ],
   secondary: {
-    1: ["Acquisto beni strumentali di valore superiore 516 euro", "Altro"],
-    2: ["Acquisto beni strumentali di valore superiore 516 euro", "Altro"],
-    3: ["Immobili ad uso investimento", "Titoli, azioni"],
-    4: ["Quota capitale mutuo", "Altro"],
+    1: withAltro(["Acquisto beni strumentali di valore superiore 516 euro"]),
+    2: withAltro(["Acquisto beni strumentali di valore superiore 516 euro"]),
+    3: withAltro(["Immobili ad uso investimento", "Titoli, azioni"]),
+    4: withAltro(["Quota capitale mutuo"]),
+    99: withAltro([]),
   },
 };
 
@@ -319,6 +341,7 @@ const ENTRATE_AIG_CONFIG: NestedConfig = {
     { code: 8, label: "Contributi da enti pubblici" },
     { code: 9, label: "Entrate da contratti con enti pubblici" },
     { code: 10, label: "Altre entrate" },
+    { code: 99, label: "Altro" },
   ],
   hideSecondary: true,
 };
@@ -337,6 +360,7 @@ const ENTRATE_AD_CONFIG: NestedConfig = {
     { code: 4, label: "Contributi da enti pubblici" },
     { code: 5, label: "Entrate da contratti con enti pubblici" },
     { code: 6, label: "Altre entrate" },
+    { code: 99, label: "Altro" },
   ],
   hideSecondary: true,
 };
@@ -346,6 +370,7 @@ const ENTRATE_RF_CONFIG: NestedConfig = {
     { code: 1, label: "Entrate da raccolte fondi abituali" },
     { code: 2, label: "Entrate da raccolte fondi occasionali" },
     { code: 3, label: "Altre entrate" },
+    { code: 99, label: "Altro" },
   ],
   hideSecondary: true,
 };
@@ -357,19 +382,23 @@ const ENTRATE_AFP_CONFIG: NestedConfig = {
     { code: 3, label: "Da patrimonio edilizio" },
     { code: 4, label: "Da altri beni patrimoniali" },
     { code: 5, label: "Altre entrate" },
+    { code: 99, label: "Altro" },
   ],
   secondary: {
-    1: ["Interessi attivi", "Altro"],
-    2: ["Interessi attivi", "Altro"],
-    3: ["Affitti attivi", "Altro"],
+    1: withAltro(["Interessi attivi"]),
+    2: withAltro(["Interessi attivi"]),
+    3: withAltro(["Affitti attivi"]),
+    4: withAltro([]),
+    5: withAltro([]),
+    99: withAltro([]),
   },
-  forceTextAfterPrimary: [4, 5],
 };
 
 const ENTRATE_SUPPORTO_GENERALE_CONFIG: NestedConfig = {
   primary: [
     { code: 1, label: "Entrate da distacco del personale" },
     { code: 2, label: "Altre entrate di supporto generale" },
+    { code: 99, label: "Altro" },
   ],
   hideSecondary: true,
 };
@@ -386,38 +415,40 @@ const ENTRATE_INVESTIMENTI_CONFIG: NestedConfig = {
     },
     { code: 3, label: "Disinvestimenti di attività finanziarie e patrimoniali" },
     { code: 4, label: "Ricevimento di finanziamenti e di prestiti" },
+    { code: 99, label: "Altro" },
   ],
   hideSecondary: true,
 };
 
-function getConfig(
-  tipologia: Tipologia | "",
-  macro: Macro | ""
-): NestedConfig | null {
+const USCITE_COSTI_GENERALI_CONFIG: NestedConfig = {
+  primary: [
+    { code: 1, label: "Materie prime, sussidiarie, di consumo e di merci" },
+    { code: 2, label: "Servizi" },
+    { code: 3, label: "Godimento beni di terzi" },
+    { code: 4, label: "Personale" },
+    { code: 5, label: "Altre uscite" },
+    { code: 99, label: "Altro" },
+  ],
+  hideSecondary: true,
+};
+
+function getConfig(tipologia: Tipologia | "", macro: Macro | ""): NestedConfig | null {
   if (tipologia === "USCITA" && macro === "AIG") return USCITE_AIG_CONFIG;
-  if (tipologia === "USCITA" && macro === "ATTIVITA_DIVERSE")
-    return USCITE_AD_CONFIG;
-  if (tipologia === "USCITA" && macro === "RACCOLTE_FONDI")
-    return USCITE_RF_CONFIG;
-  if (
-    tipologia === "USCITA" &&
-    macro === "ATTIVITA_FINANZIARIA_PATRIMONIALE"
-  )
+  if (tipologia === "USCITA" && macro === "ATTIVITA_DIVERSE") return USCITE_AD_CONFIG;
+  if (tipologia === "USCITA" && macro === "RACCOLTE_FONDI") return USCITE_RF_CONFIG;
+  if (tipologia === "USCITA" && macro === "ATTIVITA_FINANZIARIA_PATRIMONIALE")
     return USCITE_AFP_CONFIG;
   if (tipologia === "USCITA" && macro === "SUPPORTO_GENERALE")
     return USCITE_SUPPORTO_GENERALE_CONFIG;
   if (tipologia === "USCITA" && macro === "INVESTIMENTO_DISINVESTIMENTO")
     return USCITE_INVESTIMENTI_CONFIG;
+  if (tipologia === "USCITA" && macro === "COSTI_GENERALI")
+    return USCITE_COSTI_GENERALI_CONFIG;
 
   if (tipologia === "ENTRATA" && macro === "AIG") return ENTRATE_AIG_CONFIG;
-  if (tipologia === "ENTRATA" && macro === "ATTIVITA_DIVERSE")
-    return ENTRATE_AD_CONFIG;
-  if (tipologia === "ENTRATA" && macro === "RACCOLTE_FONDI")
-    return ENTRATE_RF_CONFIG;
-  if (
-    tipologia === "ENTRATA" &&
-    macro === "ATTIVITA_FINANZIARIA_PATRIMONIALE"
-  )
+  if (tipologia === "ENTRATA" && macro === "ATTIVITA_DIVERSE") return ENTRATE_AD_CONFIG;
+  if (tipologia === "ENTRATA" && macro === "RACCOLTE_FONDI") return ENTRATE_RF_CONFIG;
+  if (tipologia === "ENTRATA" && macro === "ATTIVITA_FINANZIARIA_PATRIMONIALE")
     return ENTRATE_AFP_CONFIG;
   if (tipologia === "ENTRATA" && macro === "SUPPORTO_GENERALE")
     return ENTRATE_SUPPORTO_GENERALE_CONFIG;
@@ -443,13 +474,11 @@ export default function MovimentoEditor() {
 
   const [descrizioneCode, setDescrizioneCode] = useState<number | null>(null);
   const [descrizioneLabel, setDescrizioneLabel] = useState("");
-  const [descrizioneLivello2, setDescrizioneLivello2] = useState("");
+  const [descrizioneDettaglio, setDescrizioneDettaglio] = useState("");
   const [descrizioneLibera, setDescrizioneLibera] = useState("");
 
   const [importo, setImporto] = useState("");
   const [iva, setIva] = useState("0");
-  const [descrOperazione, setDescrOperazione] = useState("");
-
   const [regime, setRegime] = useState<Regime>("ORDINARIO");
 
   const isEntrataOrUscita = tipologia === "ENTRATA" || tipologia === "USCITA";
@@ -460,60 +489,37 @@ export default function MovimentoEditor() {
 
   const config = useMemo(() => getConfig(tipologia, macro), [tipologia, macro]);
 
-  const primaryOptions = config?.primary ?? [];
-  const secondaryOptions =
-    descrizioneCode && config?.secondary?.[descrizioneCode]
-      ? config.secondary[descrizioneCode]
-      : [];
+  const primaryOptions = useMemo(() => config?.primary ?? [], [config]);
 
-  const showSecondarySelect = useMemo(() => {
-    if (!config || config.hideSecondary) return false;
-    if (!descrizioneCode) return false;
-    return secondaryOptions.length > 0;
-  }, [config, descrizioneCode, secondaryOptions]);
+  const selectedPrimary = useMemo(
+    () => primaryOptions.find((x) => x.code === descrizioneCode) || null,
+    [primaryOptions, descrizioneCode]
+  );
 
-  const needsTextAfterPrimary = useMemo(() => {
-    if (!config || !descrizioneCode) return false;
-    return (config.forceTextAfterPrimary ?? []).includes(descrizioneCode);
+  const secondaryOptions = useMemo(() => {
+    if (!config?.secondary || !descrizioneCode) return [];
+    return withAltro(config.secondary[descrizioneCode] || []);
   }, [config, descrizioneCode]);
 
-  const needsTextAfterSecondary = useMemo(() => {
-    if (!config || !descrizioneCode || !descrizioneLivello2) return false;
-    return (config.forceTextAfterSecondary ?? []).some(
-      (r) =>
-        r.primaryCode === descrizioneCode &&
-        r.secondaryValues.includes(descrizioneLivello2)
-    );
-  }, [config, descrizioneCode, descrizioneLivello2]);
+  const showStepAfterCategoria = isEntrataOrUscita && !!macro;
 
-  const shouldShowDescrizioneLibera = useMemo(() => {
-    if (isAvanzo) return false;
-    if (!isEntrataOrUscita) return false;
-    if (!macro) return false;
-    if (macro === "IMPOSTE" && tipologia === "USCITA") return true;
-    if (!config) return false;
-    if (!descrizioneCode) return false;
-    if (showSecondarySelect) {
-      if (!descrizioneLivello2) return false;
-      return true;
-    }
-    if (needsTextAfterPrimary || needsTextAfterSecondary) return true;
-    return true;
-  }, [
-    isAvanzo,
-    isEntrataOrUscita,
-    macro,
-    tipologia,
-    config,
-    descrizioneCode,
-    showSecondarySelect,
-    descrizioneLivello2,
-    needsTextAfterPrimary,
-    needsTextAfterSecondary,
-  ]);
+  const isImposteTextOnly = tipologia === "USCITA" && macro === "IMPOSTE";
+
+  const showDescrizioneCodificata =
+    showStepAfterCategoria && !isImposteTextOnly && primaryOptions.length > 0;
+
+  const showDettaglioDescrizione =
+    showDescrizioneCodificata &&
+    !!descrizioneCode &&
+    !config?.hideSecondary &&
+    secondaryOptions.length > 0;
+
+  const showDescrizionePersonale =
+    showStepAfterCategoria &&
+    (isImposteTextOnly || !!descrizioneCode);
 
   /* =========================
-     LOAD REGIME ANNUALITA
+     LOAD REGIME
   ========================= */
   useEffect(() => {
     const loadRegime = async () => {
@@ -522,7 +528,9 @@ export default function MovimentoEditor() {
         setRegime(ls);
         return;
       }
+
       if (!annualitaId) return;
+
       const { data, error } = await supabase
         .from("annualita")
         .select("regime")
@@ -571,23 +579,27 @@ export default function MovimentoEditor() {
       setDescrizioneCode(row.descrizione_code ?? null);
       setImporto(String(row.importo ?? ""));
       setIva(String(row.iva ?? 0));
-      setDescrOperazione((row.descrizione_operazione ?? "").toString());
 
       const fullLabel = String(row.descrizione_label ?? "");
       setDescrizioneLabel(fullLabel);
 
       const parts = fullLabel
         .split(" | ")
-        .map((x: string) => x.trim())
+        .map((x) => x.trim())
         .filter(Boolean);
 
       if (parts.length >= 2) {
-        setDescrizioneLivello2(parts[1]);
+        setDescrizioneDettaglio(parts[1]);
+      } else {
+        setDescrizioneDettaglio("");
       }
+
       if (parts.length >= 3) {
         setDescrizioneLibera(parts.slice(2).join(" | "));
+      } else if (parts.length === 2 && config?.hideSecondary) {
+        setDescrizioneLibera(parts[1]);
       } else {
-        setDescrizioneLibera("");
+        setDescrizioneLibera(row.descrizione_libera || "");
       }
 
       setLoading(false);
@@ -597,7 +609,7 @@ export default function MovimentoEditor() {
   }, [editId]);
 
   /* =========================
-     RESET A CASCATA (solo INSERT)
+     RESET A CASCATA
   ========================= */
   useEffect(() => {
     if (editId) return;
@@ -606,11 +618,10 @@ export default function MovimentoEditor() {
     setConto("CASSA");
     setDescrizioneCode(null);
     setDescrizioneLabel("");
-    setDescrizioneLivello2("");
+    setDescrizioneDettaglio("");
     setDescrizioneLibera("");
     setImporto("");
     setIva("0");
-    setDescrOperazione("");
   }, [tipologia, editId]);
 
   useEffect(() => {
@@ -618,58 +629,54 @@ export default function MovimentoEditor() {
     setConto("CASSA");
     setDescrizioneCode(null);
     setDescrizioneLabel("");
-    setDescrizioneLivello2("");
+    setDescrizioneDettaglio("");
     setDescrizioneLibera("");
     setImporto("");
     setIva("0");
-    setDescrOperazione("");
   }, [macro, editId]);
 
   useEffect(() => {
     if (editId) return;
-    setDescrizioneLivello2("");
+    setDescrizioneDettaglio("");
     setDescrizioneLibera("");
-    const item = primaryOptions.find((x) => x.code === descrizioneCode);
-    setDescrizioneLabel(item?.label || "");
-  }, [descrizioneCode, editId, primaryOptions]);
+  }, [descrizioneCode, editId]);
 
+  /* =========================
+     COSTRUZIONE LABEL
+  ========================= */
   useEffect(() => {
-    if (editId) return;
-    if (!descrizioneCode) return;
-
-    const item = primaryOptions.find((x) => x.code === descrizioneCode);
-    const primaryLabel = item?.label || "";
-
-    if (descrizioneLivello2) {
-      setDescrizioneLabel(`${primaryLabel} | ${descrizioneLivello2}`);
-    } else {
-      setDescrizioneLabel(primaryLabel);
-    }
-  }, [descrizioneLivello2, descrizioneCode, primaryOptions, editId]);
-
-  useEffect(() => {
-    if (editId) return;
-    if (!descrizioneCode) return;
-
-    const item = primaryOptions.find((x) => x.code === descrizioneCode);
-    const primaryLabel = item?.label || "";
-
-    let finalLabel = primaryLabel;
-
-    if (descrizioneLivello2) {
-      finalLabel += ` | ${descrizioneLivello2}`;
-    }
-    if (descrizioneLibera.trim()) {
-      finalLabel += ` | ${descrizioneLibera.trim()}`;
+    if (isAvanzo) {
+      setDescrizioneLabel("");
+      return;
     }
 
-    setDescrizioneLabel(finalLabel);
+    if (isImposteTextOnly) {
+      setDescrizioneLabel(normalizeText(descrizioneLibera));
+      return;
+    }
+
+    if (!selectedPrimary) {
+      setDescrizioneLabel("");
+      return;
+    }
+
+    let label = selectedPrimary.label;
+
+    if (normalizeText(descrizioneDettaglio)) {
+      label += ` | ${normalizeText(descrizioneDettaglio)}`;
+    }
+
+    if (normalizeText(descrizioneLibera)) {
+      label += ` | ${normalizeText(descrizioneLibera)}`;
+    }
+
+    setDescrizioneLabel(label);
   }, [
+    isAvanzo,
+    isImposteTextOnly,
+    selectedPrimary,
+    descrizioneDettaglio,
     descrizioneLibera,
-    descrizioneLivello2,
-    descrizioneCode,
-    primaryOptions,
-    editId,
   ]);
 
   /* =========================
@@ -678,12 +685,21 @@ export default function MovimentoEditor() {
   const salva = async () => {
     setError(null);
 
-    if (!annualitaId) return setError("Annualità non selezionata");
+    if (!annualitaId) {
+      setError("Annualità non selezionata");
+      return;
+    }
 
     const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return setError("Utente non autenticato");
+    if (!userData.user) {
+      setError("Utente non autenticato");
+      return;
+    }
 
-    if (!tipologia) return setError("Seleziona la tipologia");
+    if (!tipologia) {
+      setError("Seleziona la tipologia");
+      return;
+    }
 
     if (showIvaField && !isValidIva(iva)) {
       setError("IVA non valida");
@@ -696,9 +712,9 @@ export default function MovimentoEditor() {
         return;
       }
 
-      if (macro === "IMPOSTE" && tipologia === "USCITA") {
-        if (!descrizioneLibera.trim()) {
-          setError("Inserisci la descrizione");
+      if (isImposteTextOnly) {
+        if (!normalizeText(descrizioneLibera)) {
+          setError("Inserisci la descrizione personale");
           return;
         }
       } else {
@@ -707,20 +723,24 @@ export default function MovimentoEditor() {
           return;
         }
 
-        if (showSecondarySelect && !descrizioneLivello2.trim()) {
-          setError("Seleziona il dettaglio della descrizione");
+        if (showDettaglioDescrizione && !normalizeText(descrizioneDettaglio)) {
+          setError("Seleziona o scrivi il dettaglio descrizione");
           return;
         }
 
-        if (shouldShowDescrizioneLibera && !descrizioneLibera.trim()) {
-          setError("Inserisci la descrizione personale aggiuntiva");
+        if (showDettaglioDescrizione) {
+          if (
+            secondaryOptions.length > 0 &&
+            !optionExists(secondaryOptions, descrizioneDettaglio)
+          ) {
+            // consentiamo testo libero nel dettaglio, quindi nessun errore
+          }
+        }
+
+        if (!normalizeText(descrizioneLibera)) {
+          setError("Inserisci la descrizione personale");
           return;
         }
-      }
-
-      if (!descrOperazione.trim()) {
-        setError("Inserisci la descrizione dell’operazione");
-        return;
       }
     } else {
       if (!isValidMoney(importo)) {
@@ -728,18 +748,6 @@ export default function MovimentoEditor() {
         return;
       }
     }
-
-    const descrOperazioneFinale = isAvanzo
-      ? tipologia === "AVANZO_CASSA_T_1"
-        ? "Avanzo cassa t-1"
-        : "Avanzo banca t-1"
-      : descrOperazione.trim();
-
-    const descrizioneLabelFinale = isAvanzo
-      ? null
-      : macro === "IMPOSTE" && tipologia === "USCITA"
-      ? descrizioneLibera.trim()
-      : descrizioneLabel || null;
 
     const payload: any = {
       user_id: userData.user.id,
@@ -751,17 +759,15 @@ export default function MovimentoEditor() {
         ? tipologia === "AVANZO_CASSA_T_1"
           ? "CASSA"
           : "BANCA"
-        : isEntrataOrUscita
-        ? conto
-        : null,
+        : conto,
       descrizione_code:
-        isAvanzo || (macro === "IMPOSTE" && tipologia === "USCITA")
-          ? null
-          : descrizioneCode,
-      descrizione_label: descrizioneLabelFinale,
+        isAvanzo || isImposteTextOnly ? null : descrizioneCode,
+      descrizione_label: isAvanzo ? null : descrizioneLabel || null,
+      descrizione_libera: isAvanzo ? null : normalizeText(descrizioneLibera) || null,
       importo: Number(importo),
       iva: showIvaField ? Number(iva || 0) : 0,
-      descrizione_operazione: descrOperazioneFinale,
+      is_costo_generale:
+        macro === "COSTI_GENERALI" || macro === "SUPPORTO_GENERALE",
     };
 
     const q = editId
@@ -796,8 +802,8 @@ export default function MovimentoEditor() {
             {editId ? "Modifica movimento" : "Nuovo Movimento"}
           </h2>
           <div className="pageHelp">
-            Seleziona tipologia, data e categoria. Le altre tendine compariranno
-            in automatico in base alla scelta effettuata.
+            All’inizio sono visibili solo tipologia, data e categoria. Gli altri
+            campi compaiono dopo la scelta della categoria.
           </div>
         </div>
       </div>
@@ -846,82 +852,62 @@ export default function MovimentoEditor() {
                 Investimento e Disinvestimento
               </option>
               <option value="IMPOSTE">Imposte</option>
+
+              {macro === "COSTI_GENERALI" && (
+                <option value="COSTI_GENERALI">Costi Generali</option>
+              )}
             </select>
           </Card>
         </>
       )}
 
-      {isEntrataOrUscita && macro && (
-        <Card title="4️⃣ Banca / Cassa">
+      {showDescrizioneCodificata && (
+        <Card title="4️⃣ Descrizione codificata">
           <select
-            value={conto}
-            onChange={(e) => setConto(e.target.value as Conto)}
-            className="input"
-          >
-            <option value="CASSA">Cassa</option>
-            <option value="BANCA">Banca</option>
-          </select>
-        </Card>
-      )}
-
-      {tipologia === "USCITA" && macro === "SUPPORTO_GENERALE" && (
-        <Card title="ℹ️ Nota">
-          <div style={{ lineHeight: 1.45 }}>
-            Le spese di <b>Supporto Generale</b> saranno salvate come movimenti
-            autonomi e dovranno poi essere <b>ripartite automaticamente</b> tra
-            AIG, Attività Diverse e Raccolte Fondi nella logica dei riepiloghi.
-          </div>
-        </Card>
-      )}
-
-      {isEntrataOrUscita &&
-        macro &&
-        !(tipologia === "USCITA" && macro === "IMPOSTE") &&
-        primaryOptions.length > 0 && (
-          <Card title="5️⃣ Descrizione codificata">
-            <select
-              value={descrizioneCode ?? ""}
-              onChange={(e) =>
-                setDescrizioneCode(e.target.value ? Number(e.target.value) : null)
-              }
-              className="input"
-            >
-              <option value="">Seleziona…</option>
-              {primaryOptions.map((v) => (
-                <option key={v.code} value={v.code}>
-                  {v.code}) {v.label}
-                </option>
-              ))}
-            </select>
-          </Card>
-        )}
-
-      {showSecondarySelect && (
-        <Card title="6️⃣ Dettaglio descrizione">
-          <select
-            value={descrizioneLivello2}
-            onChange={(e) => setDescrizioneLivello2(e.target.value)}
+            value={descrizioneCode ?? ""}
+            onChange={(e) =>
+              setDescrizioneCode(e.target.value ? Number(e.target.value) : null)
+            }
             className="input"
           >
             <option value="">Seleziona…</option>
-            {secondaryOptions.map((item) => (
-              <option key={item} value={item}>
-                {item}
+            {primaryOptions.map((v) => (
+              <option key={v.code} value={v.code}>
+                {v.code}. {v.label}
               </option>
             ))}
           </select>
         </Card>
       )}
 
-      {((tipologia === "USCITA" && macro === "IMPOSTE") ||
-        shouldShowDescrizioneLibera) && (
+      {showDettaglioDescrizione && (
+        <Card title="5️⃣ Dettaglio descrizione">
+          <input
+            list="dettaglio-descrizione-list"
+            value={descrizioneDettaglio}
+            onChange={(e) => setDescrizioneDettaglio(e.target.value)}
+            className="input"
+            placeholder="Scrivi o cerca tra le voci"
+          />
+          <datalist id="dettaglio-descrizione-list">
+            {secondaryOptions.map((item) => (
+              <option key={item} value={item} />
+            ))}
+          </datalist>
+
+          <div className="rowSub" style={{ marginTop: 8 }}>
+            Puoi iniziare a scrivere per cercare più velocemente oppure inserire
+            una voce personalizzata.
+          </div>
+        </Card>
+      )}
+
+      {showDescrizionePersonale && (
         <Card
           title={
-            tipologia === "USCITA" && macro === "IMPOSTE"
-              ? "5️⃣ Descrizione"
-              : showSecondarySelect
-              ? "7️⃣ Descrizione personale (aggiuntiva)"
-              : "6️⃣ Descrizione personale (aggiuntiva)"
+            showDettaglioDescrizione
+              ? "6️⃣ Descrizione personale"
+              : "5️⃣ Descrizione personale"
           }
         >
           <input
@@ -933,48 +919,72 @@ export default function MovimentoEditor() {
         </Card>
       )}
 
-      {tipologia && (
-        <>
-          <Card title="8️⃣ Importo">
-            <input
-              type="number"
-              value={importo}
-              onChange={(e) => setImporto(e.target.value)}
-              className="input"
-              placeholder="0,00"
-              step="0.01"
-              min={0}
-            />
-          </Card>
+      {showStepAfterCategoria && (
+        <Card
+          title={
+            showDettaglioDescrizione
+              ? "7️⃣ Banca / Cassa"
+              : showDescrizionePersonale
+              ? "6️⃣ Banca / Cassa"
+              : "4️⃣ Banca / Cassa"
+          }
+        >
+          <select
+            value={conto}
+            onChange={(e) => setConto(e.target.value as Conto)}
+            className="input"
+          >
+            <option value="CASSA">Cassa</option>
+            <option value="BANCA">Banca</option>
+          </select>
+        </Card>
+      )}
 
-          {showIvaField && (
-            <Card title="9️⃣ IVA (solo regime ordinario)">
-              <input
-                type="number"
-                value={iva}
-                onChange={(e) => setIva(e.target.value)}
-                className="input"
-                placeholder="0,00"
-                step="0.01"
-                min={0}
-              />
-              <div className="rowSub" style={{ marginTop: 8 }}>
-                Inserisci <b>0</b> se l’operazione non prevede IVA.
-              </div>
-            </Card>
-          )}
+      {tipologia && showStepAfterCategoria && (
+        <Card
+          title={
+            showDettaglioDescrizione
+              ? "8️⃣ Importo"
+              : showDescrizionePersonale
+              ? "7️⃣ Importo"
+              : "5️⃣ Importo"
+          }
+        >
+          <input
+            type="number"
+            value={importo}
+            onChange={(e) => setImporto(e.target.value)}
+            className="input"
+            placeholder="0,00"
+            step="0.01"
+            min={0}
+          />
+        </Card>
+      )}
 
-          {isEntrataOrUscita && (
-            <Card title="🔟 Descrizione operazione">
-              <input
-                value={descrOperazione}
-                onChange={(e) => setDescrOperazione(e.target.value)}
-                className="input"
-                placeholder="Es. Fattura n. X • Bolletta • quota • ricevuta • ecc."
-              />
-            </Card>
-          )}
-        </>
+      {showStepAfterCategoria && showIvaField && (
+        <Card
+          title={
+            showDettaglioDescrizione
+              ? "9️⃣ IVA (solo regime ordinario)"
+              : showDescrizionePersonale
+              ? "8️⃣ IVA (solo regime ordinario)"
+              : "6️⃣ IVA (solo regime ordinario)"
+          }
+        >
+          <input
+            type="number"
+            value={iva}
+            onChange={(e) => setIva(e.target.value)}
+            className="input"
+            placeholder="0,00"
+            step="0.01"
+            min={0}
+          />
+          <div className="rowSub" style={{ marginTop: 8 }}>
+            Inserisci <b>0</b> se l’operazione non prevede IVA.
+          </div>
+        </Card>
       )}
 
       {error && (
