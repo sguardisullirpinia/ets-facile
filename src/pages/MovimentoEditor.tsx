@@ -20,10 +20,16 @@ type Conto = "CASSA" | "BANCA";
 
 type Regime = "FORFETTARIO" | "ORDINARIO";
 
-/* =========================
-   DESCRIZIONI CODIFICATE
-   ========================= */
-// ENTRATE
+type AiSuggestion = {
+  tipologia: "ENTRATA" | "USCITA";
+  macro: Macro;
+  descrizione_code: number | null;
+  descrizione_label: string | null;
+  conto: Conto;
+  spiegazione: string;
+  confidenza: number;
+};
+
 const AIG_ENTRATE = [
   { code: 1, label: "Entrate dagli associati per attività mutuali" },
   {
@@ -36,6 +42,7 @@ const AIG_ENTRATE = [
   { code: 6, label: "Entrate da contratti con enti pubblici" },
   { code: 7, label: "Altri ricavi, rendite e proventi" },
   { code: 8, label: "Rimanenze finali" },
+  { code: 999, label: "Altro" },
 ];
 
 const AD_ENTRATE = [
@@ -46,9 +53,9 @@ const AD_ENTRATE = [
   { code: 5, label: "Contratti pubblici" },
   { code: 6, label: "Sponsorizzazioni" },
   { code: 7, label: "Altre entrate" },
+  { code: 999, label: "Altro" },
 ];
 
-// USCITE
 const AIG_USCITE = [
   { code: 1, label: "Materie prime" },
   { code: 2, label: "Servizi" },
@@ -60,6 +67,7 @@ const AIG_USCITE = [
   { code: 8, label: "Rimanenze iniziali" },
   { code: 9, label: "Costi su rapporti bancari" },
   { code: 10, label: "Costi su prestiti" },
+  { code: 999, label: "Altro" },
 ];
 
 const AD_USCITE = [
@@ -68,16 +76,16 @@ const AD_USCITE = [
   { code: 3, label: "Godimento beni di terzi" },
   { code: 4, label: "Personale" },
   { code: 5, label: "Uscite diverse" },
+  { code: 999, label: "Altro" },
 ];
 
-// ✅ RACCOLTE FONDI - ENTRATE
 const RF_ENTRATE = [
   "Liberalità monetarie",
   "Valore di mercato liberalità non monetarie",
   "Altri proventi",
+  "Altro",
 ];
 
-// ✅ RACCOLTE FONDI - USCITE
 const RF_USCITE = [
   "Oneri per acquisto beni",
   "Oneri per acquisto servizi",
@@ -86,6 +94,7 @@ const RF_USCITE = [
   "Oneri per lavoro dipendente o autonomo",
   "Oneri per rimborsi a volontari",
   "Altri oneri",
+  "Altro",
 ];
 
 function isValidMoney(v: string) {
@@ -93,7 +102,6 @@ function isValidMoney(v: string) {
   return Number.isFinite(n) && n > 0;
 }
 
-// ✅ IVA può essere 0 o positiva
 function isValidIva(v: string) {
   const n = Number(v);
   return Number.isFinite(n) && n >= 0;
@@ -111,9 +119,7 @@ export default function MovimentoEditor() {
   const [tipologia, setTipologia] = useState<Tipologia | "">(presetTipologia);
   const [data, setData] = useState("");
   const [macro, setMacro] = useState<Macro | "">("");
-
   const [conto, setConto] = useState<Conto>("CASSA");
-
   const [descrizioneCode, setDescrizioneCode] = useState<number | null>(null);
   const [descrizioneLabel, setDescrizioneLabel] = useState("");
   const [importo, setImporto] = useState("");
@@ -121,9 +127,11 @@ export default function MovimentoEditor() {
   const [descrOperazione, setDescrOperazione] = useState("");
   const [regime, setRegime] = useState<Regime>("ORDINARIO");
 
-  /* =========================
-     FLAGS
-     ========================= */
+  const [aiText, setAiText] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiSuggestion, setAiSuggestion] = useState<AiSuggestion | null>(null);
+
   const isEntrataOrUscita = tipologia === "ENTRATA" || tipologia === "USCITA";
   const isAvanzo =
     tipologia === "AVANZO_CASSA_T_1" || tipologia === "AVANZO_BANCA_T_1";
@@ -138,13 +146,9 @@ export default function MovimentoEditor() {
 
   const isCostiGenerali = tipologia === "USCITA" && macro === "COSTI_GENERALI";
   const isRaccolteFondi = macro === "RACCOLTE_FONDI";
-
   const isRegimeOrdinario = regime === "ORDINARIO";
   const showIvaField = isEntrataOrUscita && isRegimeOrdinario;
 
-  /* =========================
-     LOAD REGIME ANNUALITA
-     ========================= */
   useEffect(() => {
     const loadRegime = async () => {
       const ls = localStorage.getItem("annualita_regime") as Regime | null;
@@ -177,9 +181,6 @@ export default function MovimentoEditor() {
     if (!showIvaField) setIva("0");
   }, [showIvaField]);
 
-  /* =========================
-     LOAD MOVIMENTO (EDIT)
-     ========================= */
   useEffect(() => {
     if (!editId) return;
 
@@ -200,22 +201,17 @@ export default function MovimentoEditor() {
       setData(row.data || "");
       setMacro(row.macro || "");
       setConto((row.conto as Conto) || "CASSA");
-
       setDescrizioneCode(row.descrizione_code);
       setDescrizioneLabel(row.descrizione_label || "");
       setImporto(String(row.importo ?? ""));
       setIva(String(row.iva ?? 0));
       setDescrOperazione((row.descrizione_operazione ?? "").toString());
-
       setLoading(false);
     };
 
     load();
   }, [editId]);
 
-  /* =========================
-     RESET A CASCATA (solo INSERT)
-     ========================= */
   useEffect(() => {
     if (editId) return;
     setData("");
@@ -241,17 +237,12 @@ export default function MovimentoEditor() {
     setDescrizioneLabel("");
   }, [macro, tipologia, editId]);
 
-  /* =========================
-     DESCRIZIONI DINAMICHE
-     ========================= */
   const descrizioni = useMemo(() => {
     if (isCostiGenerali) return [];
     if (tipologia === "ENTRATA" && macro === "AIG") return AIG_ENTRATE;
-    if (tipologia === "ENTRATA" && macro === "ATTIVITA_DIVERSE")
-      return AD_ENTRATE;
+    if (tipologia === "ENTRATA" && macro === "ATTIVITA_DIVERSE") return AD_ENTRATE;
     if (tipologia === "USCITA" && macro === "AIG") return AIG_USCITE;
-    if (tipologia === "USCITA" && macro === "ATTIVITA_DIVERSE")
-      return AD_USCITE;
+    if (tipologia === "USCITA" && macro === "ATTIVITA_DIVERSE") return AD_USCITE;
     return [];
   }, [tipologia, macro, isCostiGenerali]);
 
@@ -262,9 +253,45 @@ export default function MovimentoEditor() {
     return [];
   }, [isRaccolteFondi, tipologia]);
 
-  /* =========================
-     SALVA (INSERT / UPDATE)
-     ========================= */
+  const applyAiSuggestion = (s: AiSuggestion) => {
+    setTipologia(s.tipologia);
+    setMacro(s.macro);
+    setConto(s.conto);
+    setDescrizioneCode(s.descrizione_code);
+    setDescrizioneLabel(s.descrizione_label || "");
+    if (!descrOperazione.trim()) setDescrOperazione(aiText.trim());
+  };
+
+  const usaClassificazioneAi = async () => {
+    setAiError(null);
+    setAiSuggestion(null);
+
+    const text = aiText.trim();
+    if (!text) {
+      setAiError("Scrivi una descrizione dell’operazione da far analizzare all’AI");
+      return;
+    }
+
+    try {
+      setAiLoading(true);
+      const res = await fetch("/api/ai-classify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json?.error || "Errore durante la classificazione AI");
+      }
+      setAiSuggestion(json as AiSuggestion);
+      applyAiSuggestion(json as AiSuggestion);
+    } catch (e: any) {
+      setAiError(e?.message || "Errore durante la classificazione AI");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const salva = async () => {
     setError(null);
 
@@ -325,7 +352,6 @@ export default function MovimentoEditor() {
       tipologia,
       data: isAvanzo ? null : data || null,
       macro: isAvanzo ? null : macro || null,
-
       conto: isAvanzo
         ? tipologia === "AVANZO_CASSA_T_1"
           ? "CASSA"
@@ -333,17 +359,14 @@ export default function MovimentoEditor() {
         : isEntrataOrUscita
           ? conto
           : null,
-
       descrizione_code:
         isAvanzo || isSoloImportoEntrata || isCostiGenerali || isRaccolteFondi
           ? null
           : descrizioneCode,
-
       descrizione_label:
         isAvanzo || isSoloImportoEntrata || isCostiGenerali
           ? null
           : descrizioneLabel || null,
-
       importo: Number(importo),
       iva: showIvaField ? Number(iva || 0) : 0,
       descrizione_operazione: descrOperazioneFinale,
@@ -376,15 +399,58 @@ export default function MovimentoEditor() {
     <Layout>
       <div className="pageHeader" style={{ paddingTop: 15 }}>
         <div>
-          <h2 className="pageTitle">
-            {editId ? "Modifica movimento" : "Nuovo Movimento"}
-          </h2>
+          <h2 className="pageTitle">{editId ? "Modifica movimento" : "Nuovo Movimento"}</h2>
           <div className="pageHelp">
-            Compila i campi passo-passo. La descrizione dell’operazione è
-            obbligatoria per Entrate/Uscite.
+            Compila i campi passo-passo. La descrizione dell’operazione è obbligatoria per Entrate/Uscite.
           </div>
         </div>
       </div>
+
+      <Card title="🤖 Assistente AI per classificare il movimento">
+        <div className="rowSub" style={{ marginBottom: 10 }}>
+          Scrivi l’operazione in linguaggio libero. L’AI propone tipologia, categoria, voce e conto.
+        </div>
+        <textarea
+          value={aiText}
+          onChange={(e) => setAiText(e.target.value)}
+          className="input"
+          rows={4}
+          placeholder="Es. Pagato con bonifico il commercialista per consulenza fiscale di marzo"
+          style={{ resize: "vertical", minHeight: 96 }}
+        />
+        <div className="formActions" style={{ marginTop: 10 }}>
+          <SecondaryButton onClick={usaClassificazioneAi}>
+            {aiLoading ? "Analisi in corso…" : "Classifica con AI"}
+          </SecondaryButton>
+        </div>
+
+        {aiError && (
+          <div style={{ marginTop: 10 }}>
+            <Badge tone="red">Errore AI</Badge>
+            <div className="errorText">{aiError}</div>
+          </div>
+        )}
+
+        {aiSuggestion && (
+          <div style={{ marginTop: 12, lineHeight: 1.5 }}>
+            <div>
+              <b>Proposta:</b> {aiSuggestion.tipologia} → {aiSuggestion.macro}
+            </div>
+            <div>
+              <b>Descrizione:</b> {aiSuggestion.descrizione_label || "Non richiesta per questa voce"}
+            </div>
+            <div>
+              <b>Conto suggerito:</b> {aiSuggestion.conto}
+            </div>
+            <div>
+              <b>Confidenza:</b> {Math.round((aiSuggestion.confidenza || 0) * 100)}%
+            </div>
+            <div className="rowSub" style={{ marginTop: 6 }}>
+              {aiSuggestion.spiegazione}
+            </div>
+          </div>
+        )}
+      </Card>
 
       <Card title="1️⃣ Tipologia">
         <select
@@ -423,23 +489,15 @@ export default function MovimentoEditor() {
               <option value="ATTIVITA_DIVERSE">Attività Diverse</option>
               <option value="RACCOLTE_FONDI">Raccolte Fondi</option>
 
-              {tipologia === "USCITA" && (
-                <option value="COSTI_GENERALI">Costi generali</option>
-              )}
+              {tipologia === "USCITA" && <option value="COSTI_GENERALI">Costi generali</option>}
 
               {tipologia === "ENTRATA" && (
                 <>
                   <option value="QUOTE_ASSOCIATIVE">Quote associative</option>
-                  <option value="EROGAZIONI_LIBERALI">
-                    Erogazioni liberali
-                  </option>
+                  <option value="EROGAZIONI_LIBERALI">Erogazioni liberali</option>
                   <option value="PROVENTI_5X1000">Proventi 5×1000</option>
-                  <option value="CONTRIBUTI_PA_SENZA_CORRISPETTIVO">
-                    Contributi PA senza corrispettivo
-                  </option>
-                  <option value="ALTRI_PROVENTI_NON_COMMERCIALI">
-                    Altri proventi non commerciali
-                  </option>
+                  <option value="CONTRIBUTI_PA_SENZA_CORRISPETTIVO">Contributi PA senza corrispettivo</option>
+                  <option value="ALTRI_PROVENTI_NON_COMMERCIALI">Altri proventi non commerciali</option>
                 </>
               )}
             </select>
@@ -461,38 +519,34 @@ export default function MovimentoEditor() {
       {isCostiGenerali && (
         <Card title="ℹ️ Nota (Costi generali)">
           <div style={{ lineHeight: 1.45 }}>
-            Questo movimento è un <b>costo generale unico</b> e resterà visibile
-            nella <b>Prima Nota</b> per poterlo modificare o cancellare.
+            Questo movimento è un <b>costo generale unico</b> e resterà visibile nella <b>Prima Nota</b> per poterlo modificare o cancellare.
             <br />
-            La quota imputata alle singole attività verrà calcolata
-            automaticamente nei riepiloghi (step successivi).
+            La quota imputata alle singole attività verrà calcolata automaticamente nei riepiloghi.
           </div>
         </Card>
       )}
 
-      {(macro === "AIG" || macro === "ATTIVITA_DIVERSE") &&
-        !isSoloImportoEntrata &&
-        !isCostiGenerali && (
-          <Card title="4️⃣ Descrizione (codificata)">
-            <select
-              value={descrizioneCode ?? ""}
-              onChange={(e) => {
-                const code = Number(e.target.value);
-                const item = descrizioni.find((x) => x.code === code);
-                setDescrizioneCode(code);
-                setDescrizioneLabel(item?.label || "");
-              }}
-              className="input"
-            >
-              <option value="">Seleziona…</option>
-              {descrizioni.map((v) => (
-                <option key={v.code} value={v.code}>
-                  {v.code}. {v.label}
-                </option>
-              ))}
-            </select>
-          </Card>
-        )}
+      {(macro === "AIG" || macro === "ATTIVITA_DIVERSE") && !isSoloImportoEntrata && !isCostiGenerali && (
+        <Card title="4️⃣ Descrizione (codificata)">
+          <select
+            value={descrizioneCode ?? ""}
+            onChange={(e) => {
+              const code = Number(e.target.value);
+              const item = descrizioni.find((x) => x.code === code);
+              setDescrizioneCode(code);
+              setDescrizioneLabel(item?.label || "");
+            }}
+            className="input"
+          >
+            <option value="">Seleziona…</option>
+            {descrizioni.map((v) => (
+              <option key={v.code} value={v.code}>
+                {v.code}. {v.label}
+              </option>
+            ))}
+          </select>
+        </Card>
+      )}
 
       {macro === "RACCOLTE_FONDI" && !isCostiGenerali && (
         <Card title="4️⃣ Descrizione raccolta fondi">
@@ -563,12 +617,8 @@ export default function MovimentoEditor() {
       )}
 
       <div className="formActions">
-        <PrimaryButton onClick={salva}>
-          {editId ? "Salva modifiche" : "Salva"}
-        </PrimaryButton>
-        <SecondaryButton onClick={() => history.back()}>
-          Annulla
-        </SecondaryButton>
+        <PrimaryButton onClick={salva}>{editId ? "Salva modifiche" : "Salva"}</PrimaryButton>
+        <SecondaryButton onClick={() => history.back()}>Annulla</SecondaryButton>
       </div>
     </Layout>
   );
