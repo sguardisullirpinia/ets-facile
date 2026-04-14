@@ -509,10 +509,6 @@ function getConfig(tipologia: Tipologia | "", macro: Macro | ""): NestedConfig |
   return null;
 }
 
-/* =========================
-   ETICHETTE
-========================= */
-
 const MACRO_LABELS: Record<Macro, string> = {
   AIG: "AIG",
   ATTIVITA_DIVERSE: "Attività Diverse",
@@ -570,7 +566,7 @@ const CONFIG_REGISTRY: Array<{
 ];
 
 /* =========================
-   RICERCA SEMANTICA PRO
+   RICERCA SEMANTICA
 ========================= */
 
 function normalizeSemanticText(s: string) {
@@ -620,10 +616,6 @@ function tokenizeSemanticText(text: string) {
     .split(" ")
     .map((x) => x.trim())
     .filter(Boolean);
-}
-
-function uniqueStrings(values: string[]) {
-  return Array.from(new Set(values.map((x) => normalizeText(x)).filter(Boolean)));
 }
 
 function uniqueNormalizedStrings(values: string[]) {
@@ -1384,11 +1376,18 @@ export default function MovimentoEditor() {
     return buildFastAutocompleteOptions(semanticInput, semanticEntries, tipologia);
   }, [semanticInput, semanticEntries, tipologia]);
 
-  const showStepAfterCategoria = isEntrataOrUscita && !!macro;
-  const isImposteTextOnly = tipologia === "USCITA" && macro === "IMPOSTE";
+  const semanticHasMatches = semanticResults.length > 0;
+  const semanticTried = normalizeText(debouncedSemanticInput).length > 0;
+  const semanticNoMatch = semanticTried && !semanticHasMatches;
+
+  const showData = isEntrataOrUscita;
+  const showSemanticBox = isEntrataOrUscita;
+
+  const showManualSection = isEntrataOrUscita && semanticNoMatch;
+  const showAiBox = isEntrataOrUscita && semanticNoMatch;
 
   const showDescrizioneCodificata =
-    showStepAfterCategoria && !isImposteTextOnly && primaryOptions.length > 0;
+    showManualSection && macro !== "IMPOSTE" && primaryOptions.length > 0;
 
   const showDettaglioDescrizione =
     showDescrizioneCodificata &&
@@ -1396,10 +1395,13 @@ export default function MovimentoEditor() {
     !config?.hideSecondary &&
     secondaryOptions.length > 0;
 
-  const showDescrizionePersonale =
-    showStepAfterCategoria && (isImposteTextOnly || !!descrizioneCode);
+  const isImposteTextOnly = tipologia === "USCITA" && macro === "IMPOSTE";
 
-  const showAiBox = tipologia === "ENTRATA" || tipologia === "USCITA";
+  const showDescrizionePersonale =
+    showManualSection && (isImposteTextOnly || !!descrizioneCode);
+
+  const showConto = isEntrataOrUscita && semanticNoMatch;
+  const showImporto = isAvanzo || (isEntrataOrUscita && semanticNoMatch);
 
   useEffect(() => {
     const loadRegime = async () => {
@@ -1509,13 +1511,10 @@ export default function MovimentoEditor() {
   useEffect(() => {
     if (editId) return;
 
-    setConto("CASSA");
     setDescrizioneCode(null);
     setDescrizioneLabel("");
     setDescrizioneDettaglio("");
     setDescrizioneLibera("");
-    setImporto("");
-    setIva("0");
   }, [macro, editId]);
 
   useEffect(() => {
@@ -1574,7 +1573,7 @@ export default function MovimentoEditor() {
     setSemanticResults(results);
 
     if (!results.length) {
-      setSemanticError("Nessuna voce trovata. Prova con parole più semplici");
+      setSemanticError("Nessuna voce trovata. Procedi con compilazione guidata");
     } else {
       setSemanticError(null);
     }
@@ -1639,32 +1638,25 @@ export default function MovimentoEditor() {
       };
 
       setAiSuggestion(normalized);
+
+      if (normalized.macro) setMacro(normalized.macro);
+      if (normalized.contoConsigliato) setConto(normalized.contoConsigliato);
+
+      if (normalized.macro === "IMPOSTE") {
+        setDescrizioneCode(null);
+        setDescrizioneDettaglio("");
+        setDescrizioneLibera(normalized.descrizioneLiberaSuggerita || aiInput);
+        return;
+      }
+
+      setDescrizioneCode(normalized.descrizioneCode ?? null);
+      setDescrizioneDettaglio(normalized.descrizioneDettaglio || "");
+      setDescrizioneLibera(normalized.descrizioneLiberaSuggerita || aiInput);
     } catch (err: any) {
       setAiError(err?.message || "Errore nella richiesta AI");
     } finally {
       setAiLoading(false);
     }
-  }
-
-  function applicaSuggerimentoAi() {
-    if (!aiSuggestion) return;
-
-    setMacro(aiSuggestion.macro);
-
-    if (aiSuggestion.contoConsigliato) {
-      setConto(aiSuggestion.contoConsigliato);
-    }
-
-    if (aiSuggestion.macro === "IMPOSTE") {
-      setDescrizioneCode(null);
-      setDescrizioneDettaglio("");
-      setDescrizioneLibera(aiSuggestion.descrizioneLiberaSuggerita || aiInput);
-      return;
-    }
-
-    setDescrizioneCode(aiSuggestion.descrizioneCode ?? null);
-    setDescrizioneDettaglio(aiSuggestion.descrizioneDettaglio || "");
-    setDescrizioneLibera(aiSuggestion.descrizioneLiberaSuggerita || aiInput);
   }
 
   const salva = async () => {
@@ -1691,45 +1683,54 @@ export default function MovimentoEditor() {
       return;
     }
 
-    if (!isAvanzo) {
-      if (!data || !macro || !isValidMoney(importo)) {
-        setError("Compila tutti i campi obbligatori");
-        return;
-      }
-
-      if (isImposteTextOnly) {
-        if (!normalizeText(descrizioneLibera)) {
-          setError("Inserisci la descrizione personale");
-          return;
-        }
-      } else {
-        if (!descrizioneCode) {
-          setError("Seleziona la descrizione codificata");
-          return;
-        }
-
-        if (showDettaglioDescrizione && !normalizeText(descrizioneDettaglio)) {
-          setError("Seleziona o scrivi il dettaglio descrizione");
-          return;
-        }
-
-        if (
-          showDettaglioDescrizione &&
-          secondaryOptions.length > 0 &&
-          !optionExists(secondaryOptions, descrizioneDettaglio)
-        ) {
-          // testo libero consentito
-        }
-
-        if (!normalizeText(descrizioneLibera)) {
-          setError("Inserisci la descrizione personale");
-          return;
-        }
-      }
-    } else {
+    if (isAvanzo) {
       if (!isValidMoney(importo)) {
         setError("Importo non valido");
         return;
+      }
+    } else {
+      if (!data) {
+        setError("Inserisci la data");
+        return;
+      }
+
+      if (!semanticHasMatches && !macro) {
+        setError("Seleziona la categoria");
+        return;
+      }
+
+      if (semanticNoMatch) {
+        if (isImposteTextOnly) {
+          if (!normalizeText(descrizioneLibera)) {
+            setError("Inserisci la descrizione personale");
+            return;
+          }
+        } else {
+          if (!descrizioneCode) {
+            setError("Seleziona la descrizione codificata");
+            return;
+          }
+
+          if (showDettaglioDescrizione && !normalizeText(descrizioneDettaglio)) {
+            setError("Seleziona o scrivi il dettaglio descrizione");
+            return;
+          }
+
+          if (!normalizeText(descrizioneLibera)) {
+            setError("Inserisci la descrizione personale");
+            return;
+          }
+        }
+
+        if (!isValidMoney(importo)) {
+          setError("Importo non valido");
+          return;
+        }
+      } else {
+        if (!isValidMoney(importo)) {
+          setError("Importo non valido");
+          return;
+        }
       }
     }
 
@@ -1778,8 +1779,8 @@ export default function MovimentoEditor() {
         <div>
           <h2 className="pageTitle">{editId ? "Modifica movimento" : "Nuovo Movimento"}</h2>
           <div className="pageHelp">
-            All’inizio sono visibili solo tipologia, data e categoria. Puoi anche partire dal
-            linguaggio naturale: il motore locale prova a portarti prima al dettaglio della posta.
+            La compilazione ora parte in modo essenziale: prima la tipologia, poi il percorso si
+            apre in base alla scelta effettuata.
           </div>
         </div>
       </div>
@@ -1799,8 +1800,19 @@ export default function MovimentoEditor() {
         </select>
       </Card>
 
-      {showAiBox && (
-        <Card title="🔎 Trova la voce automaticamente">
+      {showData && (
+        <Card title="2️⃣ Data">
+          <input
+            type="date"
+            value={data}
+            onChange={(e) => setData(e.target.value)}
+            className="input"
+          />
+        </Card>
+      )}
+
+      {showSemanticBox && (
+        <Card title={showData ? "3️⃣ Trova la voce automaticamente" : "2️⃣ Trova la voce automaticamente"}>
           <input
             list="semantic-autocomplete-list"
             value={semanticInput}
@@ -1816,8 +1828,7 @@ export default function MovimentoEditor() {
           </datalist>
 
           <div className="rowSub" style={{ marginTop: 8 }}>
-            Il completamento compare mentre scrivi. La ricerca più approfondita parte dopo una
-            brevissima pausa, così il campo resta fluido.
+            Se la ricerca non individua una voce coerente, comparirà la compilazione guidata manuale.
           </div>
 
           {(semanticResults.length > 0 || semanticInput) && (
@@ -1861,14 +1872,7 @@ export default function MovimentoEditor() {
                       background: index === 0 ? "#fafafa" : "#fff",
                     }}
                   >
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: 8,
-                        flexWrap: "wrap",
-                        alignItems: "center",
-                      }}
-                    >
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                       <Badge tone={index === 0 ? "green" : "blue"}>
                         {index === 0 ? "Voce consigliata" : `Alternativa ${index}`}
                       </Badge>
@@ -1910,8 +1914,103 @@ export default function MovimentoEditor() {
         </Card>
       )}
 
+      {isAvanzo && (
+        <Card title="2️⃣ Importo">
+          <input
+            type="number"
+            value={importo}
+            onChange={(e) => setImporto(e.target.value)}
+            className="input"
+            placeholder="0,00"
+            step="0.01"
+            min={0}
+          />
+        </Card>
+      )}
+
+      {showManualSection && (
+        <Card title="4️⃣ Categoria">
+          <select
+            value={macro}
+            onChange={(e) => setMacro(e.target.value as Macro | "")}
+            className="input"
+          >
+            <option value="">Seleziona…</option>
+            <option value="AIG">AIG</option>
+            <option value="ATTIVITA_DIVERSE">Attività Diverse</option>
+            <option value="RACCOLTE_FONDI">Raccolte Fondi</option>
+            <option value="ATTIVITA_FINANZIARIA_PATRIMONIALE">
+              Attività Finanziaria e Patrimoniale
+            </option>
+            <option value="SUPPORTO_GENERALE">Supporto Generale</option>
+            <option value="INVESTIMENTO_DISINVESTIMENTO">Investimento e Disinvestimento</option>
+            <option value="IMPOSTE">Imposte</option>
+            {tipologia === "USCITA" && <option value="COSTI_GENERALI">Costi Generali</option>}
+          </select>
+        </Card>
+      )}
+
+      {showDescrizioneCodificata && (
+        <Card title="5️⃣ Descrizione codificata">
+          <select
+            value={descrizioneCode ?? ""}
+            onChange={(e) =>
+              setDescrizioneCode(e.target.value ? Number(e.target.value) : null)
+            }
+            className="input"
+          >
+            <option value="">Seleziona…</option>
+            {primaryOptions.map((v) => (
+              <option key={v.code} value={v.code}>
+                {v.code}. {v.label}
+              </option>
+            ))}
+          </select>
+        </Card>
+      )}
+
+      {showDettaglioDescrizione && (
+        <Card title="6️⃣ Dettaglio descrizione">
+          <input
+            list="dettaglio-descrizione-list"
+            value={descrizioneDettaglio}
+            onChange={(e) => setDescrizioneDettaglio(e.target.value)}
+            className="input"
+            placeholder="Scrivi o cerca tra le voci"
+          />
+          <datalist id="dettaglio-descrizione-list">
+            {secondaryOptions.map((item) => (
+              <option key={item} value={item} />
+            ))}
+          </datalist>
+
+          <div className="rowSub" style={{ marginTop: 8 }}>
+            Puoi cercare tra le voci oppure inserire una formulazione personalizzata.
+          </div>
+        </Card>
+      )}
+
+      {showDescrizionePersonale && (
+        <Card title={showDettaglioDescrizione ? "7️⃣ Descrizione personale" : "6️⃣ Descrizione personale"}>
+          <input
+            value={descrizioneLibera}
+            onChange={(e) => setDescrizioneLibera(e.target.value)}
+            className="input"
+            placeholder="Inserisci una descrizione aggiuntiva"
+          />
+        </Card>
+      )}
+
       {showAiBox && (
-        <Card title="🤖 Aiuto classificazione con AI">
+        <Card
+          title={
+            showDescrizionePersonale
+              ? showDettaglioDescrizione
+                ? "8️⃣ Aiuto classificazione AI"
+                : "7️⃣ Aiuto classificazione AI"
+              : "6️⃣ Aiuto classificazione AI"
+          }
+        >
           <textarea
             value={aiInput}
             onChange={(e) => setAiInput(e.target.value)}
@@ -1926,25 +2025,13 @@ export default function MovimentoEditor() {
           />
 
           <div className="rowSub" style={{ marginTop: 8 }}>
-            L’AI resta facoltativa. Prima conviene usare la ricerca locale, più rapida e coerente
-            con lo schema.
+            Usa questo box se non hai trovato nulla con la ricerca automatica.
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              gap: 10,
-              flexWrap: "wrap",
-              marginTop: 12,
-            }}
-          >
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
             <PrimaryButton onClick={chiediAiClassificazione} disabled={aiLoading}>
               {aiLoading ? "Analisi in corso..." : "Suggerisci collocazione"}
             </PrimaryButton>
-
-            {aiSuggestion && (
-              <SecondaryButton onClick={applicaSuggerimentoAi}>Applica suggerimento</SecondaryButton>
-            )}
           </div>
 
           {aiError && (
@@ -1995,9 +2082,6 @@ export default function MovimentoEditor() {
               <div style={{ marginBottom: 6 }}>
                 <b>Confidenza:</b>{" "}
                 {Number.isFinite(aiSuggestion.confidenza) ? Math.round(aiSuggestion.confidenza) : 0}%
-                {aiSuggestion.exactMatch
-                  ? " • corrispondenza diretta nello schema"
-                  : " • classificazione per analogia prudente"}
               </div>
 
               {aiSuggestion.motivazioneBreve && (
@@ -2008,105 +2092,16 @@ export default function MovimentoEditor() {
         </Card>
       )}
 
-      {isEntrataOrUscita && (
-        <>
-          <Card title="2️⃣ Data">
-            <input
-              type="date"
-              value={data}
-              onChange={(e) => setData(e.target.value)}
-              className="input"
-            />
-          </Card>
-
-          <Card title="3️⃣ Categoria">
-            <select
-              value={macro}
-              onChange={(e) => setMacro(e.target.value as Macro | "")}
-              className="input"
-            >
-              <option value="">Seleziona…</option>
-              <option value="AIG">AIG</option>
-              <option value="ATTIVITA_DIVERSE">Attività Diverse</option>
-              <option value="RACCOLTE_FONDI">Raccolte Fondi</option>
-              <option value="ATTIVITA_FINANZIARIA_PATRIMONIALE">
-                Attività Finanziaria e Patrimoniale
-              </option>
-              <option value="SUPPORTO_GENERALE">Supporto Generale</option>
-              <option value="INVESTIMENTO_DISINVESTIMENTO">Investimento e Disinvestimento</option>
-              <option value="IMPOSTE">Imposte</option>
-              {tipologia === "USCITA" && <option value="COSTI_GENERALI">Costi Generali</option>}
-            </select>
-          </Card>
-        </>
-      )}
-
-      {showDescrizioneCodificata && (
-        <Card title="4️⃣ Descrizione codificata">
-          <select
-            value={descrizioneCode ?? ""}
-            onChange={(e) =>
-              setDescrizioneCode(e.target.value ? Number(e.target.value) : null)
-            }
-            className="input"
-          >
-            <option value="">Seleziona…</option>
-            {primaryOptions.map((v) => (
-              <option key={v.code} value={v.code}>
-                {v.code}. {v.label}
-              </option>
-            ))}
-          </select>
-        </Card>
-      )}
-
-      {showDettaglioDescrizione && (
-        <Card title="5️⃣ Dettaglio descrizione">
-          <input
-            list="dettaglio-descrizione-list"
-            value={descrizioneDettaglio}
-            onChange={(e) => setDescrizioneDettaglio(e.target.value)}
-            className="input"
-            placeholder="Scrivi o cerca tra le voci"
-          />
-          <datalist id="dettaglio-descrizione-list">
-            {secondaryOptions.map((item) => (
-              <option key={item} value={item} />
-            ))}
-          </datalist>
-
-          <div className="rowSub" style={{ marginTop: 8 }}>
-            Puoi iniziare a scrivere per cercare più velocemente oppure inserire una voce
-            personalizzata.
-          </div>
-        </Card>
-      )}
-
-      {showDescrizionePersonale && (
+      {showConto && (
         <Card
           title={
-            showDettaglioDescrizione
-              ? "6️⃣ Descrizione personale"
-              : "5️⃣ Descrizione personale"
-          }
-        >
-          <input
-            value={descrizioneLibera}
-            onChange={(e) => setDescrizioneLibera(e.target.value)}
-            className="input"
-            placeholder="Inserisci una descrizione aggiuntiva"
-          />
-        </Card>
-      )}
-
-      {showStepAfterCategoria && (
-        <Card
-          title={
-            showDettaglioDescrizione
-              ? "7️⃣ Banca / Cassa"
-              : showDescrizionePersonale
-              ? "6️⃣ Banca / Cassa"
-              : "4️⃣ Banca / Cassa"
+            showAiBox
+              ? showDescrizionePersonale
+                ? showDettaglioDescrizione
+                  ? "9️⃣ Banca / Cassa"
+                  : "8️⃣ Banca / Cassa"
+                : "7️⃣ Banca / Cassa"
+              : "6️⃣ Banca / Cassa"
           }
         >
           <select
@@ -2120,14 +2115,20 @@ export default function MovimentoEditor() {
         </Card>
       )}
 
-      {tipologia && showStepAfterCategoria && (
+      {showImporto && !isAvanzo && (
         <Card
           title={
-            showDettaglioDescrizione
-              ? "8️⃣ Importo"
+            showIvaField
+              ? showDescrizionePersonale
+                ? showDettaglioDescrizione
+                  ? "10️⃣ Importo"
+                  : "9️⃣ Importo"
+                : "8️⃣ Importo"
               : showDescrizionePersonale
-              ? "7️⃣ Importo"
-              : "5️⃣ Importo"
+              ? showDettaglioDescrizione
+                ? "10️⃣ Importo"
+                : "9️⃣ Importo"
+              : "8️⃣ Importo"
           }
         >
           <input
@@ -2142,14 +2143,14 @@ export default function MovimentoEditor() {
         </Card>
       )}
 
-      {showStepAfterCategoria && showIvaField && (
+      {showImporto && !isAvanzo && showIvaField && semanticNoMatch && (
         <Card
           title={
-            showDettaglioDescrizione
-              ? "9️⃣ IVA (solo regime ordinario)"
-              : showDescrizionePersonale
-              ? "8️⃣ IVA (solo regime ordinario)"
-              : "6️⃣ IVA (solo regime ordinario)"
+            showDescrizionePersonale
+              ? showDettaglioDescrizione
+                ? "11️⃣ IVA (solo regime ordinario)"
+                : "10️⃣ IVA (solo regime ordinario)"
+              : "9️⃣ IVA (solo regime ordinario)"
           }
         >
           <input
