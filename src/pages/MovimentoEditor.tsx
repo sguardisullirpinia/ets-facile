@@ -31,17 +31,16 @@ type NestedConfig = {
   primary: OptionItem[];
   secondary?: Record<number, string[]>;
   hideSecondary?: boolean;
-  textOnlyAfterPrimary?: number[];
 };
 
 type AiSuggestion = {
   macro: Macro;
   macroLabel: string;
   descrizioneCode: number | null;
-  descrizionePrimaryLabel: string | null;
-  descrizioneDettaglio: string | null;
-  descrizioneLiberaSuggerita: string | null;
-  conto: Conto;
+  descrizionePrimaryLabel: string;
+  descrizioneDettaglio: string;
+  descrizioneLiberaSuggerita: string;
+  contoConsigliato: Conto | null;
   confidenza: number;
   exactMatch: boolean;
   motivazioneBreve: string;
@@ -74,6 +73,10 @@ function optionExists(options: string[], value: string) {
   const a = normalizeText(value).toLowerCase();
   return options.some((x) => normalizeText(x).toLowerCase() === a);
 }
+
+/* =========================
+   LISTE BASE
+========================= */
 
 const USCITE_MATERIE_PRIME = withAltro([
   "acquisti di beni",
@@ -216,6 +219,10 @@ const USCITE_DIVERSE_GESTIONE = withAltro([
   "Acquisto beni e servizi da donare",
 ]);
 
+/* =========================
+   CONFIG
+========================= */
+
 const USCITE_AIG_CONFIG: NestedConfig = {
   primary: [
     { code: 1, label: "Materie prime, sussidiarie, di consumo e di merci" },
@@ -335,10 +342,7 @@ const ENTRATE_AIG_CONFIG: NestedConfig = {
   primary: [
     { code: 1, label: "Entrate da quote associative e apporti dei fondatori" },
     { code: 2, label: "Entrate dagli associati per attività mutuali" },
-    {
-      code: 3,
-      label: "Entrate per prestazioni e cessioni ad associati e fondatori",
-    },
+    { code: 3, label: "Entrate per prestazioni e cessioni ad associati e fondatori" },
     { code: 4, label: "Erogazioni liberali" },
     { code: 5, label: "Entrate del 5 per mille" },
     { code: 6, label: "Contributi da soggetti privati" },
@@ -353,15 +357,9 @@ const ENTRATE_AIG_CONFIG: NestedConfig = {
 
 const ENTRATE_AD_CONFIG: NestedConfig = {
   primary: [
-    {
-      code: 1,
-      label: "Entrate per prestazioni e cessioni ad associati e fondatori",
-    },
+    { code: 1, label: "Entrate per prestazioni e cessioni ad associati e fondatori" },
     { code: 2, label: "Contributi da soggetti privati" },
-    {
-      code: 3,
-      label: "Entrate per prestazioni e cessioni a terzi (sponsorizzazioni)",
-    },
+    { code: 3, label: "Entrate per prestazioni e cessioni a terzi (sponsorizzazioni)" },
     { code: 4, label: "Contributi da enti pubblici" },
     { code: 5, label: "Entrate da contratti con enti pubblici" },
     { code: 6, label: "Altre entrate" },
@@ -498,7 +496,6 @@ export default function MovimentoEditor() {
   const showIvaField = isEntrataOrUscita && isRegimeOrdinario;
 
   const config = useMemo(() => getConfig(tipologia, macro), [tipologia, macro]);
-
   const primaryOptions = useMemo(() => config?.primary ?? [], [config]);
 
   const selectedPrimary = useMemo(
@@ -524,7 +521,8 @@ export default function MovimentoEditor() {
     secondaryOptions.length > 0;
 
   const showDescrizionePersonale =
-    showStepAfterCategoria && (isImposteTextOnly || !!descrizioneCode);
+    showStepAfterCategoria &&
+    (isImposteTextOnly || !!descrizioneCode);
 
   const showAiBox = tipologia === "ENTRATA" || tipologia === "USCITA";
 
@@ -561,7 +559,10 @@ export default function MovimentoEditor() {
   }, [showIvaField]);
 
   useEffect(() => {
-    if (!editId) return;
+    if (!editId) {
+      setLoading(false);
+      return;
+    }
 
     const load = async () => {
       const { data: row, error } = await supabase
@@ -589,7 +590,7 @@ export default function MovimentoEditor() {
 
       const parts = fullLabel
         .split(" | ")
-        .map((x) => x.trim())
+        .map((x: string) => x.trim())
         .filter(Boolean);
 
       if (parts.length >= 2) {
@@ -600,7 +601,7 @@ export default function MovimentoEditor() {
 
       if (parts.length >= 3) {
         setDescrizioneLibera(parts.slice(2).join(" | "));
-      } else if (parts.length === 2 && config?.hideSecondary) {
+      } else if (parts.length === 2) {
         setDescrizioneLibera(parts[1]);
       } else {
         setDescrizioneLibera(row.descrizione_libera || "");
@@ -610,10 +611,11 @@ export default function MovimentoEditor() {
     };
 
     load();
-  }, [editId, config?.hideSecondary]);
+  }, [editId]);
 
   useEffect(() => {
     if (editId) return;
+
     setData("");
     setMacro("");
     setConto("CASSA");
@@ -623,13 +625,14 @@ export default function MovimentoEditor() {
     setDescrizioneLibera("");
     setImporto("");
     setIva("0");
+    setAiInput("");
     setAiSuggestion(null);
     setAiError(null);
-    setAiInput("");
   }, [tipologia, editId]);
 
   useEffect(() => {
     if (editId) return;
+
     setConto("CASSA");
     setDescrizioneCode(null);
     setDescrizioneLabel("");
@@ -680,7 +683,7 @@ export default function MovimentoEditor() {
     descrizioneLibera,
   ]);
 
-  const chiediAiClassificazione = async () => {
+  async function chiediAiClassificazione() {
     setAiError(null);
     setAiSuggestion(null);
 
@@ -704,41 +707,75 @@ export default function MovimentoEditor() {
         },
         body: JSON.stringify({
           tipologia,
-          text: aiInput,
+          testo: aiInput,
           macroAttuale: macro || null,
         }),
       });
 
-      const json = await response.json();
+      const rawText = await response.text();
+
+      let json: any;
+      try {
+        json = JSON.parse(rawText);
+      } catch {
+        throw new Error(rawText || "Risposta server non valida");
+      }
+
       if (!response.ok) {
         throw new Error(json?.error || "Errore AI");
       }
 
-      setAiSuggestion(json as AiSuggestion);
+      const normalized: AiSuggestion = {
+        macro: json.macro,
+        macroLabel: String(json.macroLabel || ""),
+        descrizioneCode:
+          typeof json.descrizioneCode === "number" ? json.descrizioneCode : null,
+        descrizionePrimaryLabel: String(json.descrizionePrimaryLabel || ""),
+        descrizioneDettaglio: String(json.descrizioneDettaglio || ""),
+        descrizioneLiberaSuggerita: String(json.descrizioneLiberaSuggerita || ""),
+        contoConsigliato:
+          json.contoConsigliato === "CASSA" || json.contoConsigliato === "BANCA"
+            ? json.contoConsigliato
+            : null,
+        confidenza: Number.isFinite(Number(json.confidenza))
+          ? Number(json.confidenza)
+          : 0,
+        exactMatch: Boolean(json.exactMatch),
+        motivazioneBreve: String(json.motivazioneBreve || ""),
+      };
+
+      setAiSuggestion(normalized);
     } catch (err: any) {
       setAiError(err?.message || "Errore nella richiesta AI");
     } finally {
       setAiLoading(false);
     }
-  };
+  }
 
-  const applicaSuggerimentoAi = () => {
+  function applicaSuggerimentoAi() {
     if (!aiSuggestion) return;
 
     setMacro(aiSuggestion.macro);
-    setConto(aiSuggestion.conto || "BANCA");
+
+    if (aiSuggestion.contoConsigliato) {
+      setConto(aiSuggestion.contoConsigliato);
+    }
 
     if (aiSuggestion.macro === "IMPOSTE") {
       setDescrizioneCode(null);
       setDescrizioneDettaglio("");
-      setDescrizioneLibera(aiSuggestion.descrizioneLiberaSuggerita || aiInput);
+      setDescrizioneLibera(
+        aiSuggestion.descrizioneLiberaSuggerita || aiInput
+      );
       return;
     }
 
     setDescrizioneCode(aiSuggestion.descrizioneCode ?? null);
     setDescrizioneDettaglio(aiSuggestion.descrizioneDettaglio || "");
-    setDescrizioneLibera(aiSuggestion.descrizioneLiberaSuggerita || aiInput);
-  };
+    setDescrizioneLibera(
+      aiSuggestion.descrizioneLiberaSuggerita || aiInput
+    );
+  }
 
   const salva = async () => {
     setError(null);
@@ -786,13 +823,12 @@ export default function MovimentoEditor() {
           return;
         }
 
-        if (showDettaglioDescrizione) {
-          if (
-            secondaryOptions.length > 0 &&
-            !optionExists(secondaryOptions, descrizioneDettaglio)
-          ) {
-            // consentiamo testo libero nel dettaglio
-          }
+        if (
+          showDettaglioDescrizione &&
+          secondaryOptions.length > 0 &&
+          !optionExists(secondaryOptions, descrizioneDettaglio)
+        ) {
+          // testo libero consentito
         }
 
         if (!normalizeText(descrizioneLibera)) {
@@ -904,7 +940,14 @@ export default function MovimentoEditor() {
             vicina come farebbe un commercialista ETS.
           </div>
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              flexWrap: "wrap",
+              marginTop: 12,
+            }}
+          >
             <PrimaryButton onClick={chiediAiClassificazione} disabled={aiLoading}>
               {aiLoading ? "Analisi in corso..." : "Suggerisci collocazione"}
             </PrimaryButton>
@@ -933,21 +976,25 @@ export default function MovimentoEditor() {
                 background: "#fafafa",
               }}
             >
-              <div style={{ marginBottom: 8, fontWeight: 700 }}>Suggerimento AI</div>
+              <div style={{ marginBottom: 8, fontWeight: 700 }}>
+                Suggerimento AI
+              </div>
 
               <div style={{ marginBottom: 6 }}>
-                <b>Categoria:</b> {aiSuggestion.macroLabel}
+                <b>Categoria:</b> {aiSuggestion.macroLabel || "—"}
               </div>
 
               {aiSuggestion.descrizionePrimaryLabel && (
                 <div style={{ marginBottom: 6 }}>
-                  <b>Specifica di categoria:</b> {aiSuggestion.descrizionePrimaryLabel}
+                  <b>Specifica di categoria:</b>{" "}
+                  {aiSuggestion.descrizionePrimaryLabel}
                 </div>
               )}
 
               {aiSuggestion.descrizioneDettaglio && (
                 <div style={{ marginBottom: 6 }}>
-                  <b>Dettaglio della posta:</b> {aiSuggestion.descrizioneDettaglio}
+                  <b>Dettaglio della posta:</b>{" "}
+                  {aiSuggestion.descrizioneDettaglio}
                 </div>
               )}
 
@@ -959,26 +1006,22 @@ export default function MovimentoEditor() {
               )}
 
               <div style={{ marginBottom: 6 }}>
-                <b>Conto consigliato:</b> {aiSuggestion.conto}
+                <b>Conto consigliato:</b> {aiSuggestion.contoConsigliato || "—"}
               </div>
 
               <div style={{ marginBottom: 6 }}>
                 <b>Confidenza:</b>{" "}
-{typeof aiSuggestion.confidenza === "number"
-  ? Math.round(aiSuggestion.confidenza)
-  : 0}
-%
+                {Number.isFinite(aiSuggestion.confidenza)
+                  ? Math.round(aiSuggestion.confidenza)
+                  : 0}
+                %{" "}
                 {aiSuggestion.exactMatch
-                  ? " • corrispondenza diretta nello schema"
-                  : " • classificazione per analogia prudente"}
+                  ? "• corrispondenza diretta nello schema"
+                  : "• classificazione per analogia prudente"}
               </div>
 
-              <div className="rowSub">{aiSuggestion.motivazioneBreve}</div>
-
-              {aiSuggestion.confidenza < 60 && (
-                <div style={{ marginTop: 10 }}>
-                  <Badge tone="yellow">Verifica manualmente</Badge>
-                </div>
+              {aiSuggestion.motivazioneBreve && (
+                <div className="rowSub">{aiSuggestion.motivazioneBreve}</div>
               )}
             </div>
           )}
@@ -1013,7 +1056,7 @@ export default function MovimentoEditor() {
               <option value="INVESTIMENTO_DISINVESTIMENTO">
                 Investimento e Disinvestimento
               </option>
-              {tipologia === "USCITA" && <option value="IMPOSTE">Imposte</option>}
+              <option value="IMPOSTE">Imposte</option>
               {tipologia === "USCITA" && (
                 <option value="COSTI_GENERALI">Costi Generali</option>
               )}
