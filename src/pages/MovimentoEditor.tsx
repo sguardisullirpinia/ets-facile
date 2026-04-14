@@ -1821,8 +1821,8 @@ export default function MovimentoEditor() {
           />
 
           <datalist id="semantic-autocomplete-list">
-            {semanticAutocompleteOptions.map((item) => (
-              <option key={item} value={item} />
+            {semanticAutocompleteOptions.map((item: string) => (
+            <option key={item} value={item} />
             ))}
           </datalist>
 
