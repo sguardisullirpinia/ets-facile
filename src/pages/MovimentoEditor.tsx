@@ -103,9 +103,8 @@ function normalizeText(v: string) {
   return String(v || "").trim();
 }
 
-function optionExists(options: string[], value: string) {
-  const a = normalizeText(value).toLowerCase();
-  return options.some((x) => normalizeText(x).toLowerCase() === a);
+function uniqueStrings(values: string[]) {
+  return Array.from(new Set(values.map((x) => normalizeText(x)).filter(Boolean)));
 }
 
 /* =========================
