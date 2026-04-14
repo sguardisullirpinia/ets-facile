@@ -1978,8 +1978,8 @@ export default function MovimentoEditor() {
             placeholder="Scrivi o cerca tra le voci"
           />
           <datalist id="dettaglio-descrizione-list">
-            {secondaryOptions.map((item) => (
-              <option key={item} value={item} />
+           {secondaryOptions.map((item: string) => (
+            <option key={item} value={item} />
             ))}
           </datalist>
 
