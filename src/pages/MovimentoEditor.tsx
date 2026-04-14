@@ -66,6 +66,15 @@ type SemanticEntry = {
   supportWords: string[];
   contoConsigliato: Conto | null;
   searchText: string;
+
+  normalizedTipologia: string;
+  normalizedCategoriaLabel: string;
+  normalizedSpecificaLabel: string;
+  normalizedDettaglioLabel: string;
+  normalizedAlias: string[];
+  normalizedTriggerWords: string[];
+  normalizedSupportWords: string[];
+  searchWords: string[];
 };
 
 type ScoredSemanticEntry = {
@@ -617,24 +626,32 @@ function uniqueStrings(values: string[]) {
   return Array.from(new Set(values.map((x) => normalizeText(x)).filter(Boolean)));
 }
 
+function uniqueNormalizedStrings(values: string[]) {
+  return Array.from(
+    new Set(
+      values
+        .map((x) => applyCommonFixes(x))
+        .map((x) => x.trim())
+        .filter(Boolean)
+    )
+  );
+}
+
 function levenshtein(a: string, b: string) {
-  const aa = applyCommonFixes(a);
-  const bb = applyCommonFixes(b);
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
 
-  if (aa === bb) return 0;
-  if (!aa.length) return bb.length;
-  if (!bb.length) return aa.length;
-
-  const matrix: number[][] = Array.from({ length: aa.length + 1 }, () =>
-    Array.from({ length: bb.length + 1 }, () => 0)
+  const matrix: number[][] = Array.from({ length: a.length + 1 }, () =>
+    Array.from({ length: b.length + 1 }, () => 0)
   );
 
-  for (let i = 0; i <= aa.length; i++) matrix[i][0] = i;
-  for (let j = 0; j <= bb.length; j++) matrix[0][j] = j;
+  for (let i = 0; i <= a.length; i++) matrix[i][0] = i;
+  for (let j = 0; j <= b.length; j++) matrix[0][j] = j;
 
-  for (let i = 1; i <= aa.length; i++) {
-    for (let j = 1; j <= bb.length; j++) {
-      const cost = aa[i - 1] === bb[j - 1] ? 0 : 1;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
       matrix[i][j] = Math.min(
         matrix[i - 1][j] + 1,
         matrix[i][j - 1] + 1,
@@ -643,18 +660,16 @@ function levenshtein(a: string, b: string) {
     }
   }
 
-  return matrix[aa.length][bb.length];
+  return matrix[a.length][b.length];
 }
 
-function fuzzyTokenMatch(token: string, expected: string) {
-  const a = applyCommonFixes(token);
-  const b = applyCommonFixes(expected);
+function fuzzyTokenMatch(token: string, expected: string, enableFuzzy: boolean) {
+  if (!token || !expected) return false;
+  if (token === expected) return true;
+  if (!enableFuzzy) return false;
+  if (token.length < 4 || expected.length < 4) return false;
 
-  if (!a || !b) return false;
-  if (a === b) return true;
-  if (a.length < 4 || b.length < 4) return false;
-
-  return levenshtein(a, b) <= 1;
+  return levenshtein(token, expected) <= 1;
 }
 
 const SEMANTIC_HINTS: Record<string, SemanticPack> = {
@@ -1062,6 +1077,26 @@ function buildSemanticEntries(): SemanticEntry[] {
           ...(hint.supportWords || []),
         ]);
 
+        const normalizedTipologia = applyCommonFixes(item.tipologia);
+        const normalizedCategoriaLabel = applyCommonFixes(categoriaLabel);
+        const normalizedSpecificaLabel = applyCommonFixes(primary.label);
+        const normalizedDettaglioLabel = applyCommonFixes(dettaglioLabel);
+        const normalizedAlias = uniqueNormalizedStrings(alias);
+        const normalizedTriggerWords = uniqueNormalizedStrings(triggerWords);
+        const normalizedSupportWords = uniqueNormalizedStrings(supportWords);
+
+        const searchText = applyCommonFixes(
+          [
+            item.tipologia,
+            categoriaLabel,
+            primary.label,
+            dettaglioLabel,
+            ...alias,
+            ...triggerWords,
+            ...supportWords,
+          ].join(" ")
+        );
+
         rows.push({
           tipologia: item.tipologia,
           categoria: item.macro,
@@ -1074,17 +1109,16 @@ function buildSemanticEntries(): SemanticEntry[] {
           triggerWords,
           supportWords,
           contoConsigliato: hint.contoConsigliato ?? null,
-          searchText: applyCommonFixes(
-            [
-              item.tipologia,
-              categoriaLabel,
-              primary.label,
-              dettaglioLabel,
-              ...alias,
-              ...triggerWords,
-              ...supportWords,
-            ].join(" ")
-          ),
+          searchText,
+
+          normalizedTipologia,
+          normalizedCategoriaLabel,
+          normalizedSpecificaLabel,
+          normalizedDettaglioLabel,
+          normalizedAlias,
+          normalizedTriggerWords,
+          normalizedSupportWords,
+          searchWords: uniqueNormalizedStrings(searchText.split(" ")),
         });
       }
     }
@@ -1100,6 +1134,8 @@ function scoreSemanticEntry(
 ): ScoredSemanticEntry {
   const normalizedInput = applyCommonFixes(input);
   const tokens = tokenizeSemanticText(input);
+  const uniqueTokens = uniqueNormalizedStrings(tokens);
+  const enableFuzzy = normalizedInput.length >= 5;
 
   let score = 0;
   const reasons: string[] = [];
@@ -1113,54 +1149,52 @@ function scoreSemanticEntry(
     }
   }
 
-  for (const phrase of entry.alias) {
-    const nPhrase = applyCommonFixes(phrase);
-    if (!nPhrase) continue;
+  for (const phrase of entry.normalizedAlias) {
+    if (!phrase) continue;
 
-    if (normalizedInput === nPhrase) {
+    if (normalizedInput === phrase) {
       score += 80;
-      reasons.push(`frase esatta: ${phrase}`);
-    } else if (normalizedInput.includes(nPhrase)) {
+      reasons.push("frase esatta");
+    } else if (phrase.startsWith(normalizedInput) && normalizedInput.length >= 3) {
+      score += 32;
+      reasons.push("inizio frase coerente");
+    } else if (normalizedInput.includes(phrase)) {
       score += 28;
-      reasons.push(`frase contenuta: ${phrase}`);
+      reasons.push("frase contenuta");
     }
   }
 
-  if (normalizedInput.includes(applyCommonFixes(entry.dettaglioLabel))) {
+  if (normalizedInput.includes(entry.normalizedDettaglioLabel)) {
     score += 45;
     reasons.push("match su dettaglio");
   }
 
-  if (normalizedInput.includes(applyCommonFixes(entry.specificaLabel))) {
+  if (normalizedInput.includes(entry.normalizedSpecificaLabel)) {
     score += 20;
     reasons.push("match su specifica");
   }
 
-  for (const token of tokens) {
-    for (const word of entry.triggerWords) {
-      const normalizedWord = applyCommonFixes(word);
-      if (token === normalizedWord) {
+  for (const token of uniqueTokens) {
+    for (const word of entry.normalizedTriggerWords) {
+      if (token === word) {
         score += 14;
         reasons.push(`parola forte: ${word}`);
-      } else if (fuzzyTokenMatch(token, normalizedWord)) {
+      } else if (fuzzyTokenMatch(token, word, enableFuzzy)) {
         score += 8;
         reasons.push(`refuso vicino a: ${word}`);
       }
     }
 
-    for (const word of entry.supportWords) {
-      const normalizedWord = applyCommonFixes(word);
-      if (token === normalizedWord) {
+    for (const word of entry.normalizedSupportWords) {
+      if (token === word) {
         score += 5;
-      } else if (fuzzyTokenMatch(token, normalizedWord)) {
+      } else if (fuzzyTokenMatch(token, word, enableFuzzy && token.length >= 6)) {
         score += 2;
       }
     }
   }
 
-  const normalizedTokens = uniqueStrings(tokens);
-  const pathWords = uniqueStrings(tokenizeSemanticText(entry.searchText));
-  const overlap = normalizedTokens.filter((t) => pathWords.includes(t)).length;
+  const overlap = uniqueTokens.filter((t) => entry.searchWords.includes(t)).length;
   if (overlap > 0) {
     score += overlap * 2;
     reasons.push(`coerenza percorso: ${overlap}`);
@@ -1177,7 +1211,33 @@ function findSemanticMatches(
   const normalized = applyCommonFixes(input);
   if (!normalized) return [];
 
-  const scored = entries.map((entry) => scoreSemanticEntry(input, entry, selectedTipologia));
+  const candidateEntries = entries.filter((entry) => {
+    if (
+      (selectedTipologia === "ENTRATA" || selectedTipologia === "USCITA") &&
+      entry.tipologia !== selectedTipologia
+    ) {
+      return false;
+    }
+
+    if (normalized.length < 3) {
+      return (
+        entry.normalizedDettaglioLabel.startsWith(normalized) ||
+        entry.normalizedSpecificaLabel.startsWith(normalized) ||
+        entry.normalizedAlias.some((a) => a.startsWith(normalized))
+      );
+    }
+
+    return (
+      entry.normalizedDettaglioLabel.includes(normalized) ||
+      entry.normalizedSpecificaLabel.includes(normalized) ||
+      entry.normalizedAlias.some((a) => a.includes(normalized)) ||
+      tokenizeSemanticText(input).some((token) => entry.searchWords.includes(token))
+    );
+  });
+
+  const scored = candidateEntries.map((entry) =>
+    scoreSemanticEntry(input, entry, selectedTipologia)
+  );
 
   const filtered = scored
     .filter((row) => row.score > 0)
@@ -1220,29 +1280,48 @@ function semanticMotivation(row: ScoredSemanticEntry) {
   return reasons ? `Motivi: ${reasons}.` : "Classificazione per vicinanza semantica.";
 }
 
-function buildSemanticAutocompleteOptions(
+function buildFastAutocompleteOptions(
   input: string,
   entries: SemanticEntry[],
   selectedTipologia: Tipologia | ""
 ) {
-  const normalizedInput = applyCommonFixes(input);
-  if (!normalizedInput) return [];
+  const normalized = applyCommonFixes(input);
+  if (!normalized) return [];
 
-  const matches = findSemanticMatches(input, entries, selectedTipologia);
   const values: string[] = [];
 
-  for (const row of matches) {
-    values.push(row.entry.dettaglioLabel);
-    values.push(row.entry.specificaLabel);
-    for (const alias of row.entry.alias) values.push(alias);
+  for (const entry of entries) {
+    if (
+      (selectedTipologia === "ENTRATA" || selectedTipologia === "USCITA") &&
+      entry.tipologia !== selectedTipologia
+    ) {
+      continue;
+    }
+
+    const pushIfMatch = (original: string, normalizedValue: string) => {
+      if (!original || !normalizedValue) return;
+
+      if (normalizedValue.startsWith(normalized)) {
+        values.push(original);
+        return;
+      }
+
+      if (normalized.length >= 3 && normalizedValue.includes(normalized)) {
+        values.push(original);
+      }
+    };
+
+    pushIfMatch(entry.dettaglioLabel, entry.normalizedDettaglioLabel);
+    pushIfMatch(entry.specificaLabel, entry.normalizedSpecificaLabel);
+
+    for (let i = 0; i < entry.alias.length; i++) {
+      pushIfMatch(entry.alias[i], entry.normalizedAlias[i] || "");
+    }
+
+    if (values.length >= 30) break;
   }
 
-  const deduped = uniqueStrings(values).filter((value) => {
-    const nValue = applyCommonFixes(value);
-    return nValue.includes(normalizedInput) || normalizedInput.includes(nValue);
-  });
-
-  return deduped.slice(0, 10);
+  return uniqueStrings(values).slice(0, 10);
 }
 
 /* =========================
@@ -1277,6 +1356,7 @@ export default function MovimentoEditor() {
   const [aiSuggestion, setAiSuggestion] = useState<AiSuggestion | null>(null);
 
   const [semanticInput, setSemanticInput] = useState("");
+  const [debouncedSemanticInput, setDebouncedSemanticInput] = useState("");
   const [semanticResults, setSemanticResults] = useState<ScoredSemanticEntry[]>([]);
   const [semanticError, setSemanticError] = useState<string | null>(null);
 
@@ -1301,7 +1381,7 @@ export default function MovimentoEditor() {
   const semanticEntries = useMemo(() => buildSemanticEntries(), []);
 
   const semanticAutocompleteOptions = useMemo(() => {
-    return buildSemanticAutocompleteOptions(semanticInput, semanticEntries, tipologia);
+    return buildFastAutocompleteOptions(semanticInput, semanticEntries, tipologia);
   }, [semanticInput, semanticEntries, tipologia]);
 
   const showStepAfterCategoria = isEntrataOrUscita && !!macro;
@@ -1421,6 +1501,7 @@ export default function MovimentoEditor() {
     setAiSuggestion(null);
     setAiError(null);
     setSemanticInput("");
+    setDebouncedSemanticInput("");
     setSemanticResults([]);
     setSemanticError(null);
   }, [tipologia, editId]);
@@ -1473,7 +1554,15 @@ export default function MovimentoEditor() {
   }, [isAvanzo, isImposteTextOnly, selectedPrimary, descrizioneDettaglio, descrizioneLibera]);
 
   useEffect(() => {
-    const value = normalizeText(semanticInput);
+    const timer = window.setTimeout(() => {
+      setDebouncedSemanticInput(semanticInput);
+    }, 260);
+
+    return () => window.clearTimeout(timer);
+  }, [semanticInput]);
+
+  useEffect(() => {
+    const value = normalizeText(debouncedSemanticInput);
 
     if (!value) {
       setSemanticResults([]);
@@ -1489,7 +1578,7 @@ export default function MovimentoEditor() {
     } else {
       setSemanticError(null);
     }
-  }, [semanticInput, semanticEntries, tipologia]);
+  }, [debouncedSemanticInput, semanticEntries, tipologia]);
 
   async function chiediAiClassificazione() {
     setAiError(null);
@@ -1727,15 +1816,16 @@ export default function MovimentoEditor() {
           </datalist>
 
           <div className="rowSub" style={{ marginTop: 8 }}>
-            Scrivi come parleresti normalmente. Durante la digitazione compaiono suggerimenti di
-            completamento e sotto vedi le collocazioni più vicine.
+            Il completamento compare mentre scrivi. La ricerca più approfondita parte dopo una
+            brevissima pausa, così il campo resta fluido.
           </div>
 
-          {semanticResults.length > 0 && (
+          {(semanticResults.length > 0 || semanticInput) && (
             <div style={{ marginTop: 12 }}>
               <SecondaryButton
                 onClick={() => {
                   setSemanticInput("");
+                  setDebouncedSemanticInput("");
                   setSemanticResults([]);
                   setSemanticError(null);
                 }}
@@ -1745,7 +1835,7 @@ export default function MovimentoEditor() {
             </div>
           )}
 
-          {semanticError && normalizeText(semanticInput) && (
+          {semanticError && normalizeText(debouncedSemanticInput) && (
             <div style={{ marginTop: 12 }}>
               <Badge tone="red">Ricerca</Badge>
               <div className="errorText">{semanticError}</div>
@@ -1771,7 +1861,14 @@ export default function MovimentoEditor() {
                       background: index === 0 ? "#fafafa" : "#fff",
                     }}
                   >
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 8,
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                      }}
+                    >
                       <Badge tone={index === 0 ? "green" : "blue"}>
                         {index === 0 ? "Voce consigliata" : `Alternativa ${index}`}
                       </Badge>
