@@ -1,4 +1,4 @@
-import OpenAI from "openai";
+const OpenAI = require("openai");
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -461,34 +461,26 @@ function normalizeSuggestion(parsed, tipologia) {
   };
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
 
   if (req.method !== "POST") {
-    return res.status(405).json({
-      error: "Metodo non consentito",
-    });
+    return res.status(405).json({ error: "Metodo non consentito" });
   }
 
   try {
     const { tipologia, testo, macroAttuale } = req.body || {};
 
     if (tipologia !== "ENTRATA" && tipologia !== "USCITA") {
-      return res.status(400).json({
-        error: "Tipologia non valida",
-      });
+      return res.status(400).json({ error: "Tipologia non valida" });
     }
 
     if (!String(testo || "").trim()) {
-      return res.status(400).json({
-        error: "Descrizione mancante",
-      });
+      return res.status(400).json({ error: "Descrizione mancante" });
     }
 
     if (!process.env.OPENAI_API_KEY) {
-      return res.status(500).json({
-        error: "OPENAI_API_KEY mancante su Vercel",
-      });
+      return res.status(500).json({ error: "OPENAI_API_KEY mancante su Vercel" });
     }
 
     const schemaTipologia = SCHEMA[tipologia];
@@ -502,8 +494,7 @@ TIPOLOGIA -> CATEGORIA -> SPECIFICA DI CATEGORIA -> DETTAGLIO DELLA POSTA.
 Regole obbligatorie:
 1. La tipologia è già scelta dall'utente e non va cambiata.
 2. Devi privilegiare sempre una soluzione già presente nello schema.
-3. Se non esiste una corrispondenza perfetta, scegli la soluzione più vicina:
-   prima la specifica di categoria, poi la categoria, poi la voce residuale Altro / Altre entrate / Altre uscite.
+3. Se non esiste una corrispondenza perfetta, scegli la soluzione più vicina: prima la specifica di categoria, poi la categoria, poi la voce residuale.
 4. Non inventare categorie fuori schema.
 5. Se il movimento riguarda spese o proventi bancari, interessi, commissioni, rapporti bancari, privilegia ATTIVITA_FINANZIARIA_PATRIMONIALE.
 6. Se il movimento riguarda acquisto di beni strumentali durevoli, disinvestimenti, finanziamenti, mutui, quota capitale, privilegia INVESTIMENTO_DISINVESTIMENTO.
@@ -511,7 +502,7 @@ Regole obbligatorie:
 8. Se si tratta di costi di struttura o trasversali non direttamente imputabili a una singola attività, puoi usare SUPPORTO_GENERALE o COSTI_GENERALI.
 9. Restituisci solo JSON valido, senza testo aggiuntivo.
 
-Schema consentito per la tipologia scelta:
+Schema consentito:
 ${JSON.stringify(schemaTipologia)}
     `.trim();
 
@@ -536,20 +527,21 @@ Restituisci solo JSON con questi campi:
     `.trim();
 
     const response = await openai.responses.create({
-      model: "gpt-5.4-thinking",
+      model: "gpt-5.4",
       input: [
         { role: "developer", content: developerPrompt },
         { role: "user", content: userPrompt },
       ],
+      text: {
+        format: { type: "text" },
+      },
     });
 
     const text = extractTextFromResponse(response);
 
     if (!text) {
       console.error("Risposta AI vuota:", response);
-      return res.status(500).json({
-        error: "Risposta AI vuota",
-      });
+      return res.status(500).json({ error: "Risposta AI vuota" });
     }
 
     let parsed;
@@ -567,10 +559,10 @@ Restituisci solo JSON con questi campi:
     return res.status(200).json(normalized);
   } catch (error) {
     console.error("Errore route ai-classify:", error);
-
     return res.status(500).json({
-      error:
-        error?.message || "Errore interno nella classificazione AI",
+      error: error?.message || "Errore interno nella classificazione AI",
     });
   }
 }
+
+module.exports = handler;
