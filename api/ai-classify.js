@@ -1,14 +1,8 @@
-// api/ai-classify.js
-
 import OpenAI from "openai";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-
-/* =========================
-   SCHEMA VOCI ETS
-========================= */
 
 const SCHEMA = {
   USCITA: [
@@ -179,40 +173,18 @@ const SCHEMA = {
         { code: 99, label: "Altro", secondary: ["Altro"] },
       ],
     },
-
     {
       macro: "ATTIVITA_DIVERSE",
       macroLabel: "Attività diverse",
       primary: [
-        {
-          code: 1,
-          label: "Materie prime, sussidiarie, di consumo e di merci",
-          secondary: ["Altro"],
-        },
-        {
-          code: 2,
-          label: "Servizi",
-          secondary: ["Altro"],
-        },
-        {
-          code: 3,
-          label: "Godimento beni di terzi",
-          secondary: ["Altro"],
-        },
-        {
-          code: 4,
-          label: "Personale",
-          secondary: ["Altro"],
-        },
-        {
-          code: 5,
-          label: "Uscite diverse di gestione",
-          secondary: ["Altro"],
-        },
+        { code: 1, label: "Materie prime, sussidiarie, di consumo e di merci", secondary: ["Altro"] },
+        { code: 2, label: "Servizi", secondary: ["Altro"] },
+        { code: 3, label: "Godimento beni di terzi", secondary: ["Altro"] },
+        { code: 4, label: "Personale", secondary: ["Altro"] },
+        { code: 5, label: "Uscite diverse di gestione", secondary: ["Altro"] },
         { code: 99, label: "Altro", secondary: ["Altro"] },
       ],
     },
-
     {
       macro: "RACCOLTE_FONDI",
       macroLabel: "Raccolte fondi",
@@ -223,7 +195,6 @@ const SCHEMA = {
         { code: 99, label: "Altro", secondary: ["Altro"] },
       ],
     },
-
     {
       macro: "ATTIVITA_FINANZIARIA_PATRIMONIALE",
       macroLabel: "Attività finanziaria e patrimoniale",
@@ -259,20 +230,11 @@ const SCHEMA = {
             "Altro",
           ],
         },
-        {
-          code: 4,
-          label: "Su altri beni patrimoniali",
-          secondary: ["Altro"],
-        },
-        {
-          code: 5,
-          label: "Altre uscite",
-          secondary: ["Altro"],
-        },
+        { code: 4, label: "Su altri beni patrimoniali", secondary: ["Altro"] },
+        { code: 5, label: "Altre uscite", secondary: ["Altro"] },
         { code: 99, label: "Altro", secondary: ["Altro"] },
       ],
     },
-
     {
       macro: "SUPPORTO_GENERALE",
       macroLabel: "Supporto generale",
@@ -285,7 +247,6 @@ const SCHEMA = {
         { code: 99, label: "Altro", secondary: ["Altro"] },
       ],
     },
-
     {
       macro: "INVESTIMENTO_DISINVESTIMENTO",
       macroLabel: "Investimento e disinvestimento",
@@ -313,7 +274,6 @@ const SCHEMA = {
         { code: 99, label: "Altro", secondary: ["Altro"] },
       ],
     },
-
     {
       macro: "IMPOSTE",
       macroLabel: "Imposte",
@@ -325,7 +285,6 @@ const SCHEMA = {
         },
       ],
     },
-
     {
       macro: "COSTI_GENERALI",
       macroLabel: "Costi generali",
@@ -339,7 +298,6 @@ const SCHEMA = {
       ],
     },
   ],
-
   ENTRATA: [
     {
       macro: "AIG",
@@ -358,7 +316,6 @@ const SCHEMA = {
         { code: 99, label: "Altro", secondary: ["Altro"] },
       ],
     },
-
     {
       macro: "ATTIVITA_DIVERSE",
       macroLabel: "Attività diverse",
@@ -372,7 +329,6 @@ const SCHEMA = {
         { code: 99, label: "Altro", secondary: ["Altro"] },
       ],
     },
-
     {
       macro: "RACCOLTE_FONDI",
       macroLabel: "Raccolte fondi",
@@ -383,40 +339,18 @@ const SCHEMA = {
         { code: 99, label: "Altro", secondary: ["Altro"] },
       ],
     },
-
     {
       macro: "ATTIVITA_FINANZIARIA_PATRIMONIALE",
       macroLabel: "Attività finanziaria e patrimoniale",
       primary: [
-        {
-          code: 1,
-          label: "Da rapporti bancari",
-          secondary: ["Interessi attivi", "Altro"],
-        },
-        {
-          code: 2,
-          label: "Da altri investimenti finanziari",
-          secondary: ["Interessi attivi", "Altro"],
-        },
-        {
-          code: 3,
-          label: "Da patrimonio edilizio",
-          secondary: ["Affitti attivi", "Altro"],
-        },
-        {
-          code: 4,
-          label: "Da altri beni patrimoniali",
-          secondary: ["Altro"],
-        },
-        {
-          code: 5,
-          label: "Altre entrate",
-          secondary: ["Altro"],
-        },
+        { code: 1, label: "Da rapporti bancari", secondary: ["Interessi attivi", "Altro"] },
+        { code: 2, label: "Da altri investimenti finanziari", secondary: ["Interessi attivi", "Altro"] },
+        { code: 3, label: "Da patrimonio edilizio", secondary: ["Affitti attivi", "Altro"] },
+        { code: 4, label: "Da altri beni patrimoniali", secondary: ["Altro"] },
+        { code: 5, label: "Altre entrate", secondary: ["Altro"] },
         { code: 99, label: "Altro", secondary: ["Altro"] },
       ],
     },
-
     {
       macro: "SUPPORTO_GENERALE",
       macroLabel: "Supporto generale",
@@ -426,7 +360,6 @@ const SCHEMA = {
         { code: 99, label: "Altro", secondary: ["Altro"] },
       ],
     },
-
     {
       macro: "INVESTIMENTO_DISINVESTIMENTO",
       macroLabel: "Investimento e disinvestimento",
@@ -441,10 +374,6 @@ const SCHEMA = {
   ],
 };
 
-/* =========================
-   HELPERS
-========================= */
-
 function safeNumber(value, fallback = 0) {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
@@ -454,6 +383,26 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
+function extractTextFromResponse(response) {
+  if (typeof response?.output_text === "string" && response.output_text.trim()) {
+    return response.output_text.trim();
+  }
+
+  if (Array.isArray(response?.output)) {
+    for (const item of response.output) {
+      if (Array.isArray(item?.content)) {
+        for (const content of item.content) {
+          if (typeof content?.text === "string" && content.text.trim()) {
+            return content.text.trim();
+          }
+        }
+      }
+    }
+  }
+
+  return "";
+}
+
 function normalizeSuggestion(parsed, tipologia) {
   const allowedMacros = (SCHEMA[tipologia] || []).map((x) => x.macro);
 
@@ -461,22 +410,18 @@ function normalizeSuggestion(parsed, tipologia) {
     ? parsed.macro
     : allowedMacros[0] || null;
 
-  const macroConfig = (SCHEMA[tipologia] || []).find((x) => x.macro === macro) || null;
+  const macroConfig =
+    (SCHEMA[tipologia] || []).find((x) => x.macro === macro) || null;
 
   let descrizioneCode = parsed?.descrizioneCode ?? null;
   if (descrizioneCode !== null) {
     descrizioneCode = safeNumber(descrizioneCode, null);
   }
 
-  const primaryMatch =
-    macroConfig?.primary?.find((p) => p.code === descrizioneCode) || null;
-
-  if (!primaryMatch && macroConfig?.primary?.length) {
-    descrizioneCode = macroConfig.primary[0].code;
-  }
-
   const selectedPrimary =
-    macroConfig?.primary?.find((p) => p.code === descrizioneCode) || null;
+    macroConfig?.primary?.find((p) => p.code === descrizioneCode) ||
+    macroConfig?.primary?.[0] ||
+    null;
 
   let descrizioneDettaglio =
     typeof parsed?.descrizioneDettaglio === "string"
@@ -516,45 +461,34 @@ function normalizeSuggestion(parsed, tipologia) {
   };
 }
 
-function extractTextFromResponse(response) {
-  if (typeof response?.output_text === "string" && response.output_text.trim()) {
-    return response.output_text.trim();
-  }
-
-  const output = response?.output;
-  if (Array.isArray(output)) {
-    for (const item of output) {
-      if (Array.isArray(item?.content)) {
-        for (const content of item.content) {
-          if (typeof content?.text === "string" && content.text.trim()) {
-            return content.text.trim();
-          }
-        }
-      }
-    }
-  }
-
-  return "";
-}
-
-/* =========================
-   HANDLER
-========================= */
-
 export default async function handler(req, res) {
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Metodo non consentito" });
+    return res.status(405).json({
+      error: "Metodo non consentito",
+    });
   }
 
   try {
     const { tipologia, testo, macroAttuale } = req.body || {};
 
     if (tipologia !== "ENTRATA" && tipologia !== "USCITA") {
-      return res.status(400).json({ error: "Tipologia non valida" });
+      return res.status(400).json({
+        error: "Tipologia non valida",
+      });
     }
 
     if (!String(testo || "").trim()) {
-      return res.status(400).json({ error: "Descrizione mancante" });
+      return res.status(400).json({
+        error: "Descrizione mancante",
+      });
+    }
+
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(500).json({
+        error: "OPENAI_API_KEY mancante su Vercel",
+      });
     }
 
     const schemaTipologia = SCHEMA[tipologia];
@@ -575,7 +509,7 @@ Regole obbligatorie:
 6. Se il movimento riguarda acquisto di beni strumentali durevoli, disinvestimenti, finanziamenti, mutui, quota capitale, privilegia INVESTIMENTO_DISINVESTIMENTO.
 7. Se si tratta chiaramente di IRAP pagata, usa IMPOSTE.
 8. Se si tratta di costi di struttura o trasversali non direttamente imputabili a una singola attività, puoi usare SUPPORTO_GENERALE o COSTI_GENERALI.
-9. L'output deve essere solo JSON valido.
+9. Restituisci solo JSON valido, senza testo aggiuntivo.
 
 Schema consentito per la tipologia scelta:
 ${JSON.stringify(schemaTipologia)}
@@ -625,16 +559,18 @@ Restituisci solo JSON con questi campi:
       console.error("Errore parsing JSON AI:", text);
       return res.status(500).json({
         error: "Risposta AI non valida",
+        raw: text,
       });
     }
 
     const normalized = normalizeSuggestion(parsed, tipologia);
-
     return res.status(200).json(normalized);
   } catch (error) {
     console.error("Errore route ai-classify:", error);
+
     return res.status(500).json({
-      error: "Errore interno nella classificazione AI",
+      error:
+        error?.message || "Errore interno nella classificazione AI",
     });
   }
 }
