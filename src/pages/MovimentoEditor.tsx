@@ -963,7 +963,11 @@ export default function MovimentoEditor() {
               </div>
 
               <div style={{ marginBottom: 6 }}>
-                <b>Confidenza:</b> {Math.round(aiSuggestion.confidenza)}%
+                <b>Confidenza:</b>{" "}
+{typeof aiSuggestion.confidenza === "number"
+  ? Math.round(aiSuggestion.confidenza)
+  : 0}
+%
                 {aiSuggestion.exactMatch
                   ? " • corrispondenza diretta nello schema"
                   : " • classificazione per analogia prudente"}
