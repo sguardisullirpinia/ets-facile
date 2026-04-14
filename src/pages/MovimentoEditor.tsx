@@ -34,6 +34,19 @@ type NestedConfig = {
   textOnlyAfterPrimary?: number[];
 };
 
+type AiSuggestion = {
+  macro: Macro;
+  macroLabel: string;
+  descrizioneCode: number | null;
+  descrizionePrimaryLabel: string | null;
+  descrizioneDettaglio: string | null;
+  descrizioneLiberaSuggerita: string | null;
+  conto: Conto;
+  confidenza: number;
+  exactMatch: boolean;
+  motivazioneBreve: string;
+};
+
 function isValidMoney(v: string) {
   const n = Number(v);
   return Number.isFinite(n) && n > 0;
@@ -61,10 +74,6 @@ function optionExists(options: string[], value: string) {
   const a = normalizeText(value).toLowerCase();
   return options.some((x) => normalizeText(x).toLowerCase() === a);
 }
-
-/* =========================
-   LISTE BASE COMUNI
-========================= */
 
 const USCITE_MATERIE_PRIME = withAltro([
   "acquisti di beni",
@@ -206,10 +215,6 @@ const USCITE_DIVERSE_GESTIONE = withAltro([
   "Erogazione di denaro a ETS che svolgono attività a sostegno di persone svantaggiate",
   "Acquisto beni e servizi da donare",
 ]);
-
-/* =========================
-   CONFIGURAZIONI
-========================= */
 
 const USCITE_AIG_CONFIG: NestedConfig = {
   primary: [
@@ -481,6 +486,11 @@ export default function MovimentoEditor() {
   const [iva, setIva] = useState("0");
   const [regime, setRegime] = useState<Regime>("ORDINARIO");
 
+  const [aiInput, setAiInput] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiSuggestion, setAiSuggestion] = useState<AiSuggestion | null>(null);
+
   const isEntrataOrUscita = tipologia === "ENTRATA" || tipologia === "USCITA";
   const isAvanzo =
     tipologia === "AVANZO_CASSA_T_1" || tipologia === "AVANZO_BANCA_T_1";
@@ -502,7 +512,6 @@ export default function MovimentoEditor() {
   }, [config, descrizioneCode]);
 
   const showStepAfterCategoria = isEntrataOrUscita && !!macro;
-
   const isImposteTextOnly = tipologia === "USCITA" && macro === "IMPOSTE";
 
   const showDescrizioneCodificata =
@@ -515,12 +524,10 @@ export default function MovimentoEditor() {
     secondaryOptions.length > 0;
 
   const showDescrizionePersonale =
-    showStepAfterCategoria &&
-    (isImposteTextOnly || !!descrizioneCode);
+    showStepAfterCategoria && (isImposteTextOnly || !!descrizioneCode);
 
-  /* =========================
-     LOAD REGIME
-  ========================= */
+  const showAiBox = tipologia === "ENTRATA" || tipologia === "USCITA";
+
   useEffect(() => {
     const loadRegime = async () => {
       const ls = localStorage.getItem("annualita_regime") as Regime | null;
@@ -553,9 +560,6 @@ export default function MovimentoEditor() {
     if (!showIvaField) setIva("0");
   }, [showIvaField]);
 
-  /* =========================
-     LOAD MOVIMENTO (EDIT)
-  ========================= */
   useEffect(() => {
     if (!editId) return;
 
@@ -606,11 +610,8 @@ export default function MovimentoEditor() {
     };
 
     load();
-  }, [editId]);
+  }, [editId, config?.hideSecondary]);
 
-  /* =========================
-     RESET A CASCATA
-  ========================= */
   useEffect(() => {
     if (editId) return;
     setData("");
@@ -622,6 +623,9 @@ export default function MovimentoEditor() {
     setDescrizioneLibera("");
     setImporto("");
     setIva("0");
+    setAiSuggestion(null);
+    setAiError(null);
+    setAiInput("");
   }, [tipologia, editId]);
 
   useEffect(() => {
@@ -641,9 +645,6 @@ export default function MovimentoEditor() {
     setDescrizioneLibera("");
   }, [descrizioneCode, editId]);
 
-  /* =========================
-     COSTRUZIONE LABEL
-  ========================= */
   useEffect(() => {
     if (isAvanzo) {
       setDescrizioneLabel("");
@@ -679,9 +680,66 @@ export default function MovimentoEditor() {
     descrizioneLibera,
   ]);
 
-  /* =========================
-     SALVA
-  ========================= */
+  const chiediAiClassificazione = async () => {
+    setAiError(null);
+    setAiSuggestion(null);
+
+    if (!(tipologia === "ENTRATA" || tipologia === "USCITA")) {
+      setAiError("Prima seleziona Entrata o Uscita");
+      return;
+    }
+
+    if (!normalizeText(aiInput)) {
+      setAiError("Scrivi una descrizione dell'operazione");
+      return;
+    }
+
+    try {
+      setAiLoading(true);
+
+      const response = await fetch("/api/ai-classify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tipologia,
+          text: aiInput,
+          macroAttuale: macro || null,
+        }),
+      });
+
+      const json = await response.json();
+      if (!response.ok) {
+        throw new Error(json?.error || "Errore AI");
+      }
+
+      setAiSuggestion(json as AiSuggestion);
+    } catch (err: any) {
+      setAiError(err?.message || "Errore nella richiesta AI");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const applicaSuggerimentoAi = () => {
+    if (!aiSuggestion) return;
+
+    setMacro(aiSuggestion.macro);
+    setConto(aiSuggestion.conto || "BANCA");
+
+    if (aiSuggestion.macro === "IMPOSTE") {
+      setDescrizioneCode(null);
+      setDescrizioneDettaglio("");
+      setDescrizioneLibera(aiSuggestion.descrizioneLiberaSuggerita || aiInput);
+      return;
+    }
+
+    setDescrizioneCode(aiSuggestion.descrizioneCode ?? null);
+    setDescrizioneDettaglio(aiSuggestion.descrizioneDettaglio || "");
+    setDescrizioneLibera(aiSuggestion.descrizioneLiberaSuggerita || aiInput);
+  };
+
   const salva = async () => {
     setError(null);
 
@@ -733,7 +791,7 @@ export default function MovimentoEditor() {
             secondaryOptions.length > 0 &&
             !optionExists(secondaryOptions, descrizioneDettaglio)
           ) {
-            // consentiamo testo libero nel dettaglio, quindi nessun errore
+            // consentiamo testo libero nel dettaglio
           }
         }
 
@@ -763,7 +821,9 @@ export default function MovimentoEditor() {
       descrizione_code:
         isAvanzo || isImposteTextOnly ? null : descrizioneCode,
       descrizione_label: isAvanzo ? null : descrizioneLabel || null,
-      descrizione_libera: isAvanzo ? null : normalizeText(descrizioneLibera) || null,
+      descrizione_libera: isAvanzo
+        ? null
+        : normalizeText(descrizioneLibera) || null,
       importo: Number(importo),
       iva: showIvaField ? Number(iva || 0) : 0,
       is_costo_generale:
@@ -823,6 +883,104 @@ export default function MovimentoEditor() {
         </select>
       </Card>
 
+      {showAiBox && (
+        <Card title="🤖 Aiuto classificazione con AI">
+          <textarea
+            value={aiInput}
+            onChange={(e) => setAiInput(e.target.value)}
+            className="input"
+            rows={4}
+            placeholder={
+              tipologia === "ENTRATA"
+                ? "Es.: contributo ricevuto da fondazione privata per progetto sociale"
+                : "Es.: pagamento fattura commercialista per consulenza annuale ETS"
+            }
+            style={{ resize: "vertical" }}
+          />
+
+          <div className="rowSub" style={{ marginTop: 8 }}>
+            L’AI parte dalla tipologia scelta e cerca prima la soluzione già
+            presente nello schema; se non la trova, propone la collocazione più
+            vicina come farebbe un commercialista ETS.
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
+            <PrimaryButton onClick={chiediAiClassificazione} disabled={aiLoading}>
+              {aiLoading ? "Analisi in corso..." : "Suggerisci collocazione"}
+            </PrimaryButton>
+
+            {aiSuggestion && (
+              <SecondaryButton onClick={applicaSuggerimentoAi}>
+                Applica suggerimento
+              </SecondaryButton>
+            )}
+          </div>
+
+          {aiError && (
+            <div style={{ marginTop: 12 }}>
+              <Badge tone="red">Errore AI</Badge>
+              <div className="errorText">{aiError}</div>
+            </div>
+          )}
+
+          {aiSuggestion && (
+            <div
+              style={{
+                marginTop: 14,
+                border: "1px solid #e5e7eb",
+                borderRadius: 12,
+                padding: 12,
+                background: "#fafafa",
+              }}
+            >
+              <div style={{ marginBottom: 8, fontWeight: 700 }}>Suggerimento AI</div>
+
+              <div style={{ marginBottom: 6 }}>
+                <b>Categoria:</b> {aiSuggestion.macroLabel}
+              </div>
+
+              {aiSuggestion.descrizionePrimaryLabel && (
+                <div style={{ marginBottom: 6 }}>
+                  <b>Specifica di categoria:</b> {aiSuggestion.descrizionePrimaryLabel}
+                </div>
+              )}
+
+              {aiSuggestion.descrizioneDettaglio && (
+                <div style={{ marginBottom: 6 }}>
+                  <b>Dettaglio della posta:</b> {aiSuggestion.descrizioneDettaglio}
+                </div>
+              )}
+
+              {aiSuggestion.descrizioneLiberaSuggerita && (
+                <div style={{ marginBottom: 6 }}>
+                  <b>Descrizione personale suggerita:</b>{" "}
+                  {aiSuggestion.descrizioneLiberaSuggerita}
+                </div>
+              )}
+
+              <div style={{ marginBottom: 6 }}>
+                <b>Conto consigliato:</b> {aiSuggestion.conto}
+              </div>
+
+              <div style={{ marginBottom: 6 }}>
+                <b>Confidenza:</b> {Math.round(aiSuggestion.confidenza)}%
+                {aiSuggestion.exactMatch
+                  ? " • corrispondenza diretta nello schema"
+                  : " • classificazione per analogia prudente"}
+              </div>
+
+              <div className="rowSub">{aiSuggestion.motivazioneBreve}</div>
+
+              {aiSuggestion.confidenza < 60 && (
+                <div style={{ marginTop: 10 }}>
+                  <Badge tone="yellow">Verifica manualmente</Badge>
+                </div>
+              )}
+            </div>
+          )}
+        </Card>
+      )}
+
       {isEntrataOrUscita && (
         <>
           <Card title="2️⃣ Data">
@@ -851,9 +1009,8 @@ export default function MovimentoEditor() {
               <option value="INVESTIMENTO_DISINVESTIMENTO">
                 Investimento e Disinvestimento
               </option>
-              <option value="IMPOSTE">Imposte</option>
-
-              {macro === "COSTI_GENERALI" && (
+              {tipologia === "USCITA" && <option value="IMPOSTE">Imposte</option>}
+              {tipologia === "USCITA" && (
                 <option value="COSTI_GENERALI">Costi Generali</option>
               )}
             </select>
