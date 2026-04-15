@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Layout from "../components/Layout";
 import { supabase } from "../lib/supabase";
-import { Card, PrimaryButton, SecondaryButton, Badge } from "../components/ui";
+import { Badge, Card, PrimaryButton, SecondaryButton } from "../components/ui";
 
 type Tipologia =
   | "ENTRATA"
@@ -82,6 +82,38 @@ type ScoredSemanticEntry = {
   score: number;
   reasons: string[];
 };
+
+type FunnelGate =
+  | "QUOTE_CONTRIBUTI_DONAZIONI"
+  | "INCASSI_ATTIVITA_SERVIZI"
+  | "RACCOLTE_FONDI_GATE"
+  | "BANCA_PATRIMONIO_RENDITE"
+  | "FINANZIAMENTI_DISINVESTIMENTI_ALTRO"
+  | "BENI_MATERIALI"
+  | "SERVIZI_PROFESSIONISTI"
+  | "PERSONALE_GATE"
+  | "RACCOLTE_FONDI_USCITE"
+  | "BANCA_PATRIMONIO_INVESTIMENTI"
+  | "IMPOSTE_RIMBORSI_ALTRE_USCITE";
+
+type FunnelContext =
+  | "AIG"
+  | "ATTIVITA_DIVERSE"
+  | "RACCOLTE_FONDI"
+  | "SUPPORTO_GENERALE"
+  | "FINANZA_PATRIMONIO"
+  | "IMPOSTE"
+  | "NON_SO";
+
+type FunnelOption<T extends string> = {
+  value: T;
+  label: string;
+  help: string;
+};
+
+/* =========================
+   HELPERS
+========================= */
 
 function isValidMoney(v: string) {
   const n = Number(v);
@@ -219,7 +251,6 @@ const USCITE_PERSONALE = withAltro([
 ]);
 
 const USCITE_DIVERSE_GESTIONE = withAltro([
-  "Imposte e tasse relative al reddito imponibile dell’esercizio",
   "Imposte sostitutive",
   "Imposte di bollo",
   "Tributi locali",
@@ -253,7 +284,7 @@ const USCITE_DIVERSE_GESTIONE = withAltro([
 ]);
 
 /* =========================
-   CONFIG
+   CONFIG TECNICO
 ========================= */
 
 const USCITE_AIG_CONFIG: NestedConfig = {
@@ -342,7 +373,7 @@ const USCITE_SUPPORTO_GENERALE_CONFIG: NestedConfig = {
     { code: 2, label: "Servizi" },
     { code: 3, label: "Godimento beni di terzi" },
     { code: 4, label: "Personale" },
-    { code: 5, label: "Altre uscite" },
+    { code: 5, label: "Uscite diverse di gestione" },
     { code: 99, label: "Altro" },
   ],
   secondary: {
@@ -469,7 +500,7 @@ const USCITE_COSTI_GENERALI_CONFIG: NestedConfig = {
     { code: 2, label: "Servizi" },
     { code: 3, label: "Godimento beni di terzi" },
     { code: 4, label: "Personale" },
-    { code: 5, label: "Altre uscite" },
+    { code: 5, label: "Uscite diverse di gestione" },
     { code: 99, label: "Altro" },
   ],
   secondary: {
@@ -486,37 +517,30 @@ function getConfig(tipologia: Tipologia | "", macro: Macro | ""): NestedConfig |
   if (tipologia === "USCITA" && macro === "AIG") return USCITE_AIG_CONFIG;
   if (tipologia === "USCITA" && macro === "ATTIVITA_DIVERSE") return USCITE_AD_CONFIG;
   if (tipologia === "USCITA" && macro === "RACCOLTE_FONDI") return USCITE_RF_CONFIG;
-  if (tipologia === "USCITA" && macro === "ATTIVITA_FINANZIARIA_PATRIMONIALE")
-    return USCITE_AFP_CONFIG;
-  if (tipologia === "USCITA" && macro === "SUPPORTO_GENERALE")
-    return USCITE_SUPPORTO_GENERALE_CONFIG;
-  if (tipologia === "USCITA" && macro === "INVESTIMENTO_DISINVESTIMENTO")
-    return USCITE_INVESTIMENTI_CONFIG;
-  if (tipologia === "USCITA" && macro === "COSTI_GENERALI")
-    return USCITE_COSTI_GENERALI_CONFIG;
+  if (tipologia === "USCITA" && macro === "ATTIVITA_FINANZIARIA_PATRIMONIALE") return USCITE_AFP_CONFIG;
+  if (tipologia === "USCITA" && macro === "SUPPORTO_GENERALE") return USCITE_SUPPORTO_GENERALE_CONFIG;
+  if (tipologia === "USCITA" && macro === "INVESTIMENTO_DISINVESTIMENTO") return USCITE_INVESTIMENTI_CONFIG;
+  if (tipologia === "USCITA" && macro === "COSTI_GENERALI") return USCITE_COSTI_GENERALI_CONFIG;
 
   if (tipologia === "ENTRATA" && macro === "AIG") return ENTRATE_AIG_CONFIG;
   if (tipologia === "ENTRATA" && macro === "ATTIVITA_DIVERSE") return ENTRATE_AD_CONFIG;
   if (tipologia === "ENTRATA" && macro === "RACCOLTE_FONDI") return ENTRATE_RF_CONFIG;
-  if (tipologia === "ENTRATA" && macro === "ATTIVITA_FINANZIARIA_PATRIMONIALE")
-    return ENTRATE_AFP_CONFIG;
-  if (tipologia === "ENTRATA" && macro === "SUPPORTO_GENERALE")
-    return ENTRATE_SUPPORTO_GENERALE_CONFIG;
-  if (tipologia === "ENTRATA" && macro === "INVESTIMENTO_DISINVESTIMENTO")
-    return ENTRATE_INVESTIMENTI_CONFIG;
+  if (tipologia === "ENTRATA" && macro === "ATTIVITA_FINANZIARIA_PATRIMONIALE") return ENTRATE_AFP_CONFIG;
+  if (tipologia === "ENTRATA" && macro === "SUPPORTO_GENERALE") return ENTRATE_SUPPORTO_GENERALE_CONFIG;
+  if (tipologia === "ENTRATA" && macro === "INVESTIMENTO_DISINVESTIMENTO") return ENTRATE_INVESTIMENTI_CONFIG;
 
   return null;
 }
 
 const MACRO_LABELS: Record<Macro, string> = {
-  AIG: "AIG",
-  ATTIVITA_DIVERSE: "Attività Diverse",
-  RACCOLTE_FONDI: "Raccolte Fondi",
-  ATTIVITA_FINANZIARIA_PATRIMONIALE: "Attività Finanziaria e Patrimoniale",
-  SUPPORTO_GENERALE: "Supporto Generale",
-  INVESTIMENTO_DISINVESTIMENTO: "Investimento e Disinvestimento",
+  AIG: "Attività di interesse generale",
+  ATTIVITA_DIVERSE: "Attività diverse",
+  RACCOLTE_FONDI: "Raccolte fondi",
+  ATTIVITA_FINANZIARIA_PATRIMONIALE: "Attività finanziaria e patrimoniale",
+  SUPPORTO_GENERALE: "Supporto generale",
+  INVESTIMENTO_DISINVESTIMENTO: "Investimento e disinvestimento",
   IMPOSTE: "Imposte",
-  COSTI_GENERALI: "Costi Generali",
+  COSTI_GENERALI: "Costi generali",
 };
 
 const CONFIG_REGISTRY: Array<{
@@ -527,42 +551,321 @@ const CONFIG_REGISTRY: Array<{
   { tipologia: "USCITA", macro: "AIG", config: USCITE_AIG_CONFIG },
   { tipologia: "USCITA", macro: "ATTIVITA_DIVERSE", config: USCITE_AD_CONFIG },
   { tipologia: "USCITA", macro: "RACCOLTE_FONDI", config: USCITE_RF_CONFIG },
-  {
-    tipologia: "USCITA",
-    macro: "ATTIVITA_FINANZIARIA_PATRIMONIALE",
-    config: USCITE_AFP_CONFIG,
-  },
-  {
-    tipologia: "USCITA",
-    macro: "SUPPORTO_GENERALE",
-    config: USCITE_SUPPORTO_GENERALE_CONFIG,
-  },
-  {
-    tipologia: "USCITA",
-    macro: "INVESTIMENTO_DISINVESTIMENTO",
-    config: USCITE_INVESTIMENTI_CONFIG,
-  },
+  { tipologia: "USCITA", macro: "ATTIVITA_FINANZIARIA_PATRIMONIALE", config: USCITE_AFP_CONFIG },
+  { tipologia: "USCITA", macro: "SUPPORTO_GENERALE", config: USCITE_SUPPORTO_GENERALE_CONFIG },
+  { tipologia: "USCITA", macro: "INVESTIMENTO_DISINVESTIMENTO", config: USCITE_INVESTIMENTI_CONFIG },
   { tipologia: "USCITA", macro: "COSTI_GENERALI", config: USCITE_COSTI_GENERALI_CONFIG },
 
   { tipologia: "ENTRATA", macro: "AIG", config: ENTRATE_AIG_CONFIG },
   { tipologia: "ENTRATA", macro: "ATTIVITA_DIVERSE", config: ENTRATE_AD_CONFIG },
   { tipologia: "ENTRATA", macro: "RACCOLTE_FONDI", config: ENTRATE_RF_CONFIG },
+  { tipologia: "ENTRATA", macro: "ATTIVITA_FINANZIARIA_PATRIMONIALE", config: ENTRATE_AFP_CONFIG },
+  { tipologia: "ENTRATA", macro: "SUPPORTO_GENERALE", config: ENTRATE_SUPPORTO_GENERALE_CONFIG },
+  { tipologia: "ENTRATA", macro: "INVESTIMENTO_DISINVESTIMENTO", config: ENTRATE_INVESTIMENTI_CONFIG },
+];
+
+/* =========================
+   IMBUTO
+========================= */
+
+const ENTRATA_GATE_OPTIONS: FunnelOption<FunnelGate>[] = [
   {
-    tipologia: "ENTRATA",
-    macro: "ATTIVITA_FINANZIARIA_PATRIMONIALE",
-    config: ENTRATE_AFP_CONFIG,
+    value: "QUOTE_CONTRIBUTI_DONAZIONI",
+    label: "Quote, contributi, donazioni",
+    help: "Quote associative, contributi, erogazioni liberali, 5x1000.",
   },
   {
-    tipologia: "ENTRATA",
-    macro: "SUPPORTO_GENERALE",
-    config: ENTRATE_SUPPORTO_GENERALE_CONFIG,
+    value: "INCASSI_ATTIVITA_SERVIZI",
+    label: "Incassi da attività o servizi",
+    help: "Prestazioni, cessioni, sponsor, corrispettivi.",
   },
   {
-    tipologia: "ENTRATA",
-    macro: "INVESTIMENTO_DISINVESTIMENTO",
-    config: ENTRATE_INVESTIMENTI_CONFIG,
+    value: "RACCOLTE_FONDI_GATE",
+    label: "Raccolte fondi",
+    help: "Entrate da raccolte abituali o occasionali.",
+  },
+  {
+    value: "BANCA_PATRIMONIO_RENDITE",
+    label: "Banca, interessi, affitti, patrimonio",
+    help: "Interessi attivi, affitti attivi, rendite patrimoniali.",
+  },
+  {
+    value: "FINANZIAMENTI_DISINVESTIMENTI_ALTRO",
+    label: "Finanziamenti, disinvestimenti, altro",
+    help: "Prestiti ricevuti, disinvestimenti, casi residuali.",
   },
 ];
+
+const USCITA_GATE_OPTIONS: FunnelOption<FunnelGate>[] = [
+  {
+    value: "BENI_MATERIALI",
+    label: "Beni e materiali",
+    help: "Cancelleria, carburante, dispositivi, materiali di consumo.",
+  },
+  {
+    value: "SERVIZI_PROFESSIONISTI",
+    label: "Servizi e professionisti",
+    help: "Commercialista, consulenze, utenze, assicurazioni, manutenzioni.",
+  },
+  {
+    value: "PERSONALE_GATE",
+    label: "Personale",
+    help: "Retribuzioni, oneri, TFR, voci del personale.",
+  },
+  {
+    value: "RACCOLTE_FONDI_USCITE",
+    label: "Raccolte fondi",
+    help: "Uscite legate a raccolte fondi abituali o occasionali.",
+  },
+  {
+    value: "BANCA_PATRIMONIO_INVESTIMENTI",
+    label: "Banca, patrimonio, investimenti",
+    help: "Spese bancarie, mutui, patrimonio edilizio, investimenti.",
+  },
+  {
+    value: "IMPOSTE_RIMBORSI_ALTRE_USCITE",
+    label: "Imposte, rimborsi, altre uscite",
+    help: "Imposte, multe, rimborsi volontari, altre uscite residuali.",
+  },
+];
+
+const ENTRATA_CONTEXT_OPTIONS: FunnelOption<FunnelContext>[] = [
+  {
+    value: "AIG",
+    label: "Attività istituzionale / progetto",
+    help: "Operazione legata all’attività di interesse generale.",
+  },
+  {
+    value: "ATTIVITA_DIVERSE",
+    label: "Attività diversa",
+    help: "Operazione legata ad attività diverse.",
+  },
+  {
+    value: "RACCOLTE_FONDI",
+    label: "Raccolta fondi",
+    help: "Operazione legata a una raccolta fondi.",
+  },
+  {
+    value: "SUPPORTO_GENERALE",
+    label: "Supporto generale",
+    help: "Entrata legata al funzionamento generale dell’ente.",
+  },
+  {
+    value: "FINANZA_PATRIMONIO",
+    label: "Finanza / patrimonio / investimenti",
+    help: "Operazione bancaria, patrimoniale o finanziaria.",
+  },
+  {
+    value: "NON_SO",
+    label: "Non so",
+    help: "Mostra comunque le proposte migliori.",
+  },
+];
+
+const USCITA_CONTEXT_OPTIONS: FunnelOption<FunnelContext>[] = [
+  {
+    value: "AIG",
+    label: "Attività istituzionale / progetto",
+    help: "Spesa sostenuta per attività di interesse generale.",
+  },
+  {
+    value: "ATTIVITA_DIVERSE",
+    label: "Attività diversa",
+    help: "Spesa sostenuta per attività diversa.",
+  },
+  {
+    value: "RACCOLTE_FONDI",
+    label: "Raccolta fondi",
+    help: "Spesa legata a raccolte fondi.",
+  },
+  {
+    value: "SUPPORTO_GENERALE",
+    label: "Funzionamento generale dell’ente",
+    help: "Spesa di supporto generale o costo generale.",
+  },
+  {
+    value: "FINANZA_PATRIMONIO",
+    label: "Finanza / patrimonio / investimenti",
+    help: "Spesa bancaria, patrimoniale o di investimento.",
+  },
+  {
+    value: "IMPOSTE",
+    label: "Imposte",
+    help: "IRAP o altre uscite tributarie.",
+  },
+  {
+    value: "NON_SO",
+    label: "Non so",
+    help: "Mostra comunque le proposte migliori.",
+  },
+];
+
+function getGateOptions(tipologia: Tipologia | ""): FunnelOption<FunnelGate>[] {
+  if (tipologia === "ENTRATA") return ENTRATA_GATE_OPTIONS;
+  if (tipologia === "USCITA") return USCITA_GATE_OPTIONS;
+  return [];
+}
+
+function getContextOptions(tipologia: Tipologia | ""): FunnelOption<FunnelContext>[] {
+  if (tipologia === "ENTRATA") return ENTRATA_CONTEXT_OPTIONS;
+  if (tipologia === "USCITA") return USCITA_CONTEXT_OPTIONS;
+  return [];
+}
+
+function getAllowedMacrosByContext(
+  tipologia: Tipologia | "",
+  context: FunnelContext | ""
+): Macro[] {
+  if (!context) {
+    return tipologia === "USCITA"
+      ? [
+          "AIG",
+          "ATTIVITA_DIVERSE",
+          "RACCOLTE_FONDI",
+          "ATTIVITA_FINANZIARIA_PATRIMONIALE",
+          "SUPPORTO_GENERALE",
+          "INVESTIMENTO_DISINVESTIMENTO",
+          "IMPOSTE",
+          "COSTI_GENERALI",
+        ]
+      : [
+          "AIG",
+          "ATTIVITA_DIVERSE",
+          "RACCOLTE_FONDI",
+          "ATTIVITA_FINANZIARIA_PATRIMONIALE",
+          "SUPPORTO_GENERALE",
+          "INVESTIMENTO_DISINVESTIMENTO",
+        ];
+  }
+
+  switch (context) {
+    case "AIG":
+      return ["AIG"];
+    case "ATTIVITA_DIVERSE":
+      return ["ATTIVITA_DIVERSE"];
+    case "RACCOLTE_FONDI":
+      return ["RACCOLTE_FONDI"];
+    case "SUPPORTO_GENERALE":
+      return tipologia === "USCITA" ? ["SUPPORTO_GENERALE", "COSTI_GENERALI"] : ["SUPPORTO_GENERALE"];
+    case "FINANZA_PATRIMONIO":
+      return ["ATTIVITA_FINANZIARIA_PATRIMONIALE", "INVESTIMENTO_DISINVESTIMENTO"];
+    case "IMPOSTE":
+      return tipologia === "USCITA" ? ["IMPOSTE"] : [];
+    case "NON_SO":
+    default:
+      return getAllowedMacrosByContext(tipologia, "");
+  }
+}
+
+function includesAny(text: string, values: string[]) {
+  const t = normalizeSemanticText(text);
+  return values.some((v) => t.includes(normalizeSemanticText(v)));
+}
+
+function matchesGate(entry: SemanticEntry, gate: FunnelGate | "") {
+  if (!gate) return true;
+
+  const specifica = normalizeSemanticText(entry.specificaLabel);
+  const dettaglio = normalizeSemanticText(entry.dettaglioLabel);
+  const categoria = normalizeSemanticText(entry.categoriaLabel);
+
+  switch (gate) {
+    case "QUOTE_CONTRIBUTI_DONAZIONI":
+      return (
+        includesAny(specifica, [
+          "quote associative",
+          "apporti dei fondatori",
+          "erogazioni liberali",
+          "5 per mille",
+          "contributi",
+        ]) ||
+        includesAny(dettaglio, ["donazione", "liberali", "5 per mille", "contributi"])
+      );
+
+    case "INCASSI_ATTIVITA_SERVIZI":
+      return includesAny(specifica, [
+        "prestazioni",
+        "cessioni",
+        "associati",
+        "terzi",
+        "contratti con enti pubblici",
+        "sponsorizzazioni",
+      ]);
+
+    case "RACCOLTE_FONDI_GATE":
+    case "RACCOLTE_FONDI_USCITE":
+      return entry.categoria === "RACCOLTE_FONDI";
+
+    case "BANCA_PATRIMONIO_RENDITE":
+      return entry.categoria === "ATTIVITA_FINANZIARIA_PATRIMONIALE";
+
+    case "FINANZIAMENTI_DISINVESTIMENTI_ALTRO":
+      return entry.categoria === "INVESTIMENTO_DISINVESTIMENTO" || entry.categoria === "SUPPORTO_GENERALE";
+
+    case "BENI_MATERIALI":
+      return includesAny(specifica, ["materie prime", "di consumo e di merci"]) ||
+        includesAny(dettaglio, [
+          "cancelleria",
+          "carburante",
+          "materiale di consumo",
+          "imballaggi",
+          "medicinali",
+          "cibo per animali",
+          "dispositivi di protezione",
+          "casalinghi",
+        ]);
+
+    case "SERVIZI_PROFESSIONISTI":
+      return (
+        includesAny(specifica, ["servizi", "godimento beni di terzi"]) ||
+        includesAny(dettaglio, [
+          "consulenze",
+          "spese legali",
+          "parcelle liberi professionisti",
+          "utenze",
+          "assicurazioni",
+          "servizi postali",
+          "manutenzione",
+          "polizza",
+          "sito web",
+          "licenze software",
+          "affitto sede",
+          "noleggio",
+        ])
+      );
+
+    case "PERSONALE_GATE":
+      return includesAny(specifica, ["personale"]) ||
+        includesAny(categoria, ["personale"]);
+
+    case "BANCA_PATRIMONIO_INVESTIMENTI":
+      return (
+        entry.categoria === "ATTIVITA_FINANZIARIA_PATRIMONIALE" ||
+        entry.categoria === "INVESTIMENTO_DISINVESTIMENTO" ||
+        includesAny(dettaglio, ["mutuo", "investimento", "interessi passivi", "commissioni bancarie", "imu"])
+      );
+
+    case "IMPOSTE_RIMBORSI_ALTRE_USCITE":
+      return (
+        entry.categoria === "IMPOSTE" ||
+        includesAny(specifica, ["uscite diverse di gestione"]) ||
+        includesAny(dettaglio, [
+          "imposte",
+          "tasse",
+          "rimborso spese volontari",
+          "rimborso chilometrico",
+          "multe",
+          "ammende",
+          "sopravvenienze passive",
+          "omaggi",
+          "abbonamenti",
+        ])
+      );
+
+    default:
+      return true;
+  }
+}
 
 /* =========================
    RICERCA SEMANTICA
@@ -1312,7 +1615,35 @@ function buildFastAutocompleteOptions(
     if (values.length >= 30) break;
   }
 
-  return uniqueStrings(values).slice(0, 10);
+  return uniqueStrings(values).slice(0, 12);
+}
+
+function filterEntriesByFunnel(
+  entries: SemanticEntry[],
+  tipologia: Tipologia | "",
+  gate: FunnelGate | "",
+  context: FunnelContext | ""
+) {
+  const allowedMacros = getAllowedMacrosByContext(tipologia, context);
+
+  return entries.filter((entry) => {
+    if (
+      (tipologia === "ENTRATA" || tipologia === "USCITA") &&
+      entry.tipologia !== tipologia
+    ) {
+      return false;
+    }
+
+    if (allowedMacros.length > 0 && !allowedMacros.includes(entry.categoria)) {
+      return false;
+    }
+
+    if (!matchesGate(entry, gate)) {
+      return false;
+    }
+
+    return true;
+  });
 }
 
 /* =========================
@@ -1328,33 +1659,77 @@ export default function MovimentoEditor() {
   const [error, setError] = useState<string | null>(null);
 
   const [tipologia, setTipologia] = useState<Tipologia | "">(presetTipologia);
-  const [data, setData] = useState("");
-  const [macro, setMacro] = useState<Macro | "">("");
-  const [conto, setConto] = useState<Conto>("CASSA");
+  const [funnelGate, setFunnelGate] = useState<FunnelGate | "">("");
+  const [funnelContext, setFunnelContext] = useState<FunnelContext | "">("");
 
+  const [data, setData] = useState("");
+  const [conto, setConto] = useState<Conto>("CASSA");
+  const [importo, setImporto] = useState("");
+  const [iva, setIva] = useState("0");
+  const [regime, setRegime] = useState<Regime>("ORDINARIO");
+
+  const [semanticInput, setSemanticInput] = useState("");
+  const [debouncedSemanticInput, setDebouncedSemanticInput] = useState("");
+  const [semanticResults, setSemanticResults] = useState<ScoredSemanticEntry[]>([]);
+  const [semanticError, setSemanticError] = useState<string | null>(null);
+  const [selectedSemanticEntry, setSelectedSemanticEntry] = useState<SemanticEntry | null>(null);
+
+  const [forceManual, setForceManual] = useState(false);
+
+  const [macro, setMacro] = useState<Macro | "">("");
   const [descrizioneCode, setDescrizioneCode] = useState<number | null>(null);
   const [descrizioneLabel, setDescrizioneLabel] = useState("");
   const [descrizioneDettaglio, setDescrizioneDettaglio] = useState("");
   const [descrizioneLibera, setDescrizioneLibera] = useState("");
-
-  const [importo, setImporto] = useState("");
-  const [iva, setIva] = useState("0");
-  const [regime, setRegime] = useState<Regime>("ORDINARIO");
 
   const [aiInput, setAiInput] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiSuggestion, setAiSuggestion] = useState<AiSuggestion | null>(null);
 
-  const [semanticInput, setSemanticInput] = useState("");
-  const [debouncedSemanticInput, setDebouncedSemanticInput] = useState("");
-  const [semanticResults, setSemanticResults] = useState<ScoredSemanticEntry[]>([]);
-  const [semanticError, setSemanticError] = useState<string | null>(null);
-
   const isEntrataOrUscita = tipologia === "ENTRATA" || tipologia === "USCITA";
   const isAvanzo = tipologia === "AVANZO_CASSA_T_1" || tipologia === "AVANZO_BANCA_T_1";
   const isRegimeOrdinario = regime === "ORDINARIO";
   const showIvaField = isEntrataOrUscita && isRegimeOrdinario;
+
+  const allSemanticEntries = useMemo(() => buildSemanticEntries(), []);
+
+  const filteredEntries = useMemo(() => {
+    return filterEntriesByFunnel(allSemanticEntries, tipologia, funnelGate, funnelContext);
+  }, [allSemanticEntries, tipologia, funnelGate, funnelContext]);
+
+  const semanticAutocompleteOptions = useMemo(() => {
+    return buildFastAutocompleteOptions(semanticInput, filteredEntries, tipologia);
+  }, [semanticInput, filteredEntries, tipologia]);
+
+  const gateOptions = useMemo(() => getGateOptions(tipologia), [tipologia]);
+  const contextOptions = useMemo(() => getContextOptions(tipologia), [tipologia]);
+
+  const filteredMacroOptions = useMemo(() => {
+    const allowed = getAllowedMacrosByContext(tipologia, funnelContext);
+    const base =
+      tipologia === "USCITA"
+        ? [
+            "AIG",
+            "ATTIVITA_DIVERSE",
+            "RACCOLTE_FONDI",
+            "ATTIVITA_FINANZIARIA_PATRIMONIALE",
+            "SUPPORTO_GENERALE",
+            "INVESTIMENTO_DISINVESTIMENTO",
+            "IMPOSTE",
+            "COSTI_GENERALI",
+          ]
+        : [
+            "AIG",
+            "ATTIVITA_DIVERSE",
+            "RACCOLTE_FONDI",
+            "ATTIVITA_FINANZIARIA_PATRIMONIALE",
+            "SUPPORTO_GENERALE",
+            "INVESTIMENTO_DISINVESTIMENTO",
+          ];
+
+    return base.filter((m) => allowed.includes(m as Macro)) as Macro[];
+  }, [tipologia, funnelContext]);
 
   const config = useMemo(() => getConfig(tipologia, macro), [tipologia, macro]);
   const primaryOptions = useMemo(() => config?.primary ?? [], [config]);
@@ -1369,21 +1744,17 @@ export default function MovimentoEditor() {
     return withAltro(config.secondary[descrizioneCode] || []);
   }, [config, descrizioneCode]);
 
-  const semanticEntries = useMemo(() => buildSemanticEntries(), []);
-
-  const semanticAutocompleteOptions = useMemo(() => {
-    return buildFastAutocompleteOptions(semanticInput, semanticEntries, tipologia);
-  }, [semanticInput, semanticEntries, tipologia]);
-
-  const semanticHasMatches = semanticResults.length > 0;
-  const semanticTried = normalizeText(debouncedSemanticInput).length > 0;
-  const semanticNoMatch = semanticTried && !semanticHasMatches;
-
   const showData = isEntrataOrUscita;
-  const showSemanticBox = isEntrataOrUscita;
+  const showGate = isEntrataOrUscita;
+  const showContext = isEntrataOrUscita && !!funnelGate;
+  const showSemanticBox = isEntrataOrUscita && !!funnelGate && !!funnelContext;
 
-  const showManualSection = isEntrataOrUscita && semanticNoMatch;
-  const showAiBox = isEntrataOrUscita && semanticNoMatch;
+  const semanticTried = normalizeText(debouncedSemanticInput).length > 0;
+  const semanticHasMatches = semanticResults.length > 0;
+  const semanticNoMatch = showSemanticBox && semanticTried && !semanticHasMatches;
+
+  const showManualSection = isEntrataOrUscita && (forceManual || semanticNoMatch);
+  const showChosenClassification = !!selectedSemanticEntry || !!aiSuggestion || !!macro;
 
   const showDescrizioneCodificata =
     showManualSection && macro !== "IMPOSTE" && primaryOptions.length > 0;
@@ -1397,10 +1768,13 @@ export default function MovimentoEditor() {
   const isImposteTextOnly = tipologia === "USCITA" && macro === "IMPOSTE";
 
   const showDescrizionePersonale =
-    showManualSection && (isImposteTextOnly || !!descrizioneCode);
+    (selectedSemanticEntry !== null || showManualSection) &&
+    (isImposteTextOnly || !!descrizioneCode || !!selectedSemanticEntry);
 
-  const showConto = isEntrataOrUscita && semanticNoMatch;
-  const showImporto = isAvanzo || (isEntrataOrUscita && semanticNoMatch);
+  const showFinancialFields =
+    isAvanzo ||
+    (isEntrataOrUscita &&
+      (selectedSemanticEntry !== null || showManualSection || !!aiSuggestion));
 
   useEffect(() => {
     const loadRegime = async () => {
@@ -1454,12 +1828,13 @@ export default function MovimentoEditor() {
       setData(row.data || "");
       setMacro((row.macro as Macro) || "");
       setConto((row.conto as Conto) || "CASSA");
-      setDescrizioneCode(row.descrizione_code ?? null);
       setImporto(String(row.importo ?? ""));
       setIva(String(row.iva ?? 0));
+      setForceManual(true);
 
       const fullLabel = String(row.descrizione_label ?? "");
       setDescrizioneLabel(fullLabel);
+      setDescrizioneCode(row.descrizione_code ?? null);
 
       const parts = fullLabel
         .split(" | ")
@@ -1474,8 +1849,6 @@ export default function MovimentoEditor() {
 
       if (parts.length >= 3) {
         setDescrizioneLibera(parts.slice(2).join(" | "));
-      } else if (parts.length === 2) {
-        setDescrizioneLibera(parts[1]);
       } else {
         setDescrizioneLibera(row.descrizione_libera || "");
       }
@@ -1489,29 +1862,72 @@ export default function MovimentoEditor() {
   useEffect(() => {
     if (editId) return;
 
+    setFunnelGate("");
+    setFunnelContext("");
     setData("");
-    setMacro("");
     setConto("CASSA");
-    setDescrizioneCode(null);
-    setDescrizioneLabel("");
-    setDescrizioneDettaglio("");
-    setDescrizioneLibera("");
     setImporto("");
     setIva("0");
-    setAiInput("");
-    setAiSuggestion(null);
-    setAiError(null);
     setSemanticInput("");
     setDebouncedSemanticInput("");
     setSemanticResults([]);
     setSemanticError(null);
+    setSelectedSemanticEntry(null);
+    setForceManual(false);
+    setMacro("");
+    setDescrizioneCode(null);
+    setDescrizioneLabel("");
+    setDescrizioneDettaglio("");
+    setDescrizioneLibera("");
+    setAiInput("");
+    setAiSuggestion(null);
+    setAiError(null);
   }, [tipologia, editId]);
 
   useEffect(() => {
     if (editId) return;
 
+    setFunnelContext("");
+    setSemanticInput("");
+    setDebouncedSemanticInput("");
+    setSemanticResults([]);
+    setSemanticError(null);
+    setSelectedSemanticEntry(null);
+    setForceManual(false);
+    setMacro("");
     setDescrizioneCode(null);
     setDescrizioneLabel("");
+    setDescrizioneDettaglio("");
+    setDescrizioneLibera("");
+    setAiInput("");
+    setAiSuggestion(null);
+    setAiError(null);
+  }, [funnelGate, editId]);
+
+  useEffect(() => {
+    if (editId) return;
+
+    setSemanticInput("");
+    setDebouncedSemanticInput("");
+    setSemanticResults([]);
+    setSemanticError(null);
+    setSelectedSemanticEntry(null);
+    setForceManual(false);
+    setMacro("");
+    setDescrizioneCode(null);
+    setDescrizioneLabel("");
+    setDescrizioneDettaglio("");
+    setDescrizioneLibera("");
+    setAiInput("");
+    setAiSuggestion(null);
+    setAiError(null);
+  }, [funnelContext, editId]);
+
+  useEffect(() => {
+    if (editId) return;
+    setSelectedSemanticEntry(null);
+    setAiSuggestion(null);
+    setDescrizioneCode(null);
     setDescrizioneDettaglio("");
     setDescrizioneLibera("");
   }, [macro, editId]);
@@ -1519,8 +1935,8 @@ export default function MovimentoEditor() {
   useEffect(() => {
     if (editId) return;
     setDescrizioneDettaglio("");
-    setDescrizioneLibera("");
-  }, [descrizioneCode, editId]);
+    setDescrizioneLibera(selectedSemanticEntry ? semanticInput.trim() : "");
+  }, [descrizioneCode, editId, selectedSemanticEntry, semanticInput]);
 
   useEffect(() => {
     if (isAvanzo) {
@@ -1562,21 +1978,37 @@ export default function MovimentoEditor() {
   useEffect(() => {
     const value = normalizeText(debouncedSemanticInput);
 
-    if (!value) {
+    if (!showSemanticBox || !value) {
       setSemanticResults([]);
       setSemanticError(null);
       return;
     }
 
-    const results = findSemanticMatches(value, semanticEntries, tipologia);
+    const results = findSemanticMatches(value, filteredEntries, tipologia);
     setSemanticResults(results);
 
     if (!results.length) {
-      setSemanticError("Nessuna voce trovata. Procedi con compilazione guidata");
+      setSemanticError("Nessuna proposta trovata in questo ramo. Puoi aprire la compilazione manuale.");
     } else {
       setSemanticError(null);
     }
-  }, [debouncedSemanticInput, semanticEntries, tipologia]);
+  }, [debouncedSemanticInput, filteredEntries, tipologia, showSemanticBox]);
+
+  function applySemanticEntry(entry: SemanticEntry) {
+    setSelectedSemanticEntry(entry);
+    setForceManual(false);
+    setAiSuggestion(null);
+    setAiError(null);
+
+    setMacro(entry.categoria);
+    setDescrizioneCode(entry.specificaCode);
+    setDescrizioneDettaglio(entry.dettaglio ? entry.dettaglioLabel : "");
+    setDescrizioneLibera(semanticInput.trim());
+
+    if (entry.contoConsigliato) {
+      setConto(entry.contoConsigliato);
+    }
+  }
 
   async function chiediAiClassificazione() {
     setAiError(null);
@@ -1587,7 +2019,8 @@ export default function MovimentoEditor() {
       return;
     }
 
-    if (!normalizeText(aiInput)) {
+    const testo = normalizeText(aiInput || semanticInput);
+    if (!testo) {
       setAiError("Scrivi una descrizione dell'operazione");
       return;
     }
@@ -1602,7 +2035,7 @@ export default function MovimentoEditor() {
         },
         body: JSON.stringify({
           tipologia,
-          testo: aiInput,
+          testo,
           macroAttuale: macro || null,
         }),
       });
@@ -1637,20 +2070,22 @@ export default function MovimentoEditor() {
       };
 
       setAiSuggestion(normalized);
+      setSelectedSemanticEntry(null);
 
-      if (normalized.macro) setMacro(normalized.macro);
+      setMacro(normalized.macro);
       if (normalized.contoConsigliato) setConto(normalized.contoConsigliato);
 
       if (normalized.macro === "IMPOSTE") {
         setDescrizioneCode(null);
         setDescrizioneDettaglio("");
-        setDescrizioneLibera(normalized.descrizioneLiberaSuggerita || aiInput);
-        return;
+        setDescrizioneLibera(normalized.descrizioneLiberaSuggerita || testo);
+      } else {
+        setDescrizioneCode(normalized.descrizioneCode ?? null);
+        setDescrizioneDettaglio(normalized.descrizioneDettaglio || "");
+        setDescrizioneLibera(normalized.descrizioneLiberaSuggerita || testo);
       }
 
-      setDescrizioneCode(normalized.descrizioneCode ?? null);
-      setDescrizioneDettaglio(normalized.descrizioneDettaglio || "");
-      setDescrizioneLibera(normalized.descrizioneLiberaSuggerita || aiInput);
+      setForceManual(true);
     } catch (err: any) {
       setAiError(err?.message || "Errore nella richiesta AI");
     } finally {
@@ -1693,43 +2128,41 @@ export default function MovimentoEditor() {
         return;
       }
 
-      if (!semanticHasMatches && !macro) {
-        setError("Seleziona la categoria");
+      if (!selectedSemanticEntry && !forceManual && !aiSuggestion) {
+        setError("Seleziona una proposta oppure apri la compilazione manuale");
         return;
       }
 
-      if (semanticNoMatch) {
-        if (isImposteTextOnly) {
-          if (!normalizeText(descrizioneLibera)) {
-            setError("Inserisci la descrizione personale");
-            return;
-          }
-        } else {
-          if (!descrizioneCode) {
-            setError("Seleziona la descrizione codificata");
-            return;
-          }
+      if (!macro) {
+        setError("Manca la categoria finale");
+        return;
+      }
 
-          if (showDettaglioDescrizione && !normalizeText(descrizioneDettaglio)) {
-            setError("Seleziona o scrivi il dettaglio descrizione");
-            return;
-          }
-
-          if (!normalizeText(descrizioneLibera)) {
-            setError("Inserisci la descrizione personale");
-            return;
-          }
-        }
-
-        if (!isValidMoney(importo)) {
-          setError("Importo non valido");
+      if (macro === "IMPOSTE") {
+        if (!normalizeText(descrizioneLibera)) {
+          setError("Inserisci la descrizione personale");
           return;
         }
       } else {
-        if (!isValidMoney(importo)) {
-          setError("Importo non valido");
+        if (!descrizioneCode) {
+          setError("Seleziona la specifica di categoria");
           return;
         }
+
+        if (showDettaglioDescrizione && !normalizeText(descrizioneDettaglio)) {
+          setError("Seleziona o scrivi il dettaglio della posta");
+          return;
+        }
+
+        if (!normalizeText(descrizioneLibera)) {
+          setError("Inserisci una descrizione personale");
+          return;
+        }
+      }
+
+      if (!isValidMoney(importo)) {
+        setError("Importo non valido");
+        return;
       }
     }
 
@@ -1740,7 +2173,7 @@ export default function MovimentoEditor() {
       data: isAvanzo ? null : data || null,
       macro: isAvanzo ? null : macro || null,
       conto: isAvanzo ? (tipologia === "AVANZO_CASSA_T_1" ? "CASSA" : "BANCA") : conto,
-      descrizione_code: isAvanzo || isImposteTextOnly ? null : descrizioneCode,
+      descrizione_code: isAvanzo || macro === "IMPOSTE" ? null : descrizioneCode,
       descrizione_label: isAvanzo ? null : descrizioneLabel || null,
       descrizione_libera: isAvanzo ? null : normalizeText(descrizioneLibera) || null,
       importo: Number(importo),
@@ -1776,10 +2209,10 @@ export default function MovimentoEditor() {
     <Layout>
       <div className="pageHeader" style={{ paddingTop: 15 }}>
         <div>
-          <h2 className="pageTitle">{editId ? "Modifica movimento" : "Nuovo Movimento"}</h2>
+          <h2 className="pageTitle">{editId ? "Modifica movimento" : "Nuovo movimento"}</h2>
           <div className="pageHelp">
-            La compilazione ora parte in modo essenziale: prima la tipologia, poi il percorso si
-            apre in base alla scelta effettuata.
+            Il percorso parte da scelte semplici e arriva comunque sempre alle poste finali del
+            rendiconto.
           </div>
         </div>
       </div>
@@ -1810,40 +2243,105 @@ export default function MovimentoEditor() {
         </Card>
       )}
 
+      {showGate && (
+        <Card title={showData ? "3️⃣ Che tipo di operazione è?" : "2️⃣ Che tipo di operazione è?"}>
+          <div style={{ display: "grid", gap: 10 }}>
+            {gateOptions.map((opt: FunnelOption<FunnelGate>) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setFunnelGate(opt.value)}
+                style={{
+                  textAlign: "left",
+                  border: funnelGate === opt.value ? "2px solid #111827" : "1px solid #e5e7eb",
+                  borderRadius: 12,
+                  padding: 12,
+                  background: funnelGate === opt.value ? "#fafafa" : "#fff",
+                  cursor: "pointer",
+                }}
+              >
+                <div style={{ fontWeight: 700 }}>{opt.label}</div>
+                <div className="rowSub" style={{ marginTop: 4 }}>
+                  {opt.help}
+                </div>
+              </button>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {showContext && (
+        <Card title="4️⃣ A cosa si riferisce?">
+          <div style={{ display: "grid", gap: 10 }}>
+            {contextOptions.map((opt: FunnelOption<FunnelContext>) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setFunnelContext(opt.value)}
+                style={{
+                  textAlign: "left",
+                  border: funnelContext === opt.value ? "2px solid #111827" : "1px solid #e5e7eb",
+                  borderRadius: 12,
+                  padding: 12,
+                  background: funnelContext === opt.value ? "#fafafa" : "#fff",
+                  cursor: "pointer",
+                }}
+              >
+                <div style={{ fontWeight: 700 }}>{opt.label}</div>
+                <div className="rowSub" style={{ marginTop: 4 }}>
+                  {opt.help}
+                </div>
+              </button>
+            ))}
+          </div>
+        </Card>
+      )}
+
       {showSemanticBox && (
-        <Card title={showData ? "3️⃣ Trova la voce automaticamente" : "2️⃣ Trova la voce automaticamente"}>
+        <Card title="5️⃣ Descrivi l’operazione">
           <input
             list="semantic-autocomplete-list"
             value={semanticInput}
-            onChange={(e) => setSemanticInput(e.target.value)}
+            onChange={(e) => {
+              setSemanticInput(e.target.value);
+              setSelectedSemanticEntry(null);
+              setAiSuggestion(null);
+            }}
             className="input"
-            placeholder="Es.: prestazione commercialista, interessi bancari attivi, rata mutuo, benzina pulmino..."
+            placeholder="Es.: fattura commercialista, contributo comune, interessi attivi banca, benzina pulmino..."
           />
 
           <datalist id="semantic-autocomplete-list">
             {semanticAutocompleteOptions.map((item: string) => (
-            <option key={item} value={item} />
+              <option key={item} value={item} />
             ))}
           </datalist>
 
           <div className="rowSub" style={{ marginTop: 8 }}>
-            Se la ricerca non individua una voce coerente, comparirà la compilazione guidata manuale.
+            La ricerca si svolge solo dentro il ramo che hai scelto.
           </div>
 
-          {(semanticResults.length > 0 || semanticInput) && (
-            <div style={{ marginTop: 12 }}>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
+            <SecondaryButton
+              onClick={() => setForceManual((v) => !v)}
+            >
+              {showManualSection ? "Chiudi compilazione manuale" : "Compila manualmente"}
+            </SecondaryButton>
+
+            {(semanticResults.length > 0 || semanticInput) && (
               <SecondaryButton
                 onClick={() => {
                   setSemanticInput("");
                   setDebouncedSemanticInput("");
                   setSemanticResults([]);
                   setSemanticError(null);
+                  setSelectedSemanticEntry(null);
                 }}
               >
-                Pulisci risultati
+                Pulisci ricerca
               </SecondaryButton>
-            </div>
-          )}
+            )}
+          </div>
 
           {semanticError && normalizeText(debouncedSemanticInput) && (
             <div style={{ marginTop: 12 }}>
@@ -1854,45 +2352,48 @@ export default function MovimentoEditor() {
 
           {semanticResults.length > 0 && (
             <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
-              {semanticResults.map((row, index) => {
+              {semanticResults.map((row: ScoredSemanticEntry, index: number) => {
                 const confidence = confidenceFromScore(row.score);
-                const hasRealDetail =
-                  normalizeText(row.entry.dettaglio) &&
-                  applyCommonFixes(row.entry.dettaglioLabel) !==
-                    applyCommonFixes(row.entry.specificaLabel);
+                const isSelected =
+                  selectedSemanticEntry &&
+                  [
+                    selectedSemanticEntry.tipologia,
+                    selectedSemanticEntry.categoria,
+                    selectedSemanticEntry.specificaCode,
+                    selectedSemanticEntry.dettaglioLabel,
+                  ].join("|") ===
+                    [
+                      row.entry.tipologia,
+                      row.entry.categoria,
+                      row.entry.specificaCode,
+                      row.entry.dettaglioLabel,
+                    ].join("|");
 
                 return (
-                  <div
+                  <button
                     key={`${row.entry.tipologia}-${row.entry.categoria}-${row.entry.specificaCode}-${row.entry.dettaglioLabel}-${index}`}
+                    type="button"
+                    onClick={() => applySemanticEntry(row.entry)}
                     style={{
-                      border: "1px solid #e5e7eb",
+                      textAlign: "left",
+                      border: isSelected ? "2px solid #111827" : "1px solid #e5e7eb",
                       borderRadius: 12,
                       padding: 12,
-                      background: index === 0 ? "#fafafa" : "#fff",
+                      background: isSelected ? "#f9fafb" : index === 0 ? "#fafafa" : "#fff",
+                      cursor: "pointer",
                     }}
                   >
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                       <Badge tone={index === 0 ? "green" : "blue"}>
-                        {index === 0 ? "Voce consigliata" : `Alternativa ${index}`}
+                        {index === 0 ? "Proposta consigliata" : `Alternativa ${index}`}
                       </Badge>
-                      <div style={{ fontWeight: 700 }}>
-                        {row.entry.tipologia} · {row.entry.dettaglioLabel}
-                      </div>
+                      {isSelected && <Badge tone="green">Selezionata</Badge>}
                     </div>
 
-                    <div style={{ marginTop: 8 }}>
-                      <b>Categoria:</b> {row.entry.categoriaLabel}
+                    <div style={{ marginTop: 8, fontWeight: 700 }}>
+                      {row.entry.tipologia} → {row.entry.categoriaLabel} → {row.entry.specificaLabel}
+                      {row.entry.dettaglio ? ` → ${row.entry.dettaglioLabel}` : ""}
                     </div>
-
-                    <div style={{ marginTop: 4 }}>
-                      <b>Specifica di categoria:</b> {row.entry.specificaLabel}
-                    </div>
-
-                    {hasRealDetail && (
-                      <div style={{ marginTop: 4 }}>
-                        <b>Dettaglio della posta:</b> {row.entry.dettaglioLabel}
-                      </div>
-                    )}
 
                     <div style={{ marginTop: 4 }}>
                       <b>Conto consigliato:</b> {row.entry.contoConsigliato || "—"}
@@ -1905,7 +2406,7 @@ export default function MovimentoEditor() {
                     <div className="rowSub" style={{ marginTop: 6 }}>
                       {semanticMotivation(row)}
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -1913,118 +2414,101 @@ export default function MovimentoEditor() {
         </Card>
       )}
 
-      {isAvanzo && (
-        <Card title="2️⃣ Importo">
-          <input
-            type="number"
-            value={importo}
-            onChange={(e) => setImporto(e.target.value)}
-            className="input"
-            placeholder="0,00"
-            step="0.01"
-            min={0}
-          />
-        </Card>
-      )}
-
-      {showManualSection && (
-        <Card title="4️⃣ Categoria">
-          <select
-            value={macro}
-            onChange={(e) => setMacro(e.target.value as Macro | "")}
-            className="input"
-          >
-            <option value="">Seleziona…</option>
-            <option value="AIG">AIG</option>
-            <option value="ATTIVITA_DIVERSE">Attività Diverse</option>
-            <option value="RACCOLTE_FONDI">Raccolte Fondi</option>
-            <option value="ATTIVITA_FINANZIARIA_PATRIMONIALE">
-              Attività Finanziaria e Patrimoniale
-            </option>
-            <option value="SUPPORTO_GENERALE">Supporto Generale</option>
-            <option value="INVESTIMENTO_DISINVESTIMENTO">Investimento e Disinvestimento</option>
-            <option value="IMPOSTE">Imposte</option>
-            {tipologia === "USCITA" && <option value="COSTI_GENERALI">Costi Generali</option>}
-          </select>
-        </Card>
-      )}
-
-      {showDescrizioneCodificata && (
-        <Card title="5️⃣ Descrizione codificata">
-          <select
-            value={descrizioneCode ?? ""}
-            onChange={(e) =>
-              setDescrizioneCode(e.target.value ? Number(e.target.value) : null)
-            }
-            className="input"
-          >
-            <option value="">Seleziona…</option>
-            {primaryOptions.map((v) => (
-              <option key={v.code} value={v.code}>
-                {v.code}. {v.label}
-              </option>
-            ))}
-          </select>
-        </Card>
-      )}
-
-      {showDettaglioDescrizione && (
-        <Card title="6️⃣ Dettaglio descrizione">
-          <input
-            list="dettaglio-descrizione-list"
-            value={descrizioneDettaglio}
-            onChange={(e) => setDescrizioneDettaglio(e.target.value)}
-            className="input"
-            placeholder="Scrivi o cerca tra le voci"
-          />
-          <datalist id="dettaglio-descrizione-list">
-           {secondaryOptions.map((item: string) => (
-            <option key={item} value={item} />
-            ))}
-          </datalist>
-
-          <div className="rowSub" style={{ marginTop: 8 }}>
-            Puoi cercare tra le voci oppure inserire una formulazione personalizzata.
+      {selectedSemanticEntry && (
+        <Card title="6️⃣ Classificazione selezionata">
+          <div style={{ marginBottom: 6 }}>
+            <b>Categoria:</b> {selectedSemanticEntry.categoriaLabel}
+          </div>
+          <div style={{ marginBottom: 6 }}>
+            <b>Specifica di categoria:</b> {selectedSemanticEntry.specificaLabel}
+          </div>
+          {selectedSemanticEntry.dettaglio && (
+            <div style={{ marginBottom: 6 }}>
+              <b>Dettaglio della posta:</b> {selectedSemanticEntry.dettaglioLabel}
+            </div>
+          )}
+          <div className="rowSub">
+            Puoi proseguire direttamente oppure aprire la compilazione manuale per correggere.
           </div>
         </Card>
       )}
 
-      {showDescrizionePersonale && (
-        <Card title={showDettaglioDescrizione ? "7️⃣ Descrizione personale" : "6️⃣ Descrizione personale"}>
-          <input
-            value={descrizioneLibera}
-            onChange={(e) => setDescrizioneLibera(e.target.value)}
-            className="input"
-            placeholder="Inserisci una descrizione aggiuntiva"
-          />
+      {showManualSection && (
+        <Card title="6️⃣ Compilazione manuale sullo schema tecnico">
+          <div style={{ display: "grid", gap: 12 }}>
+            <div>
+              <div style={{ fontWeight: 700, marginBottom: 6 }}>Categoria</div>
+              <select
+                value={macro}
+                onChange={(e) => {
+                  setMacro(e.target.value as Macro | "");
+                  setSelectedSemanticEntry(null);
+                }}
+                className="input"
+              >
+                <option value="">Seleziona…</option>
+                {filteredMacroOptions.map((m: Macro) => (
+                  <option key={m} value={m}>
+                    {MACRO_LABELS[m]}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {showDescrizioneCodificata && (
+              <div>
+                <div style={{ fontWeight: 700, marginBottom: 6 }}>Specifica di categoria</div>
+                <select
+                  value={descrizioneCode ?? ""}
+                  onChange={(e) =>
+                    setDescrizioneCode(e.target.value ? Number(e.target.value) : null)
+                  }
+                  className="input"
+                >
+                  <option value="">Seleziona…</option>
+                  {primaryOptions.map((v: OptionItem) => (
+                    <option key={v.code} value={v.code}>
+                      {v.code}. {v.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {showDettaglioDescrizione && (
+              <div>
+                <div style={{ fontWeight: 700, marginBottom: 6 }}>Dettaglio della posta</div>
+                <input
+                  list="dettaglio-descrizione-list"
+                  value={descrizioneDettaglio}
+                  onChange={(e) => setDescrizioneDettaglio(e.target.value)}
+                  className="input"
+                  placeholder="Scrivi o cerca tra le voci"
+                />
+                <datalist id="dettaglio-descrizione-list">
+                  {secondaryOptions.map((item: string) => (
+                    <option key={item} value={item} />
+                  ))}
+                </datalist>
+              </div>
+            )}
+          </div>
         </Card>
       )}
 
-      {showAiBox && (
-        <Card
-          title={
-            showDescrizionePersonale
-              ? showDettaglioDescrizione
-                ? "8️⃣ Aiuto classificazione AI"
-                : "7️⃣ Aiuto classificazione AI"
-              : "6️⃣ Aiuto classificazione AI"
-          }
-        >
+      {(showManualSection || semanticNoMatch) && (
+        <Card title="7️⃣ Aiuto classificazione AI">
           <textarea
             value={aiInput}
             onChange={(e) => setAiInput(e.target.value)}
             className="input"
             rows={4}
-            placeholder={
-              tipologia === "ENTRATA"
-                ? "Es.: contributo ricevuto da fondazione privata per progetto sociale"
-                : "Es.: pagamento fattura commercialista per consulenza annuale ETS"
-            }
+            placeholder="Descrivi l’operazione se vuoi un suggerimento AI aggiuntivo"
             style={{ resize: "vertical" }}
           />
 
           <div className="rowSub" style={{ marginTop: 8 }}>
-            Usa questo box se non hai trovato nulla con la ricerca automatica.
+            L’AI aiuta a trovare il ramo tecnico, ma il risultato finale resta sempre una voce del tuo schema.
           </div>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
@@ -2079,8 +2563,7 @@ export default function MovimentoEditor() {
               </div>
 
               <div style={{ marginBottom: 6 }}>
-                <b>Confidenza:</b>{" "}
-                {Number.isFinite(aiSuggestion.confidenza) ? Math.round(aiSuggestion.confidenza) : 0}%
+                <b>Confidenza:</b> {Number.isFinite(aiSuggestion.confidenza) ? Math.round(aiSuggestion.confidenza) : 0}%
               </div>
 
               {aiSuggestion.motivazioneBreve && (
@@ -2091,79 +2574,63 @@ export default function MovimentoEditor() {
         </Card>
       )}
 
-      {showConto && (
-        <Card
-          title={
-            showAiBox
-              ? showDescrizionePersonale
-                ? showDettaglioDescrizione
-                  ? "9️⃣ Banca / Cassa"
-                  : "8️⃣ Banca / Cassa"
-                : "7️⃣ Banca / Cassa"
-              : "6️⃣ Banca / Cassa"
-          }
-        >
-          <select
-            value={conto}
-            onChange={(e) => setConto(e.target.value as Conto)}
-            className="input"
-          >
-            <option value="CASSA">Cassa</option>
-            <option value="BANCA">Banca</option>
-          </select>
-        </Card>
-      )}
-
-      {showImporto && !isAvanzo && (
-        <Card
-          title={
-            showIvaField
-              ? showDescrizionePersonale
-                ? showDettaglioDescrizione
-                  ? "10️⃣ Importo"
-                  : "9️⃣ Importo"
-                : "8️⃣ Importo"
-              : showDescrizionePersonale
-              ? showDettaglioDescrizione
-                ? "10️⃣ Importo"
-                : "9️⃣ Importo"
-              : "8️⃣ Importo"
-          }
-        >
+      {showDescrizionePersonale && (
+        <Card title="8️⃣ Descrizione personale">
           <input
-            type="number"
-            value={importo}
-            onChange={(e) => setImporto(e.target.value)}
+            value={descrizioneLibera}
+            onChange={(e) => setDescrizioneLibera(e.target.value)}
             className="input"
-            placeholder="0,00"
-            step="0.01"
-            min={0}
+            placeholder="Nota descrittiva dell’operazione"
           />
         </Card>
       )}
 
-      {showImporto && !isAvanzo && showIvaField && semanticNoMatch && (
-        <Card
-          title={
-            showDescrizionePersonale
-              ? showDettaglioDescrizione
-                ? "11️⃣ IVA (solo regime ordinario)"
-                : "10️⃣ IVA (solo regime ordinario)"
-              : "9️⃣ IVA (solo regime ordinario)"
-          }
-        >
-          <input
-            type="number"
-            value={iva}
-            onChange={(e) => setIva(e.target.value)}
-            className="input"
-            placeholder="0,00"
-            step="0.01"
-            min={0}
-          />
-          <div className="rowSub" style={{ marginTop: 8 }}>
-            Inserisci <b>0</b> se l’operazione non prevede IVA.
+      {showFinancialFields && (
+        <Card title={isAvanzo ? "2️⃣ Dati economici" : "9️⃣ Dati economici"}>
+          {!isAvanzo && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontWeight: 700, marginBottom: 6 }}>Banca / Cassa</div>
+              <select
+                value={conto}
+                onChange={(e) => setConto(e.target.value as Conto)}
+                className="input"
+              >
+                <option value="CASSA">Cassa</option>
+                <option value="BANCA">Banca</option>
+              </select>
+            </div>
+          )}
+
+          <div style={{ marginBottom: showIvaField && !isAvanzo ? 12 : 0 }}>
+            <div style={{ fontWeight: 700, marginBottom: 6 }}>Importo</div>
+            <input
+              type="number"
+              value={importo}
+              onChange={(e) => setImporto(e.target.value)}
+              className="input"
+              placeholder="0,00"
+              step="0.01"
+              min={0}
+            />
           </div>
+
+          {showIvaField && !isAvanzo && (
+            <div>
+              <div style={{ fontWeight: 700, marginBottom: 6 }}>IVA</div>
+              <input
+                type="number"
+                value={iva}
+                onChange={(e) => setIva(e.target.value)}
+                className="input"
+                placeholder="0,00"
+                step="0.01"
+                min={0}
+              />
+              <div className="rowSub" style={{ marginTop: 8 }}>
+                Inserisci <b>0</b> se l’operazione non prevede IVA.
+              </div>
+            </div>
+          )}
         </Card>
       )}
 
