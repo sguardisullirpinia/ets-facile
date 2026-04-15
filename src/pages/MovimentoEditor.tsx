@@ -164,7 +164,6 @@ const USCITE_MATERIE_PRIME = withAltro([
   "Medicinali e presidi sanitari (umani e veterinari)",
   "Cibo per animali",
   "Carburante automezzo associativo",
-  "Cancelleria",
   "Casalinghi e ferramenta",
   "Materiale di consumo per manutenzioni e pulizia",
   "Dispositivi di protezione individuale",
@@ -607,93 +606,93 @@ const CONFIG_REGISTRY: Array<{
 const ENTRATA_GATE_OPTIONS: FunnelOption<FunnelGate>[] = [
   {
     value: "QUOTE_CONTRIBUTI_DONAZIONI",
-    label: "Quote, contributi, donazioni",
-    help: "Quote associative, contributi, erogazioni liberali, 5x1000.",
+    label: "Ho ricevuto quote, donazioni o contributi",
+    help: "Quote associative, donazioni, erogazioni liberali, 5x1000, contributi.",
   },
   {
     value: "INCASSI_ATTIVITA_SERVIZI",
-    label: "Incassi da attività o servizi",
-    help: "Prestazioni, cessioni, sponsor, corrispettivi.",
+    label: "Ho incassato da attività o servizi",
+    help: "Prestazioni, cessioni, sponsor, corrispettivi, convenzioni.",
   },
   {
     value: "RACCOLTE_FONDI_GATE",
-    label: "Raccolte fondi",
-    help: "Entrate da raccolte abituali o occasionali.",
+    label: "Ho incassato da una raccolta fondi",
+    help: "Entrate da raccolte fondi abituali o occasionali.",
   },
   {
     value: "BANCA_PATRIMONIO_RENDITE",
-    label: "Banca, interessi, affitti, patrimonio",
+    label: "Ho ricevuto interessi, affitti o altre rendite",
     help: "Interessi attivi, affitti attivi, rendite patrimoniali.",
   },
   {
     value: "FINANZIAMENTI_DISINVESTIMENTI_ALTRO",
-    label: "Finanziamenti, disinvestimenti, altro",
-    help: "Prestiti ricevuti, disinvestimenti, casi residuali.",
+    label: "Ho ricevuto un finanziamento o altro",
+    help: "Prestiti ricevuti, disinvestimenti e casi residuali.",
   },
 ];
 
 const USCITA_GATE_OPTIONS: FunnelOption<FunnelGate>[] = [
   {
     value: "BENI_MATERIALI",
-    label: "Beni e materiali",
-    help: "Cancelleria, carburante, dispositivi, materiali di consumo.",
+    label: "Ho acquistato beni o materiali",
+    help: "Cancelleria, carburante, dispositivi, farmaci, materiali di consumo.",
   },
   {
     value: "SERVIZI_PROFESSIONISTI",
-    label: "Servizi e professionisti",
+    label: "Ho pagato un servizio o un professionista",
     help: "Commercialista, consulenze, utenze, assicurazioni, manutenzioni.",
   },
   {
     value: "PERSONALE_GATE",
-    label: "Personale",
-    help: "Retribuzioni, oneri, TFR, voci del personale.",
+    label: "Ho sostenuto un costo del personale",
+    help: "Retribuzioni, oneri, TFR e altre voci del personale.",
   },
   {
     value: "RACCOLTE_FONDI_USCITE",
-    label: "Raccolte fondi",
+    label: "Ho sostenuto costi per una raccolta fondi",
     help: "Uscite legate a raccolte fondi abituali o occasionali.",
   },
   {
     value: "BANCA_PATRIMONIO_INVESTIMENTI",
-    label: "Banca, patrimonio, investimenti",
+    label: "Ho pagato banca, mutui, patrimonio o investimenti",
     help: "Spese bancarie, mutui, patrimonio edilizio, investimenti.",
   },
   {
     value: "IMPOSTE_RIMBORSI_ALTRE_USCITE",
-    label: "Imposte, rimborsi, altre uscite",
-    help: "Imposte, multe, rimborsi volontari, altre uscite residuali.",
+    label: "Ho pagato imposte, rimborsi o altre uscite",
+    help: "Imposte, multe, rimborsi volontari e altre uscite residuali.",
   },
 ];
 
 const ENTRATA_CONTEXT_OPTIONS: FunnelOption<FunnelContext>[] = [
   {
     value: "AIG",
-    label: "Attività istituzionale / progetto",
-    help: "Operazione legata all’attività di interesse generale.",
+    label: "Per un progetto o attività istituzionale",
+    help: "Operazione legata all’attività di interesse generale (AIG).",
   },
   {
     value: "ATTIVITA_DIVERSE",
-    label: "Attività diversa",
+    label: "Per attività diverse",
     help: "Operazione legata ad attività diverse.",
   },
   {
     value: "RACCOLTE_FONDI",
-    label: "Raccolta fondi",
+    label: "Per una raccolta fondi",
     help: "Operazione legata a una raccolta fondi.",
   },
   {
     value: "SUPPORTO_GENERALE",
-    label: "Supporto generale",
-    help: "Entrata legata al funzionamento generale dell’ente.",
+    label: "Per il funzionamento generale",
+    help: "Operazione legata al funzionamento generale dell’ente.",
   },
   {
     value: "FINANZA_PATRIMONIO",
-    label: "Finanza / patrimonio / investimenti",
+    label: "Per banca, patrimonio o investimenti",
     help: "Operazione bancaria, patrimoniale o finanziaria.",
   },
   {
     value: "NON_SO",
-    label: "Non so",
+    label: "Non lo so",
     help: "Mostra comunque le proposte migliori.",
   },
 ];
@@ -716,7 +715,7 @@ const USCITA_CONTEXT_OPTIONS: FunnelOption<FunnelContext>[] = [
   },
   {
     value: "SUPPORTO_GENERALE",
-    label: "Funzionamento generale dell’ente",
+    label: "Per il funzionamento generale",
     help: "Spesa di supporto generale o costo generale.",
   },
   {
@@ -726,12 +725,12 @@ const USCITA_CONTEXT_OPTIONS: FunnelOption<FunnelContext>[] = [
   },
   {
     value: "IMPOSTE",
-    label: "Imposte",
+    label: "Per imposte",
     help: "IRAP o altre uscite tributarie.",
   },
   {
     value: "NON_SO",
-    label: "Non so",
+    label: "Non lo so",
     help: "Mostra comunque le proposte migliori.",
   },
 ];
@@ -1955,15 +1954,16 @@ export default function MovimentoEditor() {
   }, [funnelContext, editId]);
 
   useEffect(() => {
-  if (editId) return;
+    if (editId) return;
 
-  // Se la macro arriva da una selezione semantica o AI, non devo azzerare tutto.
-  if (selectedSemanticEntry || aiSuggestion) return;
+    // Se la macro cambia a seguito di una selezione semantica o AI,
+    // non devo azzerare subito la selezione altrimenti il primo click si perde.
+    if (selectedSemanticEntry || aiSuggestion) return;
 
-  setDescrizioneCode(null);
-  setDescrizioneDettaglio("");
-  setDescrizioneLibera("");
-}, [macro, editId, selectedSemanticEntry, aiSuggestion]);
+    setDescrizioneCode(null);
+    setDescrizioneDettaglio("");
+    setDescrizioneLibera("");
+  }, [macro, editId, selectedSemanticEntry, aiSuggestion]);
 
   useEffect(() => {
     if (editId) return;
@@ -2250,8 +2250,7 @@ export default function MovimentoEditor() {
         <div>
           <h2 className="pageTitle">{editId ? "Modifica movimento" : "Nuovo movimento"}</h2>
           <div className="pageHelp">
-            Il percorso parte da scelte semplici e arriva comunque sempre alle poste finali del
-            rendiconto.
+            Rispondi a poche domande semplici: il sistema restringe il campo e ti porta alla voce finale corretta.
           </div>
         </div>
       </div>
@@ -2283,7 +2282,7 @@ export default function MovimentoEditor() {
       )}
 
       {showGate && (
-        <Card title={showData ? "3️⃣ Che tipo di operazione è?" : "2️⃣ Che tipo di operazione è?"}>
+        <Card title={showData ? "3️⃣ Cosa hai fatto?" : "2️⃣ Cosa hai fatto?"}>
           <div style={{ display: "grid", gap: 10 }}>
             {gateOptions.map((opt: FunnelOption<FunnelGate>) => (
               <button
@@ -2310,7 +2309,7 @@ export default function MovimentoEditor() {
       )}
 
       {showContext && (
-        <Card title="4️⃣ A cosa si riferisce?">
+        <Card title="4️⃣ Per cosa?">
           <div style={{ display: "grid", gap: 10 }}>
             {contextOptions.map((opt: FunnelOption<FunnelContext>) => (
               <button
@@ -2358,7 +2357,7 @@ export default function MovimentoEditor() {
           </datalist>
 
           <div className="rowSub" style={{ marginTop: 8 }}>
-            La ricerca si svolge solo dentro il ramo che hai scelto.
+            La ricerca si svolge solo dentro il percorso che hai scelto con le domande precedenti.
           </div>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
