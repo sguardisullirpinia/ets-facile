@@ -1754,7 +1754,7 @@ export default function MovimentoEditor() {
   const semanticNoMatch = showSemanticBox && semanticTried && !semanticHasMatches;
 
   const showManualSection = isEntrataOrUscita && (forceManual || semanticNoMatch);
-  const showChosenClassification = !!selectedSemanticEntry || !!aiSuggestion || !!macro;
+ 
 
   const showDescrizioneCodificata =
     showManualSection && macro !== "IMPOSTE" && primaryOptions.length > 0;
