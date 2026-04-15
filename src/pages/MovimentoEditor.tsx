@@ -1569,10 +1569,7 @@ function confidenceFromScore(score: number) {
   return 48;
 }
 
-function semanticMotivation(row: ScoredSemanticEntry) {
-  const reasons = row.reasons.slice(0, 3).join(", ");
-  return reasons ? `Motivi: ${reasons}.` : "Classificazione per vicinanza semantica.";
-}
+
 
 function buildFastAutocompleteOptions(
   input: string,
