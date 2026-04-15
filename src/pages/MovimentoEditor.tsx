@@ -2351,66 +2351,105 @@ export default function MovimentoEditor() {
           )}
 
           {semanticResults.length > 0 && (
-            <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
-              {semanticResults.map((row: ScoredSemanticEntry, index: number) => {
-                const confidence = confidenceFromScore(row.score);
-                const isSelected =
-                  selectedSemanticEntry &&
-                  [
-                    selectedSemanticEntry.tipologia,
-                    selectedSemanticEntry.categoria,
-                    selectedSemanticEntry.specificaCode,
-                    selectedSemanticEntry.dettaglioLabel,
-                  ].join("|") ===
-                    [
-                      row.entry.tipologia,
-                      row.entry.categoria,
-                      row.entry.specificaCode,
-                      row.entry.dettaglioLabel,
-                    ].join("|");
+  <div style={{ marginTop: 14, display: "grid", gap: 8 }}>
+    {semanticResults
+      .filter((row: ScoredSemanticEntry) => {
+        if (!selectedSemanticEntry) return true;
 
-                return (
-                  <button
-                    key={`${row.entry.tipologia}-${row.entry.categoria}-${row.entry.specificaCode}-${row.entry.dettaglioLabel}-${index}`}
-                    type="button"
-                    onClick={() => applySemanticEntry(row.entry)}
-                    style={{
-                      textAlign: "left",
-                      border: isSelected ? "2px solid #111827" : "1px solid #e5e7eb",
-                      borderRadius: 12,
-                      padding: 12,
-                      background: isSelected ? "#f9fafb" : index === 0 ? "#fafafa" : "#fff",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                      <Badge tone={index === 0 ? "green" : "blue"}>
-                        {index === 0 ? "Proposta consigliata" : `Alternativa ${index}`}
-                      </Badge>
-                      {isSelected && <Badge tone="green">Selezionata</Badge>}
-                    </div>
+        const selectedKey = [
+          selectedSemanticEntry.tipologia,
+          selectedSemanticEntry.categoria,
+          selectedSemanticEntry.specificaCode,
+          selectedSemanticEntry.dettaglioLabel,
+        ].join("|");
 
-                    <div style={{ marginTop: 8, fontWeight: 700 }}>
-                      {row.entry.tipologia} → {row.entry.categoriaLabel} → {row.entry.specificaLabel}
-                      {row.entry.dettaglio ? ` → ${row.entry.dettaglioLabel}` : ""}
-                    </div>
+        const rowKey = [
+          row.entry.tipologia,
+          row.entry.categoria,
+          row.entry.specificaCode,
+          row.entry.dettaglioLabel,
+        ].join("|");
 
-                    <div style={{ marginTop: 4 }}>
-                      <b>Conto consigliato:</b> {row.entry.contoConsigliato || "—"}
-                    </div>
+        return rowKey === selectedKey;
+      })
+      .map((row: ScoredSemanticEntry, index: number) => {
+        const confidence = confidenceFromScore(row.score);
 
-                    <div style={{ marginTop: 4 }}>
-                      <b>Confidenza:</b> {confidence}%
-                    </div>
+        const rowKey = [
+          row.entry.tipologia,
+          row.entry.categoria,
+          row.entry.specificaCode,
+          row.entry.dettaglioLabel,
+        ].join("|");
 
-                    <div className="rowSub" style={{ marginTop: 6 }}>
-                      {semanticMotivation(row)}
-                    </div>
-                  </button>
-                );
-              })}
+        const selectedKey = selectedSemanticEntry
+          ? [
+              selectedSemanticEntry.tipologia,
+              selectedSemanticEntry.categoria,
+              selectedSemanticEntry.specificaCode,
+              selectedSemanticEntry.dettaglioLabel,
+            ].join("|")
+          : "";
+
+        const isSelected = !!selectedSemanticEntry && rowKey === selectedKey;
+
+        return (
+          <button
+            key={`${row.entry.tipologia}-${row.entry.categoria}-${row.entry.specificaCode}-${row.entry.dettaglioLabel}-${index}`}
+            type="button"
+            onClick={() => {
+              if (isSelected) {
+                setSelectedSemanticEntry(null);
+                setMacro("");
+                setDescrizioneCode(null);
+                setDescrizioneDettaglio("");
+                setDescrizioneLibera("");
+                return;
+              }
+
+              applySemanticEntry(row.entry);
+            }}
+            style={{
+              textAlign: "left",
+              border: isSelected ? "2px solid #111827" : "1px solid #d1d5db",
+              borderRadius: 10,
+              padding: "10px 12px",
+              background: isSelected ? "#f9fafb" : "#fff",
+              cursor: "pointer",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                flexWrap: "wrap",
+                marginBottom: 4,
+              }}
+            >
+              <Badge tone={index === 0 && !selectedSemanticEntry ? "green" : "blue"}>
+                {index === 0 && !selectedSemanticEntry ? "Consigliata" : "Opzione"}
+              </Badge>
+
+              {isSelected && <Badge tone="green">Selezionata</Badge>}
+
+              <span style={{ fontSize: 13, color: "#6b7280" }}>{confidence}%</span>
             </div>
-          )}
+
+            <div
+              style={{
+                fontWeight: 700,
+                lineHeight: 1.35,
+              }}
+            >
+              {row.entry.categoriaLabel} → {row.entry.specificaLabel}
+              {row.entry.dettaglio ? ` → ${row.entry.dettaglioLabel}` : ""}
+            </div>
+          </button>
+        );
+      })}
+  </div>
+)}
         </Card>
       )}
 
