@@ -111,10 +111,6 @@ type FunnelOption<T extends string> = {
   help: string;
 };
 
-/* =========================
-   HELPERS
-========================= */
-
 function isValidMoney(v: string) {
   const n = Number(v);
   return Number.isFinite(n) && n > 0;
@@ -137,6 +133,15 @@ function normalizeText(v: string) {
 
 function uniqueStrings(values: string[]) {
   return Array.from(new Set(values.map((x) => normalizeText(x)).filter(Boolean)));
+}
+
+function semanticEntryKey(entry: SemanticEntry) {
+  return [
+    entry.tipologia,
+    entry.categoria,
+    entry.specificaCode ?? "",
+    entry.dettaglioLabel,
+  ].join("|");
 }
 
 /* =========================
@@ -517,17 +522,24 @@ function getConfig(tipologia: Tipologia | "", macro: Macro | ""): NestedConfig |
   if (tipologia === "USCITA" && macro === "AIG") return USCITE_AIG_CONFIG;
   if (tipologia === "USCITA" && macro === "ATTIVITA_DIVERSE") return USCITE_AD_CONFIG;
   if (tipologia === "USCITA" && macro === "RACCOLTE_FONDI") return USCITE_RF_CONFIG;
-  if (tipologia === "USCITA" && macro === "ATTIVITA_FINANZIARIA_PATRIMONIALE") return USCITE_AFP_CONFIG;
-  if (tipologia === "USCITA" && macro === "SUPPORTO_GENERALE") return USCITE_SUPPORTO_GENERALE_CONFIG;
-  if (tipologia === "USCITA" && macro === "INVESTIMENTO_DISINVESTIMENTO") return USCITE_INVESTIMENTI_CONFIG;
-  if (tipologia === "USCITA" && macro === "COSTI_GENERALI") return USCITE_COSTI_GENERALI_CONFIG;
+  if (tipologia === "USCITA" && macro === "ATTIVITA_FINANZIARIA_PATRIMONIALE")
+    return USCITE_AFP_CONFIG;
+  if (tipologia === "USCITA" && macro === "SUPPORTO_GENERALE")
+    return USCITE_SUPPORTO_GENERALE_CONFIG;
+  if (tipologia === "USCITA" && macro === "INVESTIMENTO_DISINVESTIMENTO")
+    return USCITE_INVESTIMENTI_CONFIG;
+  if (tipologia === "USCITA" && macro === "COSTI_GENERALI")
+    return USCITE_COSTI_GENERALI_CONFIG;
 
   if (tipologia === "ENTRATA" && macro === "AIG") return ENTRATE_AIG_CONFIG;
   if (tipologia === "ENTRATA" && macro === "ATTIVITA_DIVERSE") return ENTRATE_AD_CONFIG;
   if (tipologia === "ENTRATA" && macro === "RACCOLTE_FONDI") return ENTRATE_RF_CONFIG;
-  if (tipologia === "ENTRATA" && macro === "ATTIVITA_FINANZIARIA_PATRIMONIALE") return ENTRATE_AFP_CONFIG;
-  if (tipologia === "ENTRATA" && macro === "SUPPORTO_GENERALE") return ENTRATE_SUPPORTO_GENERALE_CONFIG;
-  if (tipologia === "ENTRATA" && macro === "INVESTIMENTO_DISINVESTIMENTO") return ENTRATE_INVESTIMENTI_CONFIG;
+  if (tipologia === "ENTRATA" && macro === "ATTIVITA_FINANZIARIA_PATRIMONIALE")
+    return ENTRATE_AFP_CONFIG;
+  if (tipologia === "ENTRATA" && macro === "SUPPORTO_GENERALE")
+    return ENTRATE_SUPPORTO_GENERALE_CONFIG;
+  if (tipologia === "ENTRATA" && macro === "INVESTIMENTO_DISINVESTIMENTO")
+    return ENTRATE_INVESTIMENTI_CONFIG;
 
   return null;
 }
@@ -551,17 +563,41 @@ const CONFIG_REGISTRY: Array<{
   { tipologia: "USCITA", macro: "AIG", config: USCITE_AIG_CONFIG },
   { tipologia: "USCITA", macro: "ATTIVITA_DIVERSE", config: USCITE_AD_CONFIG },
   { tipologia: "USCITA", macro: "RACCOLTE_FONDI", config: USCITE_RF_CONFIG },
-  { tipologia: "USCITA", macro: "ATTIVITA_FINANZIARIA_PATRIMONIALE", config: USCITE_AFP_CONFIG },
-  { tipologia: "USCITA", macro: "SUPPORTO_GENERALE", config: USCITE_SUPPORTO_GENERALE_CONFIG },
-  { tipologia: "USCITA", macro: "INVESTIMENTO_DISINVESTIMENTO", config: USCITE_INVESTIMENTI_CONFIG },
+  {
+    tipologia: "USCITA",
+    macro: "ATTIVITA_FINANZIARIA_PATRIMONIALE",
+    config: USCITE_AFP_CONFIG,
+  },
+  {
+    tipologia: "USCITA",
+    macro: "SUPPORTO_GENERALE",
+    config: USCITE_SUPPORTO_GENERALE_CONFIG,
+  },
+  {
+    tipologia: "USCITA",
+    macro: "INVESTIMENTO_DISINVESTIMENTO",
+    config: USCITE_INVESTIMENTI_CONFIG,
+  },
   { tipologia: "USCITA", macro: "COSTI_GENERALI", config: USCITE_COSTI_GENERALI_CONFIG },
 
   { tipologia: "ENTRATA", macro: "AIG", config: ENTRATE_AIG_CONFIG },
   { tipologia: "ENTRATA", macro: "ATTIVITA_DIVERSE", config: ENTRATE_AD_CONFIG },
   { tipologia: "ENTRATA", macro: "RACCOLTE_FONDI", config: ENTRATE_RF_CONFIG },
-  { tipologia: "ENTRATA", macro: "ATTIVITA_FINANZIARIA_PATRIMONIALE", config: ENTRATE_AFP_CONFIG },
-  { tipologia: "ENTRATA", macro: "SUPPORTO_GENERALE", config: ENTRATE_SUPPORTO_GENERALE_CONFIG },
-  { tipologia: "ENTRATA", macro: "INVESTIMENTO_DISINVESTIMENTO", config: ENTRATE_INVESTIMENTI_CONFIG },
+  {
+    tipologia: "ENTRATA",
+    macro: "ATTIVITA_FINANZIARIA_PATRIMONIALE",
+    config: ENTRATE_AFP_CONFIG,
+  },
+  {
+    tipologia: "ENTRATA",
+    macro: "SUPPORTO_GENERALE",
+    config: ENTRATE_SUPPORTO_GENERALE_CONFIG,
+  },
+  {
+    tipologia: "ENTRATA",
+    macro: "INVESTIMENTO_DISINVESTIMENTO",
+    config: ENTRATE_INVESTIMENTI_CONFIG,
+  },
 ];
 
 /* =========================
@@ -803,7 +839,8 @@ function matchesGate(entry: SemanticEntry, gate: FunnelGate | "") {
       return entry.categoria === "INVESTIMENTO_DISINVESTIMENTO" || entry.categoria === "SUPPORTO_GENERALE";
 
     case "BENI_MATERIALI":
-      return includesAny(specifica, ["materie prime", "di consumo e di merci"]) ||
+      return (
+        includesAny(specifica, ["materie prime", "di consumo e di merci"]) ||
         includesAny(dettaglio, [
           "cancelleria",
           "carburante",
@@ -813,7 +850,8 @@ function matchesGate(entry: SemanticEntry, gate: FunnelGate | "") {
           "cibo per animali",
           "dispositivi di protezione",
           "casalinghi",
-        ]);
+        ])
+      );
 
     case "SERVIZI_PROFESSIONISTI":
       return (
@@ -824,7 +862,8 @@ function matchesGate(entry: SemanticEntry, gate: FunnelGate | "") {
           "parcelle liberi professionisti",
           "utenze",
           "assicurazioni",
-          "servizi postali",
+          "spese postali",
+          "spedizione",
           "manutenzione",
           "polizza",
           "sito web",
@@ -835,8 +874,7 @@ function matchesGate(entry: SemanticEntry, gate: FunnelGate | "") {
       );
 
     case "PERSONALE_GATE":
-      return includesAny(specifica, ["personale"]) ||
-        includesAny(categoria, ["personale"]);
+      return includesAny(specifica, ["personale"]) || includesAny(categoria, ["personale"]);
 
     case "BANCA_PATRIMONIO_INVESTIMENTI":
       return (
@@ -1544,13 +1582,7 @@ function findSemanticMatches(
   const seen = new Set<string>();
 
   for (const row of filtered) {
-    const key = [
-      row.entry.tipologia,
-      row.entry.categoria,
-      row.entry.specificaCode,
-      row.entry.dettaglioLabel,
-    ].join("|");
-
+    const key = semanticEntryKey(row.entry);
     if (seen.has(key)) continue;
     seen.add(key);
     deduped.push(row);
@@ -1568,8 +1600,6 @@ function confidenceFromScore(score: number) {
   if (score >= 35) return 62;
   return 48;
 }
-
-
 
 function buildFastAutocompleteOptions(
   input: string,
@@ -1670,6 +1700,7 @@ export default function MovimentoEditor() {
   const [semanticResults, setSemanticResults] = useState<ScoredSemanticEntry[]>([]);
   const [semanticError, setSemanticError] = useState<string | null>(null);
   const [selectedSemanticEntry, setSelectedSemanticEntry] = useState<SemanticEntry | null>(null);
+  const [selectedSemanticKey, setSelectedSemanticKey] = useState("");
 
   const [forceManual, setForceManual] = useState(false);
 
@@ -1704,6 +1735,7 @@ export default function MovimentoEditor() {
 
   const filteredMacroOptions = useMemo(() => {
     const allowed = getAllowedMacrosByContext(tipologia, funnelContext);
+
     const base =
       tipologia === "USCITA"
         ? [
@@ -1751,7 +1783,6 @@ export default function MovimentoEditor() {
   const semanticNoMatch = showSemanticBox && semanticTried && !semanticHasMatches;
 
   const showManualSection = isEntrataOrUscita && (forceManual || semanticNoMatch);
- 
 
   const showDescrizioneCodificata =
     showManualSection && macro !== "IMPOSTE" && primaryOptions.length > 0;
@@ -1870,6 +1901,7 @@ export default function MovimentoEditor() {
     setSemanticResults([]);
     setSemanticError(null);
     setSelectedSemanticEntry(null);
+    setSelectedSemanticKey("");
     setForceManual(false);
     setMacro("");
     setDescrizioneCode(null);
@@ -1890,6 +1922,7 @@ export default function MovimentoEditor() {
     setSemanticResults([]);
     setSemanticError(null);
     setSelectedSemanticEntry(null);
+    setSelectedSemanticKey("");
     setForceManual(false);
     setMacro("");
     setDescrizioneCode(null);
@@ -1909,6 +1942,7 @@ export default function MovimentoEditor() {
     setSemanticResults([]);
     setSemanticError(null);
     setSelectedSemanticEntry(null);
+    setSelectedSemanticKey("");
     setForceManual(false);
     setMacro("");
     setDescrizioneCode(null);
@@ -1923,6 +1957,7 @@ export default function MovimentoEditor() {
   useEffect(() => {
     if (editId) return;
     setSelectedSemanticEntry(null);
+    setSelectedSemanticKey("");
     setAiSuggestion(null);
     setDescrizioneCode(null);
     setDescrizioneDettaglio("");
@@ -1985,13 +2020,18 @@ export default function MovimentoEditor() {
     setSemanticResults(results);
 
     if (!results.length) {
-      setSemanticError("Nessuna proposta trovata in questo ramo. Puoi aprire la compilazione manuale.");
+      setSemanticError(
+        "Nessuna proposta trovata in questo ramo. Puoi aprire la compilazione manuale."
+      );
     } else {
       setSemanticError(null);
     }
   }, [debouncedSemanticInput, filteredEntries, tipologia, showSemanticBox]);
 
   function applySemanticEntry(entry: SemanticEntry) {
+    const key = semanticEntryKey(entry);
+
+    setSelectedSemanticKey(key);
     setSelectedSemanticEntry(entry);
     setForceManual(false);
     setAiSuggestion(null);
@@ -2068,6 +2108,7 @@ export default function MovimentoEditor() {
 
       setAiSuggestion(normalized);
       setSelectedSemanticEntry(null);
+      setSelectedSemanticKey("");
 
       setMacro(normalized.macro);
       if (normalized.contoConsigliato) setConto(normalized.contoConsigliato);
@@ -2302,6 +2343,7 @@ export default function MovimentoEditor() {
             onChange={(e) => {
               setSemanticInput(e.target.value);
               setSelectedSemanticEntry(null);
+              setSelectedSemanticKey("");
               setAiSuggestion(null);
             }}
             className="input"
@@ -2320,7 +2362,15 @@ export default function MovimentoEditor() {
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
             <SecondaryButton
-              onClick={() => setForceManual((v) => !v)}
+              onClick={() => {
+                const next = !forceManual;
+                setForceManual(next);
+
+                if (next) {
+                  setSelectedSemanticKey("");
+                  setSelectedSemanticEntry(null);
+                }
+              }}
             >
               {showManualSection ? "Chiudi compilazione manuale" : "Compila manualmente"}
             </SecondaryButton>
@@ -2332,6 +2382,7 @@ export default function MovimentoEditor() {
                   setDebouncedSemanticInput("");
                   setSemanticResults([]);
                   setSemanticError(null);
+                  setSelectedSemanticKey("");
                   setSelectedSemanticEntry(null);
                 }}
               >
@@ -2340,113 +2391,83 @@ export default function MovimentoEditor() {
             )}
           </div>
 
-          {semanticError && normalizeText(debouncedSemanticInput) && (
+          {semanticError && normalizeText(debouncedSemanticInput) && !forceManual && (
             <div style={{ marginTop: 12 }}>
               <Badge tone="red">Ricerca</Badge>
               <div className="errorText">{semanticError}</div>
             </div>
           )}
 
-          {semanticResults.length > 0 && (
-  <div style={{ marginTop: 14, display: "grid", gap: 8 }}>
-    {semanticResults
-      .filter((row: ScoredSemanticEntry) => {
-        if (!selectedSemanticEntry) return true;
+          {semanticResults.length > 0 && !forceManual && (
+            <div style={{ marginTop: 14, display: "grid", gap: 8 }}>
+              {semanticResults
+                .filter((row: ScoredSemanticEntry) => {
+                  if (!selectedSemanticKey) return true;
+                  return semanticEntryKey(row.entry) === selectedSemanticKey;
+                })
+                .map((row: ScoredSemanticEntry, index: number) => {
+                  const confidence = confidenceFromScore(row.score);
+                  const rowKey = semanticEntryKey(row.entry);
+                  const isSelected = rowKey === selectedSemanticKey;
 
-        const selectedKey = [
-          selectedSemanticEntry.tipologia,
-          selectedSemanticEntry.categoria,
-          selectedSemanticEntry.specificaCode,
-          selectedSemanticEntry.dettaglioLabel,
-        ].join("|");
+                  return (
+                    <button
+                      key={rowKey}
+                      type="button"
+                      onClick={() => {
+                        if (isSelected) {
+                          setSelectedSemanticKey("");
+                          setSelectedSemanticEntry(null);
+                          setMacro("");
+                          setDescrizioneCode(null);
+                          setDescrizioneDettaglio("");
+                          setDescrizioneLibera("");
+                          return;
+                        }
 
-        const rowKey = [
-          row.entry.tipologia,
-          row.entry.categoria,
-          row.entry.specificaCode,
-          row.entry.dettaglioLabel,
-        ].join("|");
+                        applySemanticEntry(row.entry);
+                      }}
+                      style={{
+                        textAlign: "left",
+                        border: isSelected ? "2px solid #111827" : "1px solid #d1d5db",
+                        borderRadius: 10,
+                        padding: "10px 12px",
+                        background: isSelected ? "#f9fafb" : "#fff",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          flexWrap: "wrap",
+                          marginBottom: 4,
+                        }}
+                      >
+                        <Badge tone={index === 0 && !selectedSemanticKey ? "green" : "blue"}>
+                          {index === 0 && !selectedSemanticKey ? "Consigliata" : "Opzione"}
+                        </Badge>
 
-        return rowKey === selectedKey;
-      })
-      .map((row: ScoredSemanticEntry, index: number) => {
-        const confidence = confidenceFromScore(row.score);
+                        {isSelected && <Badge tone="green">Selezionata</Badge>}
 
-        const rowKey = [
-          row.entry.tipologia,
-          row.entry.categoria,
-          row.entry.specificaCode,
-          row.entry.dettaglioLabel,
-        ].join("|");
+                        <span style={{ fontSize: 13, color: "#6b7280" }}>{confidence}%</span>
+                      </div>
 
-        const selectedKey = selectedSemanticEntry
-          ? [
-              selectedSemanticEntry.tipologia,
-              selectedSemanticEntry.categoria,
-              selectedSemanticEntry.specificaCode,
-              selectedSemanticEntry.dettaglioLabel,
-            ].join("|")
-          : "";
-
-        const isSelected = !!selectedSemanticEntry && rowKey === selectedKey;
-
-        return (
-          <button
-            key={`${row.entry.tipologia}-${row.entry.categoria}-${row.entry.specificaCode}-${row.entry.dettaglioLabel}-${index}`}
-            type="button"
-            onClick={() => {
-              if (isSelected) {
-                setSelectedSemanticEntry(null);
-                setMacro("");
-                setDescrizioneCode(null);
-                setDescrizioneDettaglio("");
-                setDescrizioneLibera("");
-                return;
-              }
-
-              applySemanticEntry(row.entry);
-            }}
-            style={{
-              textAlign: "left",
-              border: isSelected ? "2px solid #111827" : "1px solid #d1d5db",
-              borderRadius: 10,
-              padding: "10px 12px",
-              background: isSelected ? "#f9fafb" : "#fff",
-              cursor: "pointer",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                flexWrap: "wrap",
-                marginBottom: 4,
-              }}
-            >
-              <Badge tone={index === 0 && !selectedSemanticEntry ? "green" : "blue"}>
-                {index === 0 && !selectedSemanticEntry ? "Consigliata" : "Opzione"}
-              </Badge>
-
-              {isSelected && <Badge tone="green">Selezionata</Badge>}
-
-              <span style={{ fontSize: 13, color: "#6b7280" }}>{confidence}%</span>
+                      <div
+                        style={{
+                          fontWeight: 700,
+                          lineHeight: 1.35,
+                        }}
+                      >
+                        {row.entry.categoriaLabel} → {row.entry.specificaLabel}
+                        {row.entry.dettaglio ? ` → ${row.entry.dettaglioLabel}` : ""}
+                      </div>
+                    </button>
+                  );
+                })}
             </div>
-
-            <div
-              style={{
-                fontWeight: 700,
-                lineHeight: 1.35,
-              }}
-            >
-              {row.entry.categoriaLabel} → {row.entry.specificaLabel}
-              {row.entry.dettaglio ? ` → ${row.entry.dettaglioLabel}` : ""}
-            </div>
-          </button>
-        );
-      })}
-  </div>
-)}
+          )}
         </Card>
       )}
 
@@ -2479,6 +2500,7 @@ export default function MovimentoEditor() {
                 onChange={(e) => {
                   setMacro(e.target.value as Macro | "");
                   setSelectedSemanticEntry(null);
+                  setSelectedSemanticKey("");
                 }}
                 className="input"
               >
@@ -2599,7 +2621,11 @@ export default function MovimentoEditor() {
               </div>
 
               <div style={{ marginBottom: 6 }}>
-                <b>Confidenza:</b> {Number.isFinite(aiSuggestion.confidenza) ? Math.round(aiSuggestion.confidenza) : 0}%
+                <b>Confidenza:</b>{" "}
+                {Number.isFinite(aiSuggestion.confidenza)
+                  ? Math.round(aiSuggestion.confidenza)
+                  : 0}
+                %
               </div>
 
               {aiSuggestion.motivazioneBreve && (
