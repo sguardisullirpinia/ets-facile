@@ -1955,14 +1955,15 @@ export default function MovimentoEditor() {
   }, [funnelContext, editId]);
 
   useEffect(() => {
-    if (editId) return;
-    setSelectedSemanticEntry(null);
-    setSelectedSemanticKey("");
-    setAiSuggestion(null);
-    setDescrizioneCode(null);
-    setDescrizioneDettaglio("");
-    setDescrizioneLibera("");
-  }, [macro, editId]);
+  if (editId) return;
+
+  // Se la macro arriva da una selezione semantica o AI, non devo azzerare tutto.
+  if (selectedSemanticEntry || aiSuggestion) return;
+
+  setDescrizioneCode(null);
+  setDescrizioneDettaglio("");
+  setDescrizioneLibera("");
+}, [macro, editId, selectedSemanticEntry, aiSuggestion]);
 
   useEffect(() => {
     if (editId) return;
