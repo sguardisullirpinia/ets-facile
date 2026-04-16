@@ -2283,55 +2283,47 @@ export default function MovimentoEditor() {
 
       {showGate && (
         <Card title={showData ? "3️⃣ Cosa hai fatto?" : "2️⃣ Cosa hai fatto?"}>
-          <div style={{ display: "grid", gap: 10 }}>
+          <select
+            value={funnelGate}
+            onChange={(e) => setFunnelGate(e.target.value as FunnelGate | "")}
+            className="input"
+          >
+            <option value="">Seleziona…</option>
             {gateOptions.map((opt: FunnelOption<FunnelGate>) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setFunnelGate(opt.value)}
-                style={{
-                  textAlign: "left",
-                  border: funnelGate === opt.value ? "2px solid #111827" : "1px solid #e5e7eb",
-                  borderRadius: 12,
-                  padding: 12,
-                  background: funnelGate === opt.value ? "#fafafa" : "#fff",
-                  cursor: "pointer",
-                }}
-              >
-                <div style={{ fontWeight: 700 }}>{opt.label}</div>
-                <div className="rowSub" style={{ marginTop: 4 }}>
-                  {opt.help}
-                </div>
-              </button>
+              <option key={opt.value} value={opt.value}>
+                {opt.label} — {opt.help}
+              </option>
             ))}
-          </div>
+          </select>
+
+          {!!funnelGate && (
+            <div className="rowSub" style={{ marginTop: 8 }}>
+              {gateOptions.find((opt: FunnelOption<FunnelGate>) => opt.value === funnelGate)?.help}
+            </div>
+          )}
         </Card>
       )}
 
       {showContext && (
         <Card title="4️⃣ Per cosa?">
-          <div style={{ display: "grid", gap: 10 }}>
+          <select
+            value={funnelContext}
+            onChange={(e) => setFunnelContext(e.target.value as FunnelContext | "")}
+            className="input"
+          >
+            <option value="">Seleziona…</option>
             {contextOptions.map((opt: FunnelOption<FunnelContext>) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setFunnelContext(opt.value)}
-                style={{
-                  textAlign: "left",
-                  border: funnelContext === opt.value ? "2px solid #111827" : "1px solid #e5e7eb",
-                  borderRadius: 12,
-                  padding: 12,
-                  background: funnelContext === opt.value ? "#fafafa" : "#fff",
-                  cursor: "pointer",
-                }}
-              >
-                <div style={{ fontWeight: 700 }}>{opt.label}</div>
-                <div className="rowSub" style={{ marginTop: 4 }}>
-                  {opt.help}
-                </div>
-              </button>
+              <option key={opt.value} value={opt.value}>
+                {opt.label} — {opt.help}
+              </option>
             ))}
-          </div>
+          </select>
+
+          {!!funnelContext && (
+            <div className="rowSub" style={{ marginTop: 8 }}>
+              {contextOptions.find((opt: FunnelOption<FunnelContext>) => opt.value === funnelContext)?.help}
+            </div>
+          )}
         </Card>
       )}
 
