@@ -599,1082 +599,76 @@ const CONFIG_REGISTRY: Array<{
   },
 ];
 
-/* =========================
-   IMBUTO
-========================= */
 
-const ENTRATA_GATE_OPTIONS: FunnelOption<FunnelGate>[] = [
-  {
-    value: "QUOTE_CONTRIBUTI_DONAZIONI",
-    label: "Ho ricevuto quote, donazioni o contributi",
-    help: "Quote associative, donazioni, erogazioni liberali, 5x1000, contributi.",
-  },
-  {
-    value: "INCASSI_ATTIVITA_SERVIZI",
-    label: "Ho incassato da attività o servizi",
-    help: "Prestazioni, cessioni, sponsor, corrispettivi, convenzioni.",
-  },
-  {
-    value: "RACCOLTE_FONDI_GATE",
-    label: "Ho incassato da una raccolta fondi",
-    help: "Entrate da raccolte fondi abituali o occasionali.",
-  },
-  {
-    value: "BANCA_PATRIMONIO_RENDITE",
-    label: "Ho ricevuto interessi, affitti o altre rendite",
-    help: "Interessi attivi, affitti attivi, rendite patrimoniali.",
-  },
-  {
-    value: "FINANZIAMENTI_DISINVESTIMENTI_ALTRO",
-    label: "Ho ricevuto un finanziamento o altro",
-    help: "Prestiti ricevuti, disinvestimenti e casi residuali.",
-  },
-];
 
-const USCITA_GATE_OPTIONS: FunnelOption<FunnelGate>[] = [
-  {
-    value: "BENI_MATERIALI",
-    label: "Ho acquistato beni o materiali",
-    help: "Cancelleria, carburante, dispositivi, farmaci, materiali di consumo.",
-  },
-  {
-    value: "SERVIZI_PROFESSIONISTI",
-    label: "Ho pagato un servizio o un professionista",
-    help: "Commercialista, consulenze, utenze, assicurazioni, manutenzioni.",
-  },
-  {
-    value: "PERSONALE_GATE",
-    label: "Ho sostenuto un costo del personale",
-    help: "Retribuzioni, oneri, TFR e altre voci del personale.",
-  },
-  {
-    value: "RACCOLTE_FONDI_USCITE",
-    label: "Ho sostenuto costi per una raccolta fondi",
-    help: "Uscite legate a raccolte fondi abituali o occasionali.",
-  },
-  {
-    value: "BANCA_PATRIMONIO_INVESTIMENTI",
-    label: "Ho pagato banca, mutui, patrimonio o investimenti",
-    help: "Spese bancarie, mutui, patrimonio edilizio, investimenti.",
-  },
-  {
-    value: "IMPOSTE_RIMBORSI_ALTRE_USCITE",
-    label: "Ho pagato imposte, rimborsi o altre uscite",
-    help: "Imposte, multe, rimborsi volontari e altre uscite residuali.",
-  },
-];
-
-const ENTRATA_CONTEXT_OPTIONS: FunnelOption<FunnelContext>[] = [
-  {
-    value: "AIG",
-    label: "Per un progetto o attività istituzionale",
-    help: "Operazione legata all’attività di interesse generale (AIG).",
-  },
-  {
-    value: "ATTIVITA_DIVERSE",
-    label: "Per attività diverse",
-    help: "Operazione legata ad attività diverse.",
-  },
-  {
-    value: "RACCOLTE_FONDI",
-    label: "Per una raccolta fondi",
-    help: "Operazione legata a una raccolta fondi.",
-  },
-  {
-    value: "SUPPORTO_GENERALE",
-    label: "Per il funzionamento generale",
-    help: "Operazione legata al funzionamento generale dell’ente.",
-  },
-  {
-    value: "FINANZA_PATRIMONIO",
-    label: "Per banca, patrimonio o investimenti",
-    help: "Operazione bancaria, patrimoniale o finanziaria.",
-  },
-  {
-    value: "NON_SO",
-    label: "Non lo so",
-    help: "Mostra comunque le proposte migliori.",
-  },
-];
-
-const USCITA_CONTEXT_OPTIONS: FunnelOption<FunnelContext>[] = [
-  {
-    value: "AIG",
-    label: "Attività istituzionale / progetto",
-    help: "Spesa sostenuta per attività di interesse generale.",
-  },
-  {
-    value: "ATTIVITA_DIVERSE",
-    label: "Attività diversa",
-    help: "Spesa sostenuta per attività diversa.",
-  },
-  {
-    value: "RACCOLTE_FONDI",
-    label: "Raccolta fondi",
-    help: "Spesa legata a raccolte fondi.",
-  },
-  {
-    value: "SUPPORTO_GENERALE",
-    label: "Per il funzionamento generale",
-    help: "Spesa di supporto generale o costo generale.",
-  },
-  {
-    value: "FINANZA_PATRIMONIO",
-    label: "Finanza / patrimonio / investimenti",
-    help: "Spesa bancaria, patrimoniale o di investimento.",
-  },
-  {
-    value: "IMPOSTE",
-    label: "Per imposte",
-    help: "IRAP o altre uscite tributarie.",
-  },
-  {
-    value: "NON_SO",
-    label: "Non lo so",
-    help: "Mostra comunque le proposte migliori.",
-  },
-];
-
-function getGateOptions(tipologia: Tipologia | ""): FunnelOption<FunnelGate>[] {
-  if (tipologia === "ENTRATA") return ENTRATA_GATE_OPTIONS;
-  if (tipologia === "USCITA") return USCITA_GATE_OPTIONS;
-  return [];
-}
-
-function getContextOptions(tipologia: Tipologia | ""): FunnelOption<FunnelContext>[] {
-  if (tipologia === "ENTRATA") return ENTRATA_CONTEXT_OPTIONS;
-  if (tipologia === "USCITA") return USCITA_CONTEXT_OPTIONS;
-  return [];
-}
-
-function getAllowedMacrosByContext(
-  tipologia: Tipologia | "",
-  context: FunnelContext | ""
-): Macro[] {
-  if (!context) {
-    return tipologia === "USCITA"
-      ? [
-          "AIG",
-          "ATTIVITA_DIVERSE",
-          "RACCOLTE_FONDI",
-          "ATTIVITA_FINANZIARIA_PATRIMONIALE",
-          "SUPPORTO_GENERALE",
-          "INVESTIMENTO_DISINVESTIMENTO",
-          "IMPOSTE",
-          "COSTI_GENERALI",
-        ]
-      : [
-          "AIG",
-          "ATTIVITA_DIVERSE",
-          "RACCOLTE_FONDI",
-          "ATTIVITA_FINANZIARIA_PATRIMONIALE",
-          "SUPPORTO_GENERALE",
-          "INVESTIMENTO_DISINVESTIMENTO",
-        ];
-  }
-
-  switch (context) {
-    case "AIG":
-      return ["AIG"];
-    case "ATTIVITA_DIVERSE":
-      return ["ATTIVITA_DIVERSE"];
-    case "RACCOLTE_FONDI":
-      return ["RACCOLTE_FONDI"];
-    case "SUPPORTO_GENERALE":
-      return tipologia === "USCITA" ? ["SUPPORTO_GENERALE", "COSTI_GENERALI"] : ["SUPPORTO_GENERALE"];
-    case "FINANZA_PATRIMONIO":
-      return ["ATTIVITA_FINANZIARIA_PATRIMONIALE", "INVESTIMENTO_DISINVESTIMENTO"];
-    case "IMPOSTE":
-      return tipologia === "USCITA" ? ["IMPOSTE"] : [];
-    case "NON_SO":
-    default:
-      return getAllowedMacrosByContext(tipologia, "");
-  }
-}
-
-function includesAny(text: string, values: string[]) {
-  const t = normalizeSemanticText(text);
-  return values.some((v) => t.includes(normalizeSemanticText(v)));
-}
-
-function matchesGate(entry: SemanticEntry, gate: FunnelGate | "") {
-  if (!gate) return true;
-
-  const specifica = normalizeSemanticText(entry.specificaLabel);
-  const dettaglio = normalizeSemanticText(entry.dettaglioLabel);
-  const categoria = normalizeSemanticText(entry.categoriaLabel);
-
-  switch (gate) {
-    case "QUOTE_CONTRIBUTI_DONAZIONI":
-      return (
-        includesAny(specifica, [
-          "quote associative",
-          "apporti dei fondatori",
-          "erogazioni liberali",
-          "5 per mille",
-          "contributi",
-        ]) ||
-        includesAny(dettaglio, ["donazione", "liberali", "5 per mille", "contributi"])
-      );
-
-    case "INCASSI_ATTIVITA_SERVIZI":
-      return includesAny(specifica, [
-        "prestazioni",
-        "cessioni",
-        "associati",
-        "terzi",
-        "contratti con enti pubblici",
-        "sponsorizzazioni",
-      ]);
-
-    case "RACCOLTE_FONDI_GATE":
-    case "RACCOLTE_FONDI_USCITE":
-      return entry.categoria === "RACCOLTE_FONDI";
-
-    case "BANCA_PATRIMONIO_RENDITE":
-      return entry.categoria === "ATTIVITA_FINANZIARIA_PATRIMONIALE";
-
-    case "FINANZIAMENTI_DISINVESTIMENTI_ALTRO":
-      return entry.categoria === "INVESTIMENTO_DISINVESTIMENTO" || entry.categoria === "SUPPORTO_GENERALE";
-
-    case "BENI_MATERIALI":
-      return (
-        includesAny(specifica, ["materie prime", "di consumo e di merci"]) ||
-        includesAny(dettaglio, [
-          "cancelleria",
-          "carburante",
-          "materiale di consumo",
-          "imballaggi",
-          "medicinali",
-          "cibo per animali",
-          "dispositivi di protezione",
-          "casalinghi",
-        ])
-      );
-
-    case "SERVIZI_PROFESSIONISTI":
-      return (
-        includesAny(specifica, ["servizi", "godimento beni di terzi"]) ||
-        includesAny(dettaglio, [
-          "consulenze",
-          "spese legali",
-          "parcelle liberi professionisti",
-          "utenze",
-          "assicurazioni",
-          "spese postali",
-          "spedizione",
-          "manutenzione",
-          "polizza",
-          "sito web",
-          "licenze software",
-          "affitto sede",
-          "noleggio",
-        ])
-      );
-
-    case "PERSONALE_GATE":
-      return includesAny(specifica, ["personale"]) || includesAny(categoria, ["personale"]);
-
-    case "BANCA_PATRIMONIO_INVESTIMENTI":
-      return (
-        entry.categoria === "ATTIVITA_FINANZIARIA_PATRIMONIALE" ||
-        entry.categoria === "INVESTIMENTO_DISINVESTIMENTO" ||
-        includesAny(dettaglio, ["mutuo", "investimento", "interessi passivi", "commissioni bancarie", "imu"])
-      );
-
-    case "IMPOSTE_RIMBORSI_ALTRE_USCITE":
-      return (
-        entry.categoria === "IMPOSTE" ||
-        includesAny(specifica, ["uscite diverse di gestione"]) ||
-        includesAny(dettaglio, [
-          "imposte",
-          "tasse",
-          "rimborso spese volontari",
-          "rimborso chilometrico",
-          "multe",
-          "ammende",
-          "sopravvenienze passive",
-          "omaggi",
-          "abbonamenti",
-        ])
-      );
-
-    default:
-      return true;
-  }
-}
-
-/* =========================
-   RICERCA SEMANTICA
-========================= */
-
-function normalizeSemanticText(s: string) {
-  return String(s || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\w\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-const COMMON_FIXES: Record<string, string> = {
-  commericalista: "commercialista",
-  commericialista: "commercialista",
-  commercialissta: "commercialista",
-  aattivi: "attivi",
-  attvi: "attivi",
-  interesi: "interessi",
-  interessii: "interessi",
-  bancarai: "bancari",
-  banacri: "bancari",
-  bonfici: "bonifici",
-  consuelenza: "consulenza",
-  canselleria: "cancelleria",
-  assiccurazione: "assicurazione",
-  mutuoo: "mutuo",
-  pedaggo: "pedaggio",
-  condominiali: "condominiali",
-  fidejussione: "fideiussione",
-  canonepec: "pec",
-  sponse: "sponsorizzazioni",
-  sponsorizzazzioni: "sponsorizzazioni",
+type CatalogOption = {
+  value: string;
+  label: string;
+  specificaCode: number | null;
+  specificaLabel: string;
+  isExactCatalog: boolean;
 };
 
-function applyCommonFixes(text: string) {
-  let out = normalizeSemanticText(text);
-  for (const [wrong, correct] of Object.entries(COMMON_FIXES)) {
-    const re = new RegExp(`\\b${wrong}\\b`, "g");
-    out = out.replace(re, correct);
-  }
-  return out;
-}
-
-function tokenizeSemanticText(text: string) {
-  return applyCommonFixes(text)
-    .split(" ")
+function parseFullLabel(fullLabel: string) {
+  const parts = String(fullLabel || "")
+    .split(" | ")
     .map((x) => x.trim())
     .filter(Boolean);
-}
-
-function uniqueNormalizedStrings(values: string[]) {
-  return Array.from(
-    new Set(
-      values
-        .map((x) => applyCommonFixes(x))
-        .map((x) => x.trim())
-        .filter(Boolean)
-    )
-  );
-}
-
-function levenshtein(a: string, b: string) {
-  if (a === b) return 0;
-  if (!a.length) return b.length;
-  if (!b.length) return a.length;
-
-  const matrix: number[][] = Array.from({ length: a.length + 1 }, () =>
-    Array.from({ length: b.length + 1 }, () => 0)
-  );
-
-  for (let i = 0; i <= a.length; i++) matrix[i][0] = i;
-  for (let j = 0; j <= b.length; j++) matrix[0][j] = j;
-
-  for (let i = 1; i <= a.length; i++) {
-    for (let j = 1; j <= b.length; j++) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      matrix[i][j] = Math.min(
-        matrix[i - 1][j] + 1,
-        matrix[i][j - 1] + 1,
-        matrix[i - 1][j - 1] + cost
-      );
-    }
-  }
-
-  return matrix[a.length][b.length];
-}
-
-function fuzzyTokenMatch(token: string, expected: string, enableFuzzy: boolean) {
-  if (!token || !expected) return false;
-  if (token === expected) return true;
-  if (!enableFuzzy) return false;
-  if (token.length < 4 || expected.length < 4) return false;
-
-  return levenshtein(token, expected) <= 1;
-}
-
-const SEMANTIC_HINTS: Record<string, SemanticPack> = {
-  "parcelle liberi professionisti": {
-    alias: [
-      "prestazione commercialista",
-      "compenso commercialista",
-      "fattura commercialista",
-      "onorario commercialista",
-      "parcella commercialista",
-      "prestazione avvocato",
-      "compenso avvocato",
-      "prestazione professionista",
-      "fattura professionista",
-    ],
-    triggerWords: ["commercialista", "avvocato", "professionista"],
-    supportWords: ["prestazione", "compenso", "parcella", "onorario", "fattura"],
-    contoConsigliato: "BANCA",
-  },
-  consulenze: {
-    alias: [
-      "consulenza",
-      "consulenza fiscale",
-      "consulenza tecnica",
-      "consulente",
-      "supporto consulenziale",
-    ],
-    triggerWords: ["consulenza", "consulente"],
-    supportWords: ["tecnica", "fiscale", "supporto"],
-    contoConsigliato: "BANCA",
-  },
-  "spese legali e consulenze": {
-    alias: [
-      "spesa legale",
-      "spese legali",
-      "parcella avvocato",
-      "compenso legale",
-      "assistenza legale",
-    ],
-    triggerWords: ["legale", "avvocato"],
-    supportWords: ["parcella", "compenso", "assistenza"],
-    contoConsigliato: "BANCA",
-  },
-  "interessi attivi": {
-    alias: [
-      "interessi bancari attivi",
-      "interessi attivi banca",
-      "interessi su conto",
-      "interessi conto corrente",
-      "credito interessi",
-    ],
-    triggerWords: ["interessi"],
-    supportWords: ["attivi", "banca", "conto", "corrente"],
-    contoConsigliato: "BANCA",
-  },
-  "interessi passivi": {
-    alias: [
-      "interessi bancari passivi",
-      "interessi passivi banca",
-      "interessi su finanziamento",
-      "interessi mutuo",
-    ],
-    triggerWords: ["interessi"],
-    supportWords: ["passivi", "mutuo", "finanziamento", "banca"],
-    contoConsigliato: "BANCA",
-  },
-  "commissioni bancarie o postali": {
-    alias: [
-      "spese banca",
-      "commissioni banca",
-      "spese bancarie",
-      "commissioni conto",
-      "spese conto corrente",
-      "spese postali bancarie",
-    ],
-    triggerWords: ["banca", "commissioni"],
-    supportWords: ["spese", "conto", "corrente", "postali"],
-    contoConsigliato: "BANCA",
-  },
-  "costi fissi bancari o postali": {
-    alias: [
-      "canone banca",
-      "costo fisso banca",
-      "spese fisse banca",
-      "canone conto",
-      "canone conto corrente",
-    ],
-    triggerWords: ["canone", "banca", "conto"],
-    supportWords: ["fisso", "spese", "corrente"],
-    contoConsigliato: "BANCA",
-  },
-  imu: {
-    alias: ["imu immobile", "imposta imu", "pagamento imu"],
-    triggerWords: ["imu"],
-    supportWords: ["imposta", "immobile"],
-    contoConsigliato: "BANCA",
-  },
-  "spese condominiali": {
-    alias: ["condominio", "spese condominio", "quota condominio"],
-    triggerWords: ["condominio", "condominiali"],
-    supportWords: ["spese", "quota"],
-    contoConsigliato: "BANCA",
-  },
-  "affitto sede": {
-    alias: ["canone sede", "locazione sede", "affitto ufficio", "affitto locale"],
-    triggerWords: ["affitto", "locazione"],
-    supportWords: ["sede", "ufficio", "locale", "canone"],
-    contoConsigliato: "BANCA",
-  },
-  "affitti e locazioni": {
-    alias: ["affitto", "locazione", "canone di locazione"],
-    triggerWords: ["affitto", "locazione"],
-    supportWords: ["canone"],
-    contoConsigliato: "BANCA",
-  },
-  "affitti attivi": {
-    alias: ["canone affitto attivo", "locazione attiva", "incasso affitto"],
-    triggerWords: ["affitto", "locazione"],
-    supportWords: ["attivo", "incasso", "canone"],
-    contoConsigliato: "BANCA",
-  },
-  "canone sito web, pec, firma digitale, licenze software": {
-    alias: [
-      "canone sito",
-      "sito web",
-      "pec",
-      "firma digitale",
-      "licenza software",
-      "abbonamento software",
-      "hosting",
-      "dominio",
-    ],
-    triggerWords: ["sito", "pec", "software", "hosting", "dominio"],
-    supportWords: ["canone", "abbonamento", "licenza", "web", "firma", "digitale"],
-    contoConsigliato: "BANCA",
-  },
-  "assicurazioni varie": {
-    alias: ["premio assicurazione", "polizza assicurazione", "assicurazione"],
-    triggerWords: ["assicurazione", "polizza"],
-    supportWords: ["premio", "copertura"],
-    contoConsigliato: "BANCA",
-  },
-  "assicurazioni varie (diverse dalla polizza del volontariato)": {
-    alias: [
-      "polizza rc",
-      "polizza infortuni",
-      "assicurazione diversa volontari",
-      "assicurazione generica",
-    ],
-    triggerWords: ["assicurazione", "polizza"],
-    supportWords: ["rc", "infortuni", "premio"],
-    contoConsigliato: "BANCA",
-  },
-  "polizza assicurazione copertura rc infortunio e malattia": {
-    alias: [
-      "polizza volontari",
-      "assicurazione volontari",
-      "copertura rc volontari",
-      "assicurazione infortunio volontari",
-    ],
-    triggerWords: ["volontari", "polizza", "assicurazione"],
-    supportWords: ["rc", "infortunio", "malattia", "copertura"],
-    contoConsigliato: "BANCA",
-  },
-  "carburante automezzo associativo": {
-    alias: [
-      "benzina pulmino",
-      "diesel pulmino",
-      "carburante pulmino",
-      "benzina auto associativa",
-      "rifornimento mezzo",
-    ],
-    triggerWords: ["carburante", "benzina", "diesel"],
-    supportWords: ["pulmino", "mezzo", "automezzo", "auto"],
-    contoConsigliato: "CASSA",
-  },
-  "carburanti e lubrificanti": {
-    alias: ["benzina", "gasolio", "rifornimento carburante", "olio motore"],
-    triggerWords: ["benzina", "carburante", "gasolio"],
-    supportWords: ["lubrificante", "rifornimento", "olio"],
-    contoConsigliato: "CASSA",
-  },
-  cancelleria: {
-    alias: ["cancelleria ufficio", "materiale cancelleria", "penne carta"],
-    triggerWords: ["cancelleria"],
-    supportWords: ["ufficio", "penne", "carta", "cartucce"],
-    contoConsigliato: "CASSA",
-  },
-  "cancelleria e stampati": {
-    alias: ["stampati", "moduli", "blocchi ricevute", "materiale ufficio"],
-    triggerWords: ["cancelleria", "stampati"],
-    supportWords: ["moduli", "ricevute", "ufficio"],
-    contoConsigliato: "CASSA",
-  },
-  "utenze telefoniche, elettriche, idriche, gas": {
-    alias: [
-      "bolletta luce",
-      "bolletta gas",
-      "bolletta acqua",
-      "utenza telefono",
-      "utenze",
-    ],
-    triggerWords: ["bolletta", "utenze", "telefono", "luce", "gas", "acqua"],
-    supportWords: ["elettrica", "idrica", "telefonica"],
-    contoConsigliato: "BANCA",
-  },
-  "spese postali": {
-    alias: ["francobolli", "spedizione posta", "posta"],
-    triggerWords: ["posta", "postali"],
-    supportWords: ["francobolli", "spedizione"],
-    contoConsigliato: "CASSA",
-  },
-  "spese postali e di spedizione": {
-    alias: ["corriere", "spedizione", "spedizioni", "invio pacco"],
-    triggerWords: ["spedizione", "corriere"],
-    supportWords: ["postali", "pacco", "invio"],
-    contoConsigliato: "CASSA",
-  },
-  "spese accensione fidejussione": {
-    alias: ["fideiussione", "spesa fideiussione", "costo fideiussione"],
-    triggerWords: ["fideiussione"],
-    supportWords: ["spesa", "costo", "accensione"],
-    contoConsigliato: "BANCA",
-  },
-  "pedaggio autostradale per automezzo associativo": {
-    alias: ["pedaggio", "telepass", "casello autostrada"],
-    triggerWords: ["pedaggio", "telepass"],
-    supportWords: ["autostrada", "casello", "mezzo"],
-    contoConsigliato: "CASSA",
-  },
-  "rimborso chilometrico auto propria": {
-    alias: ["rimborso chilometrico", "km auto", "chilometrico auto"],
-    triggerWords: ["chilometrico", "chilometri"],
-    supportWords: ["rimborso", "auto", "propria", "km"],
-    contoConsigliato: "BANCA",
-  },
-  "rimborso spese volontari": {
-    alias: ["rimborso volontari", "rimborso spese volontario"],
-    triggerWords: ["volontari", "volontario"],
-    supportWords: ["rimborso", "spese"],
-    contoConsigliato: "BANCA",
-  },
-  "erogazioni liberali": {
-    alias: ["donazione", "liberalita", "liberalità", "offerta libera", "erogazione liberale"],
-    triggerWords: ["donazione", "liberalita", "liberalità"],
-    supportWords: ["offerta", "erogazione", "libera"],
-    contoConsigliato: "BANCA",
-  },
-  "entrate del 5 per mille": {
-    alias: ["5 per mille", "cinque per mille"],
-    triggerWords: ["5", "cinque"],
-    supportWords: ["mille", "per"],
-    contoConsigliato: "BANCA",
-  },
-  "contributi da soggetti privati": {
-    alias: [
-      "contributo fondazione privata",
-      "contributo privato",
-      "contributo da azienda",
-      "contributo da impresa",
-    ],
-    triggerWords: ["contributo"],
-    supportWords: ["privato", "fondazione", "azienda", "impresa"],
-    contoConsigliato: "BANCA",
-  },
-  "contributi da enti pubblici": {
-    alias: [
-      "contributo comune",
-      "contributo regione",
-      "contributo asl",
-      "contributo ministero",
-      "contributo pubblico",
-    ],
-    triggerWords: ["contributo"],
-    supportWords: ["comune", "regione", "asl", "ministero", "pubblico"],
-    contoConsigliato: "BANCA",
-  },
-  "entrate da contratti con enti pubblici": {
-    alias: [
-      "corrispettivo da comune",
-      "contratto con comune",
-      "servizio per ente pubblico",
-      "convenzione con ente pubblico",
-    ],
-    triggerWords: ["contratto", "convenzione", "corrispettivo"],
-    supportWords: ["comune", "regione", "asl", "ente", "pubblico"],
-    contoConsigliato: "BANCA",
-  },
-  "entrate per prestazioni e cessioni a terzi (sponsorizzazioni)": {
-    alias: ["sponsorizzazione", "sponsor", "entrata sponsor", "corrispettivo sponsor"],
-    triggerWords: ["sponsor", "sponsorizzazione"],
-    supportWords: ["corrispettivo", "terzi"],
-    contoConsigliato: "BANCA",
-  },
-  "entrate da quote associative e apporti dei fondatori": {
-    alias: ["quota associativa", "quote associative", "quota socio", "versamento socio"],
-    triggerWords: ["quota", "associativa", "socio"],
-    supportWords: ["versamento", "tessera", "fondatore"],
-    contoConsigliato: "CASSA",
-  },
-  "entrate dagli associati per attività mutuali": {
-    alias: ["corrispettivo associato", "quota attivita mutuale", "attivita mutuale associati"],
-    triggerWords: ["associato", "mutuali"],
-    supportWords: ["attivita", "corrispettivo"],
-    contoConsigliato: "CASSA",
-  },
-  "quota capitale mutuo": {
-    alias: [
-      "rata mutuo capitale",
-      "quota capitale finanziamento",
-      "rimborso mutuo capitale",
-      "rata mutuo",
-      "mutuo",
-    ],
-    triggerWords: ["mutuo", "finanziamento"],
-    supportWords: ["rata", "capitale", "rimborso"],
-    contoConsigliato: "BANCA",
-  },
-  "acquisto beni strumentali di valore superiore 516 euro": {
-    alias: [
-      "acquisto bene strumentale",
-      "acquisto attrezzatura sopra 516",
-      "investimento bene strumentale",
-      "acquisto computer",
-      "acquisto pulmino",
-    ],
-    triggerWords: ["strumentale", "investimento", "attrezzatura", "computer", "pulmino"],
-    supportWords: ["acquisto", "bene", "superiore", "516"],
-    contoConsigliato: "BANCA",
-  },
-  "immobili ad uso investimento": {
-    alias: ["acquisto immobile investimento", "immobile a reddito"],
-    triggerWords: ["immobile"],
-    supportWords: ["investimento", "reddito"],
-    contoConsigliato: "BANCA",
-  },
-  "titoli, azioni": {
-    alias: ["acquisto titoli", "azioni", "investimento finanziario"],
-    triggerWords: ["titoli", "azioni"],
-    supportWords: ["investimento", "finanziario"],
-    contoConsigliato: "BANCA",
-  },
-  "ricevimento di finanziamenti e di prestiti": {
-    alias: ["ricevuto finanziamento", "ricevuto prestito", "incasso prestito"],
-    triggerWords: ["finanziamento", "prestito"],
-    supportWords: ["ricevuto", "incasso"],
-    contoConsigliato: "BANCA",
-  },
-  "entrate da distacco del personale": {
-    alias: ["distacco personale", "rimborso distacco personale"],
-    triggerWords: ["distacco", "personale"],
-    supportWords: ["rimborso", "entrata"],
-    contoConsigliato: "BANCA",
-  },
-};
-
-function getSemanticHint(primaryLabel: string, dettaglioLabel: string): SemanticPack {
-  const exactDetail = SEMANTIC_HINTS[applyCommonFixes(dettaglioLabel)];
-  if (exactDetail) return exactDetail;
-
-  const exactPrimary = SEMANTIC_HINTS[applyCommonFixes(primaryLabel)];
-  if (exactPrimary) return exactPrimary;
 
   return {
-    alias: [],
-    triggerWords: [],
-    supportWords: [],
-    contoConsigliato: null,
+    primaryLabel: parts[0] || "",
+    detailLabel: parts[1] || "",
+    freeLabel: parts.length >= 3 ? parts.slice(2).join(" | ") : "",
   };
 }
 
-function buildSemanticEntries(): SemanticEntry[] {
-  const rows: SemanticEntry[] = [];
-
-  for (const item of CONFIG_REGISTRY) {
-    const categoriaLabel = MACRO_LABELS[item.macro];
-
-    for (const primary of item.config.primary) {
-      const details =
-        item.config.hideSecondary || !item.config.secondary
-          ? [""]
-          : withAltro(item.config.secondary[primary.code] || []);
-
-      for (const rawDetail of details) {
-        const dettaglio = normalizeText(rawDetail);
-        const dettaglioLabel = dettaglio || primary.label;
-        const hint = getSemanticHint(primary.label, dettaglioLabel);
-
-        const alias = uniqueStrings([
-          dettaglioLabel,
-          primary.label,
-          categoriaLabel,
-          `${primary.label} ${dettaglioLabel}`,
-          ...(hint.alias || []),
-        ]);
-
-        const triggerWords = uniqueStrings([
-          ...tokenizeSemanticText(dettaglioLabel),
-          ...(hint.triggerWords || []),
-        ]);
-
-        const supportWords = uniqueStrings([
-          ...tokenizeSemanticText(primary.label),
-          ...tokenizeSemanticText(categoriaLabel),
-          ...(hint.supportWords || []),
-        ]);
-
-        const normalizedTipologia = applyCommonFixes(item.tipologia);
-        const normalizedCategoriaLabel = applyCommonFixes(categoriaLabel);
-        const normalizedSpecificaLabel = applyCommonFixes(primary.label);
-        const normalizedDettaglioLabel = applyCommonFixes(dettaglioLabel);
-        const normalizedAlias = uniqueNormalizedStrings(alias);
-        const normalizedTriggerWords = uniqueNormalizedStrings(triggerWords);
-        const normalizedSupportWords = uniqueNormalizedStrings(supportWords);
-
-        const searchText = applyCommonFixes(
-          [
-            item.tipologia,
-            categoriaLabel,
-            primary.label,
-            dettaglioLabel,
-            ...alias,
-            ...triggerWords,
-            ...supportWords,
-          ].join(" ")
-        );
-
-        rows.push({
-          tipologia: item.tipologia,
-          categoria: item.macro,
-          categoriaLabel,
-          specificaCode: primary.code,
-          specificaLabel: primary.label,
-          dettaglio,
-          dettaglioLabel,
-          alias,
-          triggerWords,
-          supportWords,
-          contoConsigliato: hint.contoConsigliato ?? null,
-          searchText,
-
-          normalizedTipologia,
-          normalizedCategoriaLabel,
-          normalizedSpecificaLabel,
-          normalizedDettaglioLabel,
-          normalizedAlias,
-          normalizedTriggerWords,
-          normalizedSupportWords,
-          searchWords: uniqueNormalizedStrings(searchText.split(" ")),
-        });
-      }
-    }
-  }
-
-  return rows;
+function sameText(a: string, b: string) {
+  return applyCommonFixes(a) === applyCommonFixes(b);
 }
 
-function scoreSemanticEntry(
-  input: string,
-  entry: SemanticEntry,
-  selectedTipologia: Tipologia | ""
-): ScoredSemanticEntry {
-  const normalizedInput = applyCommonFixes(input);
-  const tokens = tokenizeSemanticText(input);
-  const uniqueTokens = uniqueNormalizedStrings(tokens);
-  const enableFuzzy = normalizedInput.length >= 5;
+function buildCatalogOptions(config: NestedConfig | null): CatalogOption[] {
+  if (!config) return [];
 
-  let score = 0;
-  const reasons: string[] = [];
+  const options: CatalogOption[] = [];
 
-  if (selectedTipologia === "ENTRATA" || selectedTipologia === "USCITA") {
-    if (entry.tipologia === selectedTipologia) {
-      score += 25;
-      reasons.push("tipologia coerente");
-    } else {
-      score -= 15;
-    }
-  }
-
-  for (const phrase of entry.normalizedAlias) {
-    if (!phrase) continue;
-
-    if (normalizedInput === phrase) {
-      score += 80;
-      reasons.push("frase esatta");
-    } else if (phrase.startsWith(normalizedInput) && normalizedInput.length >= 3) {
-      score += 32;
-      reasons.push("inizio frase coerente");
-    } else if (normalizedInput.includes(phrase)) {
-      score += 28;
-      reasons.push("frase contenuta");
-    }
-  }
-
-  if (normalizedInput.includes(entry.normalizedDettaglioLabel)) {
-    score += 45;
-    reasons.push("match su dettaglio");
-  }
-
-  if (normalizedInput.includes(entry.normalizedSpecificaLabel)) {
-    score += 20;
-    reasons.push("match su specifica");
-  }
-
-  for (const token of uniqueTokens) {
-    for (const word of entry.normalizedTriggerWords) {
-      if (token === word) {
-        score += 14;
-        reasons.push(`parola forte: ${word}`);
-      } else if (fuzzyTokenMatch(token, word, enableFuzzy)) {
-        score += 8;
-        reasons.push(`refuso vicino a: ${word}`);
-      }
-    }
-
-    for (const word of entry.normalizedSupportWords) {
-      if (token === word) {
-        score += 5;
-      } else if (fuzzyTokenMatch(token, word, enableFuzzy && token.length >= 6)) {
-        score += 2;
-      }
-    }
-  }
-
-  const overlap = uniqueTokens.filter((t) => entry.searchWords.includes(t)).length;
-  if (overlap > 0) {
-    score += overlap * 2;
-    reasons.push(`coerenza percorso: ${overlap}`);
-  }
-
-  return { entry, score, reasons: uniqueStrings(reasons) };
-}
-
-function findSemanticMatches(
-  input: string,
-  entries: SemanticEntry[],
-  selectedTipologia: Tipologia | ""
-) {
-  const normalized = applyCommonFixes(input);
-  if (!normalized) return [];
-
-  const candidateEntries = entries.filter((entry) => {
-    if (
-      (selectedTipologia === "ENTRATA" || selectedTipologia === "USCITA") &&
-      entry.tipologia !== selectedTipologia
-    ) {
-      return false;
-    }
-
-    if (normalized.length < 3) {
-      return (
-        entry.normalizedDettaglioLabel.startsWith(normalized) ||
-        entry.normalizedSpecificaLabel.startsWith(normalized) ||
-        entry.normalizedAlias.some((a) => a.startsWith(normalized))
-      );
-    }
-
-    return (
-      entry.normalizedDettaglioLabel.includes(normalized) ||
-      entry.normalizedSpecificaLabel.includes(normalized) ||
-      entry.normalizedAlias.some((a) => a.includes(normalized)) ||
-      tokenizeSemanticText(input).some((token) => entry.searchWords.includes(token))
-    );
-  });
-
-  const scored = candidateEntries.map((entry) =>
-    scoreSemanticEntry(input, entry, selectedTipologia)
-  );
-
-  const filtered = scored
-    .filter((row) => row.score > 0)
-    .sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score;
-      return a.entry.dettaglioLabel.localeCompare(b.entry.dettaglioLabel, "it");
-    });
-
-  const deduped: ScoredSemanticEntry[] = [];
-  const seen = new Set<string>();
-
-  for (const row of filtered) {
-    const key = semanticEntryKey(row.entry);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    deduped.push(row);
-    if (deduped.length >= 6) break;
-  }
-
-  return deduped;
-}
-
-function confidenceFromScore(score: number) {
-  if (score >= 120) return 98;
-  if (score >= 90) return 92;
-  if (score >= 70) return 85;
-  if (score >= 50) return 74;
-  if (score >= 35) return 62;
-  return 48;
-}
-
-function buildFastAutocompleteOptions(
-  input: string,
-  entries: SemanticEntry[],
-  selectedTipologia: Tipologia | ""
-) {
-  const normalized = applyCommonFixes(input);
-  if (!normalized) return [];
-
-  const values: string[] = [];
-
-  for (const entry of entries) {
-    if (
-      (selectedTipologia === "ENTRATA" || selectedTipologia === "USCITA") &&
-      entry.tipologia !== selectedTipologia
-    ) {
+  for (const primary of config.primary) {
+    if (config.hideSecondary || !config.secondary) {
+      options.push({
+        value: primary.label,
+        label: primary.label,
+        specificaCode: primary.code,
+        specificaLabel: primary.label,
+        isExactCatalog: true,
+      });
       continue;
     }
 
-    const pushIfMatch = (original: string, normalizedValue: string) => {
-      if (!original || !normalizedValue) return;
-
-      if (normalizedValue.startsWith(normalized)) {
-        values.push(original);
-        return;
-      }
-
-      if (normalized.length >= 3 && normalizedValue.includes(normalized)) {
-        values.push(original);
-      }
-    };
-
-    pushIfMatch(entry.dettaglioLabel, entry.normalizedDettaglioLabel);
-    pushIfMatch(entry.specificaLabel, entry.normalizedSpecificaLabel);
-
-    for (let i = 0; i < entry.alias.length; i++) {
-      pushIfMatch(entry.alias[i], entry.normalizedAlias[i] || "");
+    const details = withAltro(config.secondary[primary.code] || []);
+    for (const detail of details) {
+      options.push({
+        value: detail,
+        label: `${detail} — ${primary.label}`,
+        specificaCode: primary.code,
+        specificaLabel: primary.label,
+        isExactCatalog: true,
+      });
     }
-
-    if (values.length >= 30) break;
   }
 
-  return uniqueStrings(values).slice(0, 12);
+  const unique = new Map<string, CatalogOption>();
+  for (const item of options) {
+    const key = applyCommonFixes(item.value);
+    if (!unique.has(key)) unique.set(key, item);
+  }
+
+  return Array.from(unique.values()).sort((a, b) => a.value.localeCompare(b.value, "it"));
 }
 
-function filterEntriesByFunnel(
-  entries: SemanticEntry[],
-  tipologia: Tipologia | "",
-  gate: FunnelGate | "",
-  context: FunnelContext | ""
-) {
-  const allowedMacros = getAllowedMacrosByContext(tipologia, context);
-
-  return entries.filter((entry) => {
-    if (
-      (tipologia === "ENTRATA" || tipologia === "USCITA") &&
-      entry.tipologia !== tipologia
-    ) {
-      return false;
-    }
-
-    if (allowedMacros.length > 0 && !allowedMacros.includes(entry.categoria)) {
-      return false;
-    }
-
-    if (!matchesGate(entry, gate)) {
-      return false;
-    }
-
-    return true;
-  });
+function findCatalogMatch(value: string, options: CatalogOption[]) {
+  const normalized = normalizeText(value);
+  if (!normalized) return null;
+  return options.find((item) => sameText(item.value, normalized)) || null;
 }
-
-/* =========================
-   COMPONENT
-========================= */
 
 export default function MovimentoEditor() {
   const annualitaId = localStorage.getItem("annualita_id");
@@ -1685,123 +679,47 @@ export default function MovimentoEditor() {
   const [error, setError] = useState<string | null>(null);
 
   const [tipologia, setTipologia] = useState<Tipologia | "">(presetTipologia);
-  const [funnelGate, setFunnelGate] = useState<FunnelGate | "">("");
-  const [funnelContext, setFunnelContext] = useState<FunnelContext | "">("");
-
+  const [macro, setMacro] = useState<Macro | "">("");
   const [data, setData] = useState("");
   const [conto, setConto] = useState<Conto>("CASSA");
   const [importo, setImporto] = useState("");
   const [iva, setIva] = useState("0");
   const [regime, setRegime] = useState<Regime>("ORDINARIO");
 
-  const [semanticInput, setSemanticInput] = useState("");
-  const [debouncedSemanticInput, setDebouncedSemanticInput] = useState("");
-  const [semanticResults, setSemanticResults] = useState<ScoredSemanticEntry[]>([]);
-  const [semanticError, setSemanticError] = useState<string | null>(null);
-  const [selectedSemanticEntry, setSelectedSemanticEntry] = useState<SemanticEntry | null>(null);
-  const [selectedSemanticKey, setSelectedSemanticKey] = useState("");
-
-  const [forceManual, setForceManual] = useState(false);
-
-  const [macro, setMacro] = useState<Macro | "">("");
+  const [descrizioneInput, setDescrizioneInput] = useState("");
+  const [descrizioneLibera, setDescrizioneLibera] = useState("");
   const [descrizioneCode, setDescrizioneCode] = useState<number | null>(null);
   const [descrizioneLabel, setDescrizioneLabel] = useState("");
-  const [descrizioneDettaglio, setDescrizioneDettaglio] = useState("");
-  const [descrizioneLibera, setDescrizioneLibera] = useState("");
-
-  const [aiInput, setAiInput] = useState("");
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
-  const [aiSuggestion, setAiSuggestion] = useState<AiSuggestion | null>(null);
+  const [specificaLabel, setSpecificaLabel] = useState("");
+  const [isCatalogExactMatch, setIsCatalogExactMatch] = useState(false);
+  const [catalogWarning, setCatalogWarning] = useState<string | null>(null);
 
   const isEntrataOrUscita = tipologia === "ENTRATA" || tipologia === "USCITA";
   const isAvanzo = tipologia === "AVANZO_CASSA_T_1" || tipologia === "AVANZO_BANCA_T_1";
   const isRegimeOrdinario = regime === "ORDINARIO";
   const showIvaField = isEntrataOrUscita && isRegimeOrdinario;
 
-  const allSemanticEntries = useMemo(() => buildSemanticEntries(), []);
+  const macroOptions = useMemo(() => {
+    if (tipologia === "USCITA" || tipologia === "ENTRATA") {
+      return [
+        "AIG",
+        "ATTIVITA_DIVERSE",
+        "RACCOLTE_FONDI",
+        "SUPPORTO_GENERALE",
+        "ATTIVITA_FINANZIARIA_PATRIMONIALE",
+        "INVESTIMENTO_DISINVESTIMENTO",
+      ] as Macro[];
+    }
 
-  const filteredEntries = useMemo(() => {
-    return filterEntriesByFunnel(allSemanticEntries, tipologia, funnelGate, funnelContext);
-  }, [allSemanticEntries, tipologia, funnelGate, funnelContext]);
-
-  const semanticAutocompleteOptions = useMemo(() => {
-    return buildFastAutocompleteOptions(semanticInput, filteredEntries, tipologia);
-  }, [semanticInput, filteredEntries, tipologia]);
-
-  const gateOptions = useMemo(() => getGateOptions(tipologia), [tipologia]);
-  const contextOptions = useMemo(() => getContextOptions(tipologia), [tipologia]);
-
-  const filteredMacroOptions = useMemo(() => {
-    const allowed = getAllowedMacrosByContext(tipologia, funnelContext);
-
-    const base =
-      tipologia === "USCITA"
-        ? [
-            "AIG",
-            "ATTIVITA_DIVERSE",
-            "RACCOLTE_FONDI",
-            "ATTIVITA_FINANZIARIA_PATRIMONIALE",
-            "SUPPORTO_GENERALE",
-            "INVESTIMENTO_DISINVESTIMENTO",
-            "IMPOSTE",
-            "COSTI_GENERALI",
-          ]
-        : [
-            "AIG",
-            "ATTIVITA_DIVERSE",
-            "RACCOLTE_FONDI",
-            "ATTIVITA_FINANZIARIA_PATRIMONIALE",
-            "SUPPORTO_GENERALE",
-            "INVESTIMENTO_DISINVESTIMENTO",
-          ];
-
-    return base.filter((m) => allowed.includes(m as Macro)) as Macro[];
-  }, [tipologia, funnelContext]);
+    return [] as Macro[];
+  }, [tipologia]);
 
   const config = useMemo(() => getConfig(tipologia, macro), [tipologia, macro]);
-  const primaryOptions = useMemo(() => config?.primary ?? [], [config]);
-
-  const selectedPrimary = useMemo(
-    () => primaryOptions.find((x) => x.code === descrizioneCode) || null,
-    [primaryOptions, descrizioneCode]
+  const catalogOptions = useMemo(() => buildCatalogOptions(config), [config]);
+  const selectedCatalogMatch = useMemo(
+    () => findCatalogMatch(descrizioneInput, catalogOptions),
+    [descrizioneInput, catalogOptions]
   );
-
-  const secondaryOptions = useMemo(() => {
-    if (!config?.secondary || !descrizioneCode) return [];
-    return withAltro(config.secondary[descrizioneCode] || []);
-  }, [config, descrizioneCode]);
-
-  const showData = isEntrataOrUscita;
-  const showGate = isEntrataOrUscita;
-  const showContext = isEntrataOrUscita && !!funnelGate;
-  const showSemanticBox = isEntrataOrUscita && !!funnelGate && !!funnelContext;
-
-  const semanticTried = normalizeText(debouncedSemanticInput).length > 0;
-  const semanticHasMatches = semanticResults.length > 0;
-  const semanticNoMatch = showSemanticBox && semanticTried && !semanticHasMatches;
-
-  const showManualSection = isEntrataOrUscita && (forceManual || semanticNoMatch);
-
-  const showDescrizioneCodificata =
-    showManualSection && macro !== "IMPOSTE" && primaryOptions.length > 0;
-
-  const showDettaglioDescrizione =
-    showDescrizioneCodificata &&
-    !!descrizioneCode &&
-    !config?.hideSecondary &&
-    secondaryOptions.length > 0;
-
-  const isImposteTextOnly = tipologia === "USCITA" && macro === "IMPOSTE";
-
-  const showDescrizionePersonale =
-    (selectedSemanticEntry !== null || showManualSection) &&
-    (isImposteTextOnly || !!descrizioneCode || !!selectedSemanticEntry);
-
-  const showFinancialFields =
-    isAvanzo ||
-    (isEntrataOrUscita &&
-      (selectedSemanticEntry !== null || showManualSection || !!aiSuggestion));
 
   useEffect(() => {
     const loadRegime = async () => {
@@ -1852,34 +770,21 @@ export default function MovimentoEditor() {
       }
 
       setTipologia(row.tipologia);
-      setData(row.data || "");
       setMacro((row.macro as Macro) || "");
+      setData(row.data || "");
       setConto((row.conto as Conto) || "CASSA");
       setImporto(String(row.importo ?? ""));
       setIva(String(row.iva ?? 0));
-      setForceManual(true);
-
-      const fullLabel = String(row.descrizione_label ?? "");
-      setDescrizioneLabel(fullLabel);
       setDescrizioneCode(row.descrizione_code ?? null);
+      setDescrizioneLabel(String(row.descrizione_label || ""));
+      setDescrizioneLibera(String(row.descrizione_libera || ""));
 
-      const parts = fullLabel
-        .split(" | ")
-        .map((x: string) => x.trim())
-        .filter(Boolean);
-
-      if (parts.length >= 2) {
-        setDescrizioneDettaglio(parts[1]);
-      } else {
-        setDescrizioneDettaglio("");
-      }
-
-      if (parts.length >= 3) {
-        setDescrizioneLibera(parts.slice(2).join(" | "));
-      } else {
-        setDescrizioneLibera(row.descrizione_libera || "");
-      }
-
+      const parsed = parseFullLabel(String(row.descrizione_label || ""));
+      const startingInput = parsed.detailLabel || parsed.primaryLabel || String(row.descrizione_libera || "");
+      setDescrizioneInput(startingInput);
+      setSpecificaLabel(parsed.primaryLabel || "");
+      setIsCatalogExactMatch(Boolean(row.descrizione_code));
+      setCatalogWarning(null);
       setLoading(false);
     };
 
@@ -1889,248 +794,81 @@ export default function MovimentoEditor() {
   useEffect(() => {
     if (editId) return;
 
-    setFunnelGate("");
-    setFunnelContext("");
+    setMacro("");
     setData("");
     setConto("CASSA");
     setImporto("");
     setIva("0");
-    setSemanticInput("");
-    setDebouncedSemanticInput("");
-    setSemanticResults([]);
-    setSemanticError(null);
-    setSelectedSemanticEntry(null);
-    setSelectedSemanticKey("");
-    setForceManual(false);
-    setMacro("");
+    setDescrizioneInput("");
+    setDescrizioneLibera("");
     setDescrizioneCode(null);
     setDescrizioneLabel("");
-    setDescrizioneDettaglio("");
-    setDescrizioneLibera("");
-    setAiInput("");
-    setAiSuggestion(null);
-    setAiError(null);
+    setSpecificaLabel("");
+    setIsCatalogExactMatch(false);
+    setCatalogWarning(null);
   }, [tipologia, editId]);
 
   useEffect(() => {
     if (editId) return;
 
-    setFunnelContext("");
-    setSemanticInput("");
-    setDebouncedSemanticInput("");
-    setSemanticResults([]);
-    setSemanticError(null);
-    setSelectedSemanticEntry(null);
-    setSelectedSemanticKey("");
-    setForceManual(false);
-    setMacro("");
+    setDescrizioneInput("");
+    setDescrizioneLibera("");
     setDescrizioneCode(null);
     setDescrizioneLabel("");
-    setDescrizioneDettaglio("");
-    setDescrizioneLibera("");
-    setAiInput("");
-    setAiSuggestion(null);
-    setAiError(null);
-  }, [funnelGate, editId]);
-
-  useEffect(() => {
-    if (editId) return;
-
-    setSemanticInput("");
-    setDebouncedSemanticInput("");
-    setSemanticResults([]);
-    setSemanticError(null);
-    setSelectedSemanticEntry(null);
-    setSelectedSemanticKey("");
-    setForceManual(false);
-    setMacro("");
-    setDescrizioneCode(null);
-    setDescrizioneLabel("");
-    setDescrizioneDettaglio("");
-    setDescrizioneLibera("");
-    setAiInput("");
-    setAiSuggestion(null);
-    setAiError(null);
-  }, [funnelContext, editId]);
-
-  useEffect(() => {
-    if (editId) return;
-
-    // Se la macro cambia a seguito di una selezione semantica o AI,
-    // non devo azzerare subito la selezione altrimenti il primo click si perde.
-    if (selectedSemanticEntry || aiSuggestion) return;
-
-    setDescrizioneCode(null);
-    setDescrizioneDettaglio("");
-    setDescrizioneLibera("");
-  }, [macro, editId, selectedSemanticEntry, aiSuggestion]);
-
-  useEffect(() => {
-    if (editId) return;
-    setDescrizioneDettaglio("");
-    setDescrizioneLibera(selectedSemanticEntry ? semanticInput.trim() : "");
-  }, [descrizioneCode, editId, selectedSemanticEntry, semanticInput]);
+    setSpecificaLabel("");
+    setIsCatalogExactMatch(false);
+    setCatalogWarning(null);
+  }, [macro, editId]);
 
   useEffect(() => {
     if (isAvanzo) {
+      setDescrizioneCode(null);
       setDescrizioneLabel("");
+      setSpecificaLabel("");
+      setDescrizioneLibera("");
+      setIsCatalogExactMatch(false);
+      setCatalogWarning(null);
       return;
     }
 
-    if (isImposteTextOnly) {
-      setDescrizioneLabel(normalizeText(descrizioneLibera));
-      return;
-    }
-
-    if (!selectedPrimary) {
+    const input = normalizeText(descrizioneInput);
+    if (!input) {
+      setDescrizioneCode(null);
       setDescrizioneLabel("");
+      setSpecificaLabel("");
+      setDescrizioneLibera("");
+      setIsCatalogExactMatch(false);
+      setCatalogWarning(null);
       return;
     }
 
-    let label = selectedPrimary.label;
+    const match = findCatalogMatch(input, catalogOptions);
+    if (match) {
+      setDescrizioneCode(match.specificaCode);
+      setSpecificaLabel(match.specificaLabel);
+      setDescrizioneLibera(input);
+      setIsCatalogExactMatch(true);
+      setCatalogWarning(null);
 
-    if (normalizeText(descrizioneDettaglio)) {
-      label += ` | ${normalizeText(descrizioneDettaglio)}`;
-    }
-
-    if (normalizeText(descrizioneLibera)) {
-      label += ` | ${normalizeText(descrizioneLibera)}`;
-    }
-
-    setDescrizioneLabel(label);
-  }, [isAvanzo, isImposteTextOnly, selectedPrimary, descrizioneDettaglio, descrizioneLibera]);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setDebouncedSemanticInput(semanticInput);
-    }, 260);
-
-    return () => window.clearTimeout(timer);
-  }, [semanticInput]);
-
-  useEffect(() => {
-    const value = normalizeText(debouncedSemanticInput);
-
-    if (!showSemanticBox || !value) {
-      setSemanticResults([]);
-      setSemanticError(null);
-      return;
-    }
-
-    const results = findSemanticMatches(value, filteredEntries, tipologia);
-    setSemanticResults(results);
-
-    if (!results.length) {
-      setSemanticError(
-        "Nessuna proposta trovata in questo ramo. Puoi aprire la compilazione manuale."
-      );
-    } else {
-      setSemanticError(null);
-    }
-  }, [debouncedSemanticInput, filteredEntries, tipologia, showSemanticBox]);
-
-  function applySemanticEntry(entry: SemanticEntry) {
-    const key = semanticEntryKey(entry);
-
-    setSelectedSemanticKey(key);
-    setSelectedSemanticEntry(entry);
-    setForceManual(false);
-    setAiSuggestion(null);
-    setAiError(null);
-
-    setMacro(entry.categoria);
-    setDescrizioneCode(entry.specificaCode);
-    setDescrizioneDettaglio(entry.dettaglio ? entry.dettaglioLabel : "");
-    setDescrizioneLibera(semanticInput.trim());
-
-    if (entry.contoConsigliato) {
-      setConto(entry.contoConsigliato);
-    }
-  }
-
-  async function chiediAiClassificazione() {
-    setAiError(null);
-    setAiSuggestion(null);
-
-    if (!(tipologia === "ENTRATA" || tipologia === "USCITA")) {
-      setAiError("Prima seleziona Entrata o Uscita");
-      return;
-    }
-
-    const testo = normalizeText(aiInput || semanticInput);
-    if (!testo) {
-      setAiError("Scrivi una descrizione dell'operazione");
-      return;
-    }
-
-    try {
-      setAiLoading(true);
-
-      const response = await fetch("/api/ai-classify", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          tipologia,
-          testo,
-          macroAttuale: macro || null,
-        }),
-      });
-
-      const rawText = await response.text();
-
-      let json: any;
-      try {
-        json = JSON.parse(rawText);
-      } catch {
-        throw new Error(rawText || "Risposta server non valida");
-      }
-
-      if (!response.ok) {
-        throw new Error(json?.error || "Errore AI");
-      }
-
-      const normalized: AiSuggestion = {
-        macro: json.macro,
-        macroLabel: String(json.macroLabel || ""),
-        descrizioneCode: typeof json.descrizioneCode === "number" ? json.descrizioneCode : null,
-        descrizionePrimaryLabel: String(json.descrizionePrimaryLabel || ""),
-        descrizioneDettaglio: String(json.descrizioneDettaglio || ""),
-        descrizioneLiberaSuggerita: String(json.descrizioneLiberaSuggerita || ""),
-        contoConsigliato:
-          json.contoConsigliato === "CASSA" || json.contoConsigliato === "BANCA"
-            ? json.contoConsigliato
-            : null,
-        confidenza: Number.isFinite(Number(json.confidenza)) ? Number(json.confidenza) : 0,
-        exactMatch: Boolean(json.exactMatch),
-        motivazioneBreve: String(json.motivazioneBreve || ""),
-      };
-
-      setAiSuggestion(normalized);
-      setSelectedSemanticEntry(null);
-      setSelectedSemanticKey("");
-
-      setMacro(normalized.macro);
-      if (normalized.contoConsigliato) setConto(normalized.contoConsigliato);
-
-      if (normalized.macro === "IMPOSTE") {
-        setDescrizioneCode(null);
-        setDescrizioneDettaglio("");
-        setDescrizioneLibera(normalized.descrizioneLiberaSuggerita || testo);
+      if (config?.hideSecondary) {
+        setDescrizioneLabel(match.specificaLabel);
       } else {
-        setDescrizioneCode(normalized.descrizioneCode ?? null);
-        setDescrizioneDettaglio(normalized.descrizioneDettaglio || "");
-        setDescrizioneLibera(normalized.descrizioneLiberaSuggerita || testo);
+        setDescrizioneLabel(`${match.specificaLabel} | ${match.value}`);
       }
-
-      setForceManual(true);
-    } catch (err: any) {
-      setAiError(err?.message || "Errore nella richiesta AI");
-    } finally {
-      setAiLoading(false);
+      return;
     }
-  }
+
+    setDescrizioneCode(null);
+    setSpecificaLabel("");
+    setDescrizioneLabel(input);
+    setDescrizioneLibera(input);
+    setIsCatalogExactMatch(false);
+    setCatalogWarning(
+      macro
+        ? "La descrizione non coincide con una voce del catalogo di questa categoria. Il movimento potrà essere verificato dall’amministratore."
+        : null
+    );
+  }, [descrizioneInput, catalogOptions, config, isAvanzo, macro]);
 
   const salva = async () => {
     setError(null);
@@ -2162,41 +900,19 @@ export default function MovimentoEditor() {
         return;
       }
     } else {
+      if (!macro) {
+        setError("Seleziona la categoria");
+        return;
+      }
+
       if (!data) {
         setError("Inserisci la data");
         return;
       }
 
-      if (!selectedSemanticEntry && !forceManual && !aiSuggestion) {
-        setError("Seleziona una proposta oppure apri la compilazione manuale");
+      if (!normalizeText(descrizioneInput)) {
+        setError("Inserisci la descrizione");
         return;
-      }
-
-      if (!macro) {
-        setError("Manca la categoria finale");
-        return;
-      }
-
-      if (macro === "IMPOSTE") {
-        if (!normalizeText(descrizioneLibera)) {
-          setError("Inserisci la descrizione personale");
-          return;
-        }
-      } else {
-        if (!descrizioneCode) {
-          setError("Seleziona la specifica di categoria");
-          return;
-        }
-
-        if (showDettaglioDescrizione && !normalizeText(descrizioneDettaglio)) {
-          setError("Seleziona o scrivi il dettaglio della posta");
-          return;
-        }
-
-        if (!normalizeText(descrizioneLibera)) {
-          setError("Inserisci una descrizione personale");
-          return;
-        }
       }
 
       if (!isValidMoney(importo)) {
@@ -2212,12 +928,12 @@ export default function MovimentoEditor() {
       data: isAvanzo ? null : data || null,
       macro: isAvanzo ? null : macro || null,
       conto: isAvanzo ? (tipologia === "AVANZO_CASSA_T_1" ? "CASSA" : "BANCA") : conto,
-      descrizione_code: isAvanzo || macro === "IMPOSTE" ? null : descrizioneCode,
+      descrizione_code: isAvanzo ? null : isCatalogExactMatch ? descrizioneCode : null,
       descrizione_label: isAvanzo ? null : descrizioneLabel || null,
-      descrizione_libera: isAvanzo ? null : normalizeText(descrizioneLibera) || null,
+      descrizione_libera: isAvanzo ? null : normalizeText(descrizioneInput) || null,
       importo: Number(importo),
       iva: showIvaField ? Number(iva || 0) : 0,
-      is_costo_generale: macro === "COSTI_GENERALI" || macro === "SUPPORTO_GENERALE",
+      is_costo_generale: macro === "SUPPORTO_GENERALE",
     };
 
     const q = editId
@@ -2250,7 +966,9 @@ export default function MovimentoEditor() {
         <div>
           <h2 className="pageTitle">{editId ? "Modifica movimento" : "Nuovo movimento"}</h2>
           <div className="pageHelp">
-            Rispondi a poche domande semplici: il sistema restringe il campo e ti porta alla voce finale corretta.
+            Inserisci solo i dati essenziali. Se la descrizione coincide con una voce del catalogo,
+            l’associazione tecnica viene fatta automaticamente; altrimenti il movimento resta più
+            libero e potrà essere verificato in amministrazione.
           </div>
         </div>
       </div>
@@ -2270,8 +988,25 @@ export default function MovimentoEditor() {
         </select>
       </Card>
 
-      {showData && (
-        <Card title="2️⃣ Data">
+      {isEntrataOrUscita && (
+        <Card title="2️⃣ Categoria">
+          <select
+            value={macro}
+            onChange={(e) => setMacro(e.target.value as Macro | "")}
+            className="input"
+          >
+            <option value="">Seleziona…</option>
+            {macroOptions.map((item) => (
+              <option key={item} value={item}>
+                {MACRO_LABELS[item]}
+              </option>
+            ))}
+          </select>
+        </Card>
+      )}
+
+      {isEntrataOrUscita && (
+        <Card title="3️⃣ Data">
           <input
             type="date"
             value={data}
@@ -2281,366 +1016,69 @@ export default function MovimentoEditor() {
         </Card>
       )}
 
-      {showGate && (
-        <Card title={showData ? "3️⃣ Cosa hai fatto?" : "2️⃣ Cosa hai fatto?"}>
-          <select
-            value={funnelGate}
-            onChange={(e) => setFunnelGate(e.target.value as FunnelGate | "")}
-            className="input"
-          >
-            <option value="">Seleziona…</option>
-            {gateOptions.map((opt: FunnelOption<FunnelGate>) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label} — {opt.help}
-              </option>
-            ))}
-          </select>
-
-          {!!funnelGate && (
-            <div className="rowSub" style={{ marginTop: 8 }}>
-              {gateOptions.find((opt: FunnelOption<FunnelGate>) => opt.value === funnelGate)?.help}
-            </div>
-          )}
-        </Card>
-      )}
-
-      {showContext && (
-        <Card title="4️⃣ Per cosa?">
-          <select
-            value={funnelContext}
-            onChange={(e) => setFunnelContext(e.target.value as FunnelContext | "")}
-            className="input"
-          >
-            <option value="">Seleziona…</option>
-            {contextOptions.map((opt: FunnelOption<FunnelContext>) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label} — {opt.help}
-              </option>
-            ))}
-          </select>
-
-          {!!funnelContext && (
-            <div className="rowSub" style={{ marginTop: 8 }}>
-              {contextOptions.find((opt: FunnelOption<FunnelContext>) => opt.value === funnelContext)?.help}
-            </div>
-          )}
-        </Card>
-      )}
-
-      {showSemanticBox && (
-        <Card title="5️⃣ Descrivi l’operazione">
+      {isEntrataOrUscita && (
+        <Card title="4️⃣ Descrizione">
           <input
-            list="semantic-autocomplete-list"
-            value={semanticInput}
-            onChange={(e) => {
-              setSemanticInput(e.target.value);
-              setSelectedSemanticEntry(null);
-              setSelectedSemanticKey("");
-              setAiSuggestion(null);
-            }}
+            list="catalogo-poste-list"
+            value={descrizioneInput}
+            onChange={(e) => setDescrizioneInput(e.target.value)}
             className="input"
-            placeholder="Es.: fattura commercialista, contributo comune, interessi attivi banca, benzina pulmino..."
+            placeholder={
+              macro
+                ? "Scegli una voce del catalogo oppure scrivi liberamente"
+                : "Prima seleziona la categoria"
+            }
+            disabled={!macro}
           />
 
-          <datalist id="semantic-autocomplete-list">
-            {semanticAutocompleteOptions.map((item: string) => (
-              <option key={item} value={item} />
+          <datalist id="catalogo-poste-list">
+            {catalogOptions.map((item) => (
+              <option key={`${item.specificaCode ?? "x"}-${item.value}`} value={item.value}>
+                {item.label}
+              </option>
             ))}
           </datalist>
 
-          <div className="rowSub" style={{ marginTop: 8 }}>
-            La ricerca si svolge solo dentro il percorso che hai scelto con le domande precedenti.
-          </div>
-
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
-            <SecondaryButton
-              onClick={() => {
-                const next = !forceManual;
-                setForceManual(next);
-
-                if (next) {
-                  setSelectedSemanticKey("");
-                  setSelectedSemanticEntry(null);
-                }
-              }}
-            >
-              {showManualSection ? "Chiudi compilazione manuale" : "Compila manualmente"}
-            </SecondaryButton>
-
-            {(semanticResults.length > 0 || semanticInput) && (
-              <SecondaryButton
-                onClick={() => {
-                  setSemanticInput("");
-                  setDebouncedSemanticInput("");
-                  setSemanticResults([]);
-                  setSemanticError(null);
-                  setSelectedSemanticKey("");
-                  setSelectedSemanticEntry(null);
-                }}
-              >
-                Pulisci ricerca
-              </SecondaryButton>
-            )}
-          </div>
-
-          {semanticError && normalizeText(debouncedSemanticInput) && !forceManual && (
-            <div style={{ marginTop: 12 }}>
-              <Badge tone="red">Ricerca</Badge>
-              <div className="errorText">{semanticError}</div>
+          {macro && (
+            <div className="rowSub" style={{ marginTop: 8 }}>
+              Il menu propone tutte le voci previste per <b>{MACRO_LABELS[macro]}</b>, ma puoi
+              anche scrivere una descrizione diversa.
             </div>
           )}
 
-          {semanticResults.length > 0 && !forceManual && (
-            <div style={{ marginTop: 14, display: "grid", gap: 8 }}>
-              {semanticResults
-                .filter((row: ScoredSemanticEntry) => {
-                  if (!selectedSemanticKey) return true;
-                  return semanticEntryKey(row.entry) === selectedSemanticKey;
-                })
-                .map((row: ScoredSemanticEntry, index: number) => {
-                  const confidence = confidenceFromScore(row.score);
-                  const rowKey = semanticEntryKey(row.entry);
-                  const isSelected = rowKey === selectedSemanticKey;
-
-                  return (
-                    <button
-                      key={rowKey}
-                      type="button"
-                      onClick={() => {
-                        if (isSelected) {
-                          setSelectedSemanticKey("");
-                          setSelectedSemanticEntry(null);
-                          setMacro("");
-                          setDescrizioneCode(null);
-                          setDescrizioneDettaglio("");
-                          setDescrizioneLibera("");
-                          return;
-                        }
-
-                        applySemanticEntry(row.entry);
-                      }}
-                      style={{
-                        textAlign: "left",
-                        border: isSelected ? "2px solid #111827" : "1px solid #d1d5db",
-                        borderRadius: 10,
-                        padding: "10px 12px",
-                        background: isSelected ? "#f9fafb" : "#fff",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                          flexWrap: "wrap",
-                          marginBottom: 4,
-                        }}
-                      >
-                        <Badge tone={index === 0 && !selectedSemanticKey ? "green" : "blue"}>
-                          {index === 0 && !selectedSemanticKey ? "Consigliata" : "Opzione"}
-                        </Badge>
-
-                        {isSelected && <Badge tone="green">Selezionata</Badge>}
-
-                        <span style={{ fontSize: 13, color: "#6b7280" }}>{confidence}%</span>
-                      </div>
-
-                      <div
-                        style={{
-                          fontWeight: 700,
-                          lineHeight: 1.35,
-                        }}
-                      >
-                        {row.entry.categoriaLabel} → {row.entry.specificaLabel}
-                        {row.entry.dettaglio ? ` → ${row.entry.dettaglioLabel}` : ""}
-                      </div>
-                    </button>
-                  );
-                })}
-            </div>
-          )}
-        </Card>
-      )}
-
-      {selectedSemanticEntry && (
-        <Card title="6️⃣ Classificazione selezionata">
-          <div style={{ marginBottom: 6 }}>
-            <b>Categoria:</b> {selectedSemanticEntry.categoriaLabel}
-          </div>
-          <div style={{ marginBottom: 6 }}>
-            <b>Specifica di categoria:</b> {selectedSemanticEntry.specificaLabel}
-          </div>
-          {selectedSemanticEntry.dettaglio && (
-            <div style={{ marginBottom: 6 }}>
-              <b>Dettaglio della posta:</b> {selectedSemanticEntry.dettaglioLabel}
-            </div>
-          )}
-          <div className="rowSub">
-            Puoi proseguire direttamente oppure aprire la compilazione manuale per correggere.
-          </div>
-        </Card>
-      )}
-
-      {showManualSection && (
-        <Card title="6️⃣ Compilazione manuale sullo schema tecnico">
-          <div style={{ display: "grid", gap: 12 }}>
-            <div>
-              <div style={{ fontWeight: 700, marginBottom: 6 }}>Categoria</div>
-              <select
-                value={macro}
-                onChange={(e) => {
-                  setMacro(e.target.value as Macro | "");
-                  setSelectedSemanticEntry(null);
-                  setSelectedSemanticKey("");
-                }}
-                className="input"
-              >
-                <option value="">Seleziona…</option>
-                {filteredMacroOptions.map((m: Macro) => (
-                  <option key={m} value={m}>
-                    {MACRO_LABELS[m]}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {showDescrizioneCodificata && (
-              <div>
-                <div style={{ fontWeight: 700, marginBottom: 6 }}>Specifica di categoria</div>
-                <select
-                  value={descrizioneCode ?? ""}
-                  onChange={(e) =>
-                    setDescrizioneCode(e.target.value ? Number(e.target.value) : null)
-                  }
-                  className="input"
-                >
-                  <option value="">Seleziona…</option>
-                  {primaryOptions.map((v: OptionItem) => (
-                    <option key={v.code} value={v.code}>
-                      {v.code}. {v.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {showDettaglioDescrizione && (
-              <div>
-                <div style={{ fontWeight: 700, marginBottom: 6 }}>Dettaglio della posta</div>
-                <input
-                  list="dettaglio-descrizione-list"
-                  value={descrizioneDettaglio}
-                  onChange={(e) => setDescrizioneDettaglio(e.target.value)}
-                  className="input"
-                  placeholder="Scrivi o cerca tra le voci"
-                />
-                <datalist id="dettaglio-descrizione-list">
-                  {secondaryOptions.map((item: string) => (
-                    <option key={item} value={item} />
-                  ))}
-                </datalist>
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
-
-      {(showManualSection || semanticNoMatch) && (
-        <Card title="7️⃣ Aiuto classificazione AI">
-          <textarea
-            value={aiInput}
-            onChange={(e) => setAiInput(e.target.value)}
-            className="input"
-            rows={4}
-            placeholder="Descrivi l’operazione se vuoi un suggerimento AI aggiuntivo"
-            style={{ resize: "vertical" }}
-          />
-
-          <div className="rowSub" style={{ marginTop: 8 }}>
-            L’AI aiuta a trovare il ramo tecnico, ma il risultato finale resta sempre una voce del tuo schema.
-          </div>
-
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
-            <PrimaryButton onClick={chiediAiClassificazione} disabled={aiLoading}>
-              {aiLoading ? "Analisi in corso..." : "Suggerisci collocazione"}
-            </PrimaryButton>
-          </div>
-
-          {aiError && (
-            <div style={{ marginTop: 12 }}>
-              <Badge tone="red">Errore AI</Badge>
-              <div className="errorText">{aiError}</div>
-            </div>
-          )}
-
-          {aiSuggestion && (
+          {selectedCatalogMatch && (
             <div
               style={{
-                marginTop: 14,
+                marginTop: 12,
                 border: "1px solid #e5e7eb",
                 borderRadius: 12,
                 padding: 12,
                 background: "#fafafa",
               }}
             >
-              <div style={{ marginBottom: 8, fontWeight: 700 }}>Suggerimento AI</div>
-
+              <div style={{ fontWeight: 700, marginBottom: 6 }}>Associazione automatica pronta</div>
               <div style={{ marginBottom: 6 }}>
-                <b>Categoria:</b> {aiSuggestion.macroLabel || "—"}
+                <b>Specifica di categoria:</b> {selectedCatalogMatch.specificaLabel}
               </div>
-
-              {aiSuggestion.descrizionePrimaryLabel && (
-                <div style={{ marginBottom: 6 }}>
-                  <b>Specifica di categoria:</b> {aiSuggestion.descrizionePrimaryLabel}
-                </div>
-              )}
-
-              {aiSuggestion.descrizioneDettaglio && (
-                <div style={{ marginBottom: 6 }}>
-                  <b>Dettaglio della posta:</b> {aiSuggestion.descrizioneDettaglio}
-                </div>
-              )}
-
-              {aiSuggestion.descrizioneLiberaSuggerita && (
-                <div style={{ marginBottom: 6 }}>
-                  <b>Descrizione personale suggerita:</b> {aiSuggestion.descrizioneLiberaSuggerita}
-                </div>
-              )}
-
-              <div style={{ marginBottom: 6 }}>
-                <b>Conto consigliato:</b> {aiSuggestion.contoConsigliato || "—"}
+              <div>
+                <b>Dettaglio della posta:</b> {selectedCatalogMatch.value}
               </div>
+            </div>
+          )}
 
-              <div style={{ marginBottom: 6 }}>
-                <b>Confidenza:</b>{" "}
-                {Number.isFinite(aiSuggestion.confidenza)
-                  ? Math.round(aiSuggestion.confidenza)
-                  : 0}
-                %
+          {catalogWarning && (
+            <div style={{ marginTop: 12 }}>
+              <Badge tone="blue">Verifica</Badge>
+              <div className="rowSub" style={{ marginTop: 6 }}>
+                {catalogWarning}
               </div>
-
-              {aiSuggestion.motivazioneBreve && (
-                <div className="rowSub">{aiSuggestion.motivazioneBreve}</div>
-              )}
             </div>
           )}
         </Card>
       )}
 
-      {showDescrizionePersonale && (
-        <Card title="8️⃣ Descrizione personale">
-          <input
-            value={descrizioneLibera}
-            onChange={(e) => setDescrizioneLibera(e.target.value)}
-            className="input"
-            placeholder="Nota descrittiva dell’operazione"
-          />
-        </Card>
-      )}
-
-      {showFinancialFields && (
-        <Card title={isAvanzo ? "2️⃣ Dati economici" : "9️⃣ Dati economici"}>
+      {(isAvanzo || isEntrataOrUscita) && (
+        <Card title={isAvanzo ? "2️⃣ Dati economici" : "5️⃣ Dati economici"}>
           {!isAvanzo && (
             <div style={{ marginBottom: 12 }}>
               <div style={{ fontWeight: 700, marginBottom: 6 }}>Banca / Cassa</div>
@@ -2683,6 +1121,31 @@ export default function MovimentoEditor() {
               <div className="rowSub" style={{ marginTop: 8 }}>
                 Inserisci <b>0</b> se l’operazione non prevede IVA.
               </div>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {isEntrataOrUscita && macro && normalizeText(descrizioneInput) && (
+        <Card title="6️⃣ Esito della registrazione">
+          <div style={{ marginBottom: 6 }}>
+            <b>Categoria:</b> {MACRO_LABELS[macro]}
+          </div>
+          <div style={{ marginBottom: 6 }}>
+            <b>Descrizione inserita:</b> {normalizeText(descrizioneInput)}
+          </div>
+          <div style={{ marginBottom: 6 }}>
+            <b>Associazione tecnica:</b> {isCatalogExactMatch ? "automatica" : "da verificare"}
+          </div>
+          {isCatalogExactMatch && specificaLabel && (
+            <div style={{ marginBottom: 6 }}>
+              <b>Specifica di categoria:</b> {specificaLabel}
+            </div>
+          )}
+          {!isCatalogExactMatch && (
+            <div className="rowSub">
+              Poiché la descrizione non coincide con una voce del catalogo, il movimento verrà
+              salvato con testo libero e potrà essere associato correttamente dall’amministratore.
             </div>
           )}
         </Card>
