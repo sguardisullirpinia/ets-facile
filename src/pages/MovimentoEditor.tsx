@@ -33,84 +33,6 @@ type NestedConfig = {
   hideSecondary?: boolean;
 };
 
-type AiSuggestion = {
-  macro: Macro;
-  macroLabel: string;
-  descrizioneCode: number | null;
-  descrizionePrimaryLabel: string;
-  descrizioneDettaglio: string;
-  descrizioneLiberaSuggerita: string;
-  contoConsigliato: Conto | null;
-  confidenza: number;
-  exactMatch: boolean;
-  motivazioneBreve: string;
-};
-
-type SemanticPack = {
-  alias?: string[];
-  triggerWords?: string[];
-  supportWords?: string[];
-  contoConsigliato?: Conto | null;
-};
-
-type SemanticEntry = {
-  tipologia: "ENTRATA" | "USCITA";
-  categoria: Macro;
-  categoriaLabel: string;
-  specificaCode: number | null;
-  specificaLabel: string;
-  dettaglio: string;
-  dettaglioLabel: string;
-  alias: string[];
-  triggerWords: string[];
-  supportWords: string[];
-  contoConsigliato: Conto | null;
-  searchText: string;
-
-  normalizedTipologia: string;
-  normalizedCategoriaLabel: string;
-  normalizedSpecificaLabel: string;
-  normalizedDettaglioLabel: string;
-  normalizedAlias: string[];
-  normalizedTriggerWords: string[];
-  normalizedSupportWords: string[];
-  searchWords: string[];
-};
-
-type ScoredSemanticEntry = {
-  entry: SemanticEntry;
-  score: number;
-  reasons: string[];
-};
-
-type FunnelGate =
-  | "QUOTE_CONTRIBUTI_DONAZIONI"
-  | "INCASSI_ATTIVITA_SERVIZI"
-  | "RACCOLTE_FONDI_GATE"
-  | "BANCA_PATRIMONIO_RENDITE"
-  | "FINANZIAMENTI_DISINVESTIMENTI_ALTRO"
-  | "BENI_MATERIALI"
-  | "SERVIZI_PROFESSIONISTI"
-  | "PERSONALE_GATE"
-  | "RACCOLTE_FONDI_USCITE"
-  | "BANCA_PATRIMONIO_INVESTIMENTI"
-  | "IMPOSTE_RIMBORSI_ALTRE_USCITE";
-
-type FunnelContext =
-  | "AIG"
-  | "ATTIVITA_DIVERSE"
-  | "RACCOLTE_FONDI"
-  | "SUPPORTO_GENERALE"
-  | "FINANZA_PATRIMONIO"
-  | "IMPOSTE"
-  | "NON_SO";
-
-type FunnelOption<T extends string> = {
-  value: T;
-  label: string;
-  help: string;
-};
-
 function isValidMoney(v: string) {
   const n = Number(v);
   return Number.isFinite(n) && n > 0;
@@ -131,19 +53,15 @@ function normalizeText(v: string) {
   return String(v || "").trim();
 }
 
-function uniqueStrings(values: string[]) {
-  return Array.from(new Set(values.map((x) => normalizeText(x)).filter(Boolean)));
+function applyCommonFixes(text: string) {
+  return String(text || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
-
-function semanticEntryKey(entry: SemanticEntry) {
-  return [
-    entry.tipologia,
-    entry.categoria,
-    entry.specificaCode ?? "",
-    entry.dettaglioLabel,
-  ].join("|");
-}
-
 /* =========================
    LISTE BASE
 ========================= */
@@ -554,50 +472,6 @@ const MACRO_LABELS: Record<Macro, string> = {
   COSTI_GENERALI: "Costi generali",
 };
 
-const CONFIG_REGISTRY: Array<{
-  tipologia: "ENTRATA" | "USCITA";
-  macro: Macro;
-  config: NestedConfig;
-}> = [
-  { tipologia: "USCITA", macro: "AIG", config: USCITE_AIG_CONFIG },
-  { tipologia: "USCITA", macro: "ATTIVITA_DIVERSE", config: USCITE_AD_CONFIG },
-  { tipologia: "USCITA", macro: "RACCOLTE_FONDI", config: USCITE_RF_CONFIG },
-  {
-    tipologia: "USCITA",
-    macro: "ATTIVITA_FINANZIARIA_PATRIMONIALE",
-    config: USCITE_AFP_CONFIG,
-  },
-  {
-    tipologia: "USCITA",
-    macro: "SUPPORTO_GENERALE",
-    config: USCITE_SUPPORTO_GENERALE_CONFIG,
-  },
-  {
-    tipologia: "USCITA",
-    macro: "INVESTIMENTO_DISINVESTIMENTO",
-    config: USCITE_INVESTIMENTI_CONFIG,
-  },
-  { tipologia: "USCITA", macro: "COSTI_GENERALI", config: USCITE_COSTI_GENERALI_CONFIG },
-
-  { tipologia: "ENTRATA", macro: "AIG", config: ENTRATE_AIG_CONFIG },
-  { tipologia: "ENTRATA", macro: "ATTIVITA_DIVERSE", config: ENTRATE_AD_CONFIG },
-  { tipologia: "ENTRATA", macro: "RACCOLTE_FONDI", config: ENTRATE_RF_CONFIG },
-  {
-    tipologia: "ENTRATA",
-    macro: "ATTIVITA_FINANZIARIA_PATRIMONIALE",
-    config: ENTRATE_AFP_CONFIG,
-  },
-  {
-    tipologia: "ENTRATA",
-    macro: "SUPPORTO_GENERALE",
-    config: ENTRATE_SUPPORTO_GENERALE_CONFIG,
-  },
-  {
-    tipologia: "ENTRATA",
-    macro: "INVESTIMENTO_DISINVESTIMENTO",
-    config: ENTRATE_INVESTIMENTI_CONFIG,
-  },
-];
 
 
 
@@ -687,7 +561,6 @@ export default function MovimentoEditor() {
   const [regime, setRegime] = useState<Regime>("ORDINARIO");
 
   const [descrizioneInput, setDescrizioneInput] = useState("");
-  const [descrizioneLibera, setDescrizioneLibera] = useState("");
   const [descrizioneCode, setDescrizioneCode] = useState<number | null>(null);
   const [descrizioneLabel, setDescrizioneLabel] = useState("");
   const [specificaLabel, setSpecificaLabel] = useState("");
@@ -777,7 +650,6 @@ export default function MovimentoEditor() {
       setIva(String(row.iva ?? 0));
       setDescrizioneCode(row.descrizione_code ?? null);
       setDescrizioneLabel(String(row.descrizione_label || ""));
-      setDescrizioneLibera(String(row.descrizione_libera || ""));
 
       const parsed = parseFullLabel(String(row.descrizione_label || ""));
       const startingInput = parsed.detailLabel || parsed.primaryLabel || String(row.descrizione_libera || "");
@@ -800,7 +672,6 @@ export default function MovimentoEditor() {
     setImporto("");
     setIva("0");
     setDescrizioneInput("");
-    setDescrizioneLibera("");
     setDescrizioneCode(null);
     setDescrizioneLabel("");
     setSpecificaLabel("");
@@ -812,7 +683,6 @@ export default function MovimentoEditor() {
     if (editId) return;
 
     setDescrizioneInput("");
-    setDescrizioneLibera("");
     setDescrizioneCode(null);
     setDescrizioneLabel("");
     setSpecificaLabel("");
@@ -825,8 +695,7 @@ export default function MovimentoEditor() {
       setDescrizioneCode(null);
       setDescrizioneLabel("");
       setSpecificaLabel("");
-      setDescrizioneLibera("");
-      setIsCatalogExactMatch(false);
+        setIsCatalogExactMatch(false);
       setCatalogWarning(null);
       return;
     }
@@ -836,8 +705,7 @@ export default function MovimentoEditor() {
       setDescrizioneCode(null);
       setDescrizioneLabel("");
       setSpecificaLabel("");
-      setDescrizioneLibera("");
-      setIsCatalogExactMatch(false);
+        setIsCatalogExactMatch(false);
       setCatalogWarning(null);
       return;
     }
@@ -846,7 +714,6 @@ export default function MovimentoEditor() {
     if (match) {
       setDescrizioneCode(match.specificaCode);
       setSpecificaLabel(match.specificaLabel);
-      setDescrizioneLibera(input);
       setIsCatalogExactMatch(true);
       setCatalogWarning(null);
 
