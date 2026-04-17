@@ -728,7 +728,6 @@ export default function MovimentoEditor() {
     setDescrizioneCode(null);
     setSpecificaLabel("");
     setDescrizioneLabel(input);
-    setDescrizioneLibera(input);
     setIsCatalogExactMatch(false);
     setCatalogWarning(
       macro
