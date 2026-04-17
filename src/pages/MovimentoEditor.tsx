@@ -97,6 +97,10 @@ export default function MovimentoEditor() {
   const [importo, setImporto] = useState("");
   const [conto, setConto] = useState<Conto>("CASSA");
 
+  /* =========================
+     FILTRO OPZIONI
+  ========================= */
+
   const options = useMemo(() => {
     if (tipologia === "ENTRATA" && macro === "AIG") {
       return ENTRATE_AIG_OPTIONS;
@@ -104,9 +108,17 @@ export default function MovimentoEditor() {
     return [];
   }, [tipologia, macro]);
 
+  /* =========================
+     MATCH AUTOMATICO
+  ========================= */
+
   const match = options.find(
     (o) => o.label.toLowerCase() === descrizione.toLowerCase()
   );
+
+  /* =========================
+     SALVATAGGIO
+  ========================= */
 
   const salva = () => {
     const payload = {
@@ -121,88 +133,101 @@ export default function MovimentoEditor() {
     };
 
     console.log("SALVATAGGIO:", payload);
-    alert("Salvato (vedi console)");
+    alert("Salvato (controlla console)");
   };
+
+  /* =========================
+     UI
+  ========================= */
 
   return (
     <Layout>
-      <h2>Nuovo movimento</h2>
+      <div style={{ maxWidth: 600, margin: "0 auto" }}>
+        <h2>Nuovo movimento</h2>
 
-      <div className="form">
+        <div style={{ display: "grid", gap: 12 }}>
 
-        {/* Tipologia */}
-        <select
-          value={tipologia}
-          onChange={(e) => setTipologia(e.target.value as Tipologia)}
-        >
-          <option value="">Tipologia</option>
-          <option value="ENTRATA">Entrata</option>
-          <option value="USCITA">Uscita</option>
-          <option value="AVANZO_CASSA_T_1">Avanzo cassa t-1</option>
-          <option value="AVANZO_BANCA_T_1">Avanzo banca t-1</option>
-        </select>
+          {/* Tipologia */}
+          <select
+            value={tipologia}
+            onChange={(e) => setTipologia(e.target.value as Tipologia)}
+          >
+            <option value="">Tipologia</option>
+            <option value="ENTRATA">Entrata</option>
+            <option value="USCITA">Uscita</option>
+            <option value="AVANZO_CASSA_T_1">Avanzo cassa t-1</option>
+            <option value="AVANZO_BANCA_T_1">Avanzo banca t-1</option>
+          </select>
 
-        {/* Categoria */}
-        <select
-          value={macro}
-          onChange={(e) => setMacro(e.target.value as Macro)}
-        >
-          <option value="">Categoria</option>
-          <option value="AIG">Attività di interesse generale</option>
-          <option value="ATTIVITA_DIVERSE">Attività diverse</option>
-          <option value="RACCOLTE_FONDI">Raccolte fondi</option>
-          <option value="SUPPORTO_GENERALE">Supporto generale</option>
-          <option value="ATTIVITA_FINANZIARIA_PATRIMONIALE">
-            Attività finanziaria e patrimoniale
-          </option>
-          <option value="INVESTIMENTO_DISINVESTIMENTO">
-            Investimento e disinvestimento
-          </option>
-        </select>
+          {/* Categoria */}
+          <select
+            value={macro}
+            onChange={(e) => setMacro(e.target.value as Macro)}
+          >
+            <option value="">Categoria</option>
+            <option value="AIG">Attività di interesse generale</option>
+            <option value="ATTIVITA_DIVERSE">Attività diverse</option>
+            <option value="RACCOLTE_FONDI">Raccolte fondi</option>
+            <option value="SUPPORTO_GENERALE">Supporto generale</option>
+            <option value="ATTIVITA_FINANZIARIA_PATRIMONIALE">
+              Attività finanziaria e patrimoniale
+            </option>
+            <option value="INVESTIMENTO_DISINVESTIMENTO">
+              Investimento e disinvestimento
+            </option>
+          </select>
 
-        {/* Data */}
-        <input
-          type="date"
-          value={data}
-          onChange={(e) => setData(e.target.value)}
-        />
+          {/* Data */}
+          <input
+            type="date"
+            value={data}
+            onChange={(e) => setData(e.target.value)}
+          />
 
-        {/* Descrizione con suggerimenti */}
-        <input
-          list="suggestions"
-          value={descrizione}
-          onChange={(e) => setDescrizione(e.target.value)}
-          placeholder="Descrivi l’operazione"
-        />
+          {/* Descrizione */}
+          <input
+            list="suggestions"
+            value={descrizione}
+            onChange={(e) => setDescrizione(e.target.value)}
+            placeholder="Descrivi l’operazione"
+          />
 
-        <datalist id="suggestions">
-          {options.map((o) => (
-            <option key={o.code} value={o.label} />
-          ))}
-        </datalist>
+          <datalist id="suggestions">
+            {options.map((o) => (
+              <option key={o.code} value={o.label} />
+            ))}
+          </datalist>
 
-        {/* Spiegazione */}
-        {match && (
-          <div style={{ fontSize: 12, color: "#6b7280" }}>
-            {match.help}
-          </div>
-        )}
+          {/* HELP */}
+          {match && (
+            <div style={{ fontSize: 12, color: "#6b7280" }}>
+              {match.help}
+            </div>
+          )}
 
-        {/* Importo */}
-        <input
-          type="number"
-          value={importo}
-          onChange={(e) => setImporto(e.target.value)}
-          placeholder="Importo"
-        />
+          {/* Importo */}
+          <input
+            type="number"
+            value={importo}
+            onChange={(e) => setImporto(e.target.value)}
+            placeholder="Importo"
+          />
 
-        {/* Conto */}
-        <select value={conto} onChange={(e) => setConto(e.target.value as Conto)}>
-          <option value="CASSA">Cassa</option>
-          <option value="BANCA">Banca</option>
-        </select>
+          {/* Conto */}
+          <select
+            value={conto}
+            onChange={(e) => setConto(e.target.value as Conto)}
+          >
+            <option value="CASSA">Cassa</option>
+            <option value="BANCA">Banca</option>
+          </select>
 
-        <button onClick={salva}>Salva</button>
+          {/* Salva */}
+          <button onClick={salva}>
+            Salva
+          </button>
+
+        </div>
       </div>
     </Layout>
   );
