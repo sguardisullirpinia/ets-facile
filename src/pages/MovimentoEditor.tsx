@@ -722,7 +722,7 @@ function buildFlatPaths(tipologia: "ENTRATA" | "USCITA"): FlatPath[] {
   const flat: FlatPath[] = [];
 
   sections.forEach((section, sectionIndex) => {
-    section.groups.forEach((group, groupIndex) => {
+    section.groups.forEach((group) => {
       group.details.forEach((detail, detailIndex) => {
         const saveMacro = group.saveMacro || section.saveMacro || (section.key as Macro);
         const descrizioneCode = (sectionIndex + 1) * 10000 + group.code * 100 + (detailIndex + 1);
