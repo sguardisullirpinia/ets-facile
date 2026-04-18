@@ -70,30 +70,12 @@ const AD_USCITE = [
   { code: 5, label: "Uscite diverse" },
 ];
 
-// ✅ RACCOLTE FONDI - ENTRATE
-const RF_ENTRATE = [
-  "Liberalità monetarie",
-  "Valore di mercato liberalità non monetarie",
-  "Altri proventi",
-];
-
-// ✅ RACCOLTE FONDI - USCITE
-const RF_USCITE = [
-  "Oneri per acquisto beni",
-  "Oneri per acquisto servizi",
-  "Oneri per noleggi, affitti o utilizzo attrezzature",
-  "Oneri promozionali per la raccolta",
-  "Oneri per lavoro dipendente o autonomo",
-  "Oneri per rimborsi a volontari",
-  "Altri oneri",
-];
-
 function isValidMoney(v: string) {
   const n = Number(v);
   return Number.isFinite(n) && n > 0;
 }
 
-// ✅ IVA può essere 0 o positiva
+// ✅ IVA può essere 0 o positiva (se presente deve essere valida)
 function isValidIva(v: string) {
   const n = Number(v);
   return Number.isFinite(n) && n >= 0;
@@ -112,13 +94,20 @@ export default function MovimentoEditor() {
   const [data, setData] = useState("");
   const [macro, setMacro] = useState<Macro | "">("");
 
+  // ✅ Banca/Cassa
   const [conto, setConto] = useState<Conto>("CASSA");
 
   const [descrizioneCode, setDescrizioneCode] = useState<number | null>(null);
   const [descrizioneLabel, setDescrizioneLabel] = useState("");
   const [importo, setImporto] = useState("");
+
+  // ✅ IVA (mostrata solo in regime ordinario)
   const [iva, setIva] = useState("0");
+
+  // ✅ obbligatoria per ENTRATA/USCITA
   const [descrOperazione, setDescrOperazione] = useState("");
+
+  // ✅ regime annualità
   const [regime, setRegime] = useState<Regime>("ORDINARIO");
 
   /* =========================
@@ -136,9 +125,10 @@ export default function MovimentoEditor() {
       macro === "CONTRIBUTI_PA_SENZA_CORRISPETTIVO" ||
       macro === "ALTRI_PROVENTI_NON_COMMERCIALI");
 
+  // ✅ master costi generali (solo USCITA)
   const isCostiGenerali = tipologia === "USCITA" && macro === "COSTI_GENERALI";
-  const isRaccolteFondi = macro === "RACCOLTE_FONDI";
 
+  // ✅ IVA visibile solo se ORDINARIO
   const isRegimeOrdinario = regime === "ORDINARIO";
   const showIvaField = isEntrataOrUscita && isRegimeOrdinario;
 
@@ -147,12 +137,14 @@ export default function MovimentoEditor() {
      ========================= */
   useEffect(() => {
     const loadRegime = async () => {
+      // 1) prova da localStorage
       const ls = localStorage.getItem("annualita_regime") as Regime | null;
       if (ls === "FORFETTARIO" || ls === "ORDINARIO") {
         setRegime(ls);
         return;
       }
 
+      // 2) fallback: DB
       if (!annualitaId) return;
 
       const { data, error } = await supabase
@@ -171,10 +163,13 @@ export default function MovimentoEditor() {
     };
 
     loadRegime();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [annualitaId]);
 
+  // ✅ se non ordinario, forzo IVA a 0
   useEffect(() => {
     if (!showIvaField) setIva("0");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showIvaField]);
 
   /* =========================
@@ -204,6 +199,7 @@ export default function MovimentoEditor() {
       setDescrizioneCode(row.descrizione_code);
       setDescrizioneLabel(row.descrizione_label || "");
       setImporto(String(row.importo ?? ""));
+      // IVA: se regime non ordinario, la forza a 0 più sotto
       setIva(String(row.iva ?? 0));
       setDescrOperazione((row.descrizione_operazione ?? "").toString());
 
@@ -255,13 +251,6 @@ export default function MovimentoEditor() {
     return [];
   }, [tipologia, macro, isCostiGenerali]);
 
-  const raccolteFondiOptions = useMemo(() => {
-    if (!isRaccolteFondi) return [];
-    if (tipologia === "ENTRATA") return RF_ENTRATE;
-    if (tipologia === "USCITA") return RF_USCITE;
-    return [];
-  }, [isRaccolteFondi, tipologia]);
-
   /* =========================
      SALVA (INSERT / UPDATE)
      ========================= */
@@ -275,11 +264,13 @@ export default function MovimentoEditor() {
 
     if (!tipologia) return setError("Seleziona la tipologia");
 
+    // ✅ obbligatoria per ENTRATA/USCITA
     if (isEntrataOrUscita && !descrOperazione.trim()) {
       setError("Inserisci la descrizione dell’operazione (obbligatoria)");
       return;
     }
 
+    // ✅ IVA valida SOLO se regime ordinario
     if (showIvaField && !isValidIva(iva)) {
       setError("IVA non valida");
       return;
@@ -302,7 +293,7 @@ export default function MovimentoEditor() {
         }
 
         if (macro === "RACCOLTE_FONDI" && !descrizioneLabel.trim()) {
-          setError("Seleziona la descrizione della raccolta fondi");
+          setError("Inserisci la descrizione");
           return;
         }
       }
@@ -335,17 +326,19 @@ export default function MovimentoEditor() {
           : null,
 
       descrizione_code:
-        isAvanzo || isSoloImportoEntrata || isCostiGenerali || isRaccolteFondi
+        isAvanzo || isSoloImportoEntrata || isCostiGenerali
           ? null
           : descrizioneCode,
-
       descrizione_label:
         isAvanzo || isSoloImportoEntrata || isCostiGenerali
           ? null
           : descrizioneLabel || null,
 
       importo: Number(importo),
+
+      // ✅ IVA solo se ORDINARIO, altrimenti 0
       iva: showIvaField ? Number(iva || 0) : 0,
+
       descrizione_operazione: descrOperazioneFinale,
     };
 
@@ -374,6 +367,7 @@ export default function MovimentoEditor() {
 
   return (
     <Layout>
+      {/* HEADER */}
       <div className="pageHeader" style={{ paddingTop: 15 }}>
         <div>
           <h2 className="pageTitle">
@@ -385,6 +379,12 @@ export default function MovimentoEditor() {
           </div>
         </div>
       </div>
+
+      {/* ✅ (opzionale) puoi anche togliere del tutto questo error in alto.
+          Io lo lascio solo se NON siamo in errore di validazione, ma per semplicità:
+          lo mostro solo quando è loading=false e l'utente non è in fondo?
+          -> Qui lo rimuovo per evitare duplicati: l'errore lo mostriamo vicino ai pulsanti.
+      */}
 
       <Card title="1️⃣ Tipologia">
         <select
@@ -496,18 +496,12 @@ export default function MovimentoEditor() {
 
       {macro === "RACCOLTE_FONDI" && !isCostiGenerali && (
         <Card title="4️⃣ Descrizione raccolta fondi">
-          <select
+          <input
             value={descrizioneLabel}
             onChange={(e) => setDescrizioneLabel(e.target.value)}
             className="input"
-          >
-            <option value="">Seleziona…</option>
-            {raccolteFondiOptions.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
+            placeholder="Inserisci descrizione…"
+          />
         </Card>
       )}
 
@@ -525,6 +519,7 @@ export default function MovimentoEditor() {
             />
           </Card>
 
+          {/* ✅ 6️⃣ IVA: solo se ORDINARIO */}
           {showIvaField && (
             <Card title="6️⃣ IVA (solo regime ordinario)">
               <input
@@ -542,6 +537,7 @@ export default function MovimentoEditor() {
             </Card>
           )}
 
+          {/* ✅ 7️⃣ Descrizione operazione (obbligatoria) */}
           {isEntrataOrUscita && (
             <Card title="7️⃣ Descrizione operazione (obbligatoria)">
               <input
@@ -555,6 +551,7 @@ export default function MovimentoEditor() {
         </>
       )}
 
+      {/* ✅ ERRORE SPOSTATO QUI (SOPRA I PULSANTI) */}
       {error && (
         <div style={{ marginTop: 14, marginBottom: 10 }}>
           <Badge tone="red">Errore</Badge>
